@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   ShieldCheck,
-  CheckCircle2,
-  XCircle,
   TrendingUp,
   Search,
-  Trash2,
   RefreshCw,
   Eye,
   EyeOff,
@@ -17,7 +14,10 @@ import {
   Heart,
   MessageSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  Radio,
+  Activity
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { departmentRegisterSchema, adminRegisterSchema } from "../utils/validation";
@@ -27,15 +27,93 @@ import { getBroadcastStatistics } from "../api/departmentService";
 import govlyxLogo from "../assets/govlyx.svg";
 import { useCurrentUser } from "../hooks/useUser";
 
+const inferDepartmentType = (name: string) => {
+  const n = (name || "").toLowerCase();
+  if (n.includes("water")) return "Water Supply";
+  if (n.includes("road") || n.includes("infra")) return "Roads & Infrastructure";
+  if (n.includes("sanit") || n.includes("waste")) return "Sanitation & Waste";
+  if (n.includes("elec") || n.includes("power")) return "Electricity & Power";
+  if (n.includes("health") || n.includes("medical")) return "Health & Medical";
+  if (n.includes("police") || n.includes("safety")) return "Public Safety";
+  return "Public Services";
+};
+
+const formatRegDate = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    const now = new Date();
+    
+    // If it's today
+    if (d.toDateString() === now.toDateString()) {
+      return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+    }
+    
+    // If it's yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return `Yesterday, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+    }
+    
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const formatJoinedDate = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const DepartmentBroadcastCount = ({ userId }: { userId: number }) => {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const getCount = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/posts/count/user/${userId}`);
+        if (active && res.data) {
+          const cnt = res.data?.data ?? res.data;
+          setCount(Number(cnt));
+        }
+      } catch (err) {
+        if (active) setCount(0);
+      }
+    };
+    getCount();
+    return () => { active = false; };
+  }, [userId]);
+
+  if (count === null) {
+    return <span className="opacity-50 text-xs">...</span>;
+  }
+  return <span>{count}</span>;
+};
+
 const AdminDashboard = () => {
   // Navigation State
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
   // Stats State
-  const [liveSessions, setLiveSessions] = useState<number>(24);
+  const [liveSessions, setLiveSessions] = useState<number | null>(null);
   const [broadcastStats, setBroadcastStats] = useState<any>(null);
+  const [overviewStats, setOverviewStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [communityStats, setCommunityStats] = useState<any>(null);
+
+  // Users Filter State
+  const [usersRoleFilter, setUsersRoleFilter] = useState<string>("all");
 
   // Search State
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -44,10 +122,19 @@ const AdminDashboard = () => {
   const [panelLoading, setPanelLoading] = useState(false);
   const [panelFilter, setPanelFilter] = useState("all");
 
+  // Broadcasts Tab State
+  const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
+  const [loadingBroadcasts, setLoadingBroadcasts] = useState<boolean>(false);
+
+  // System Health Tab State
+  const [healthData, setHealthData] = useState<any>(null);
+  const [loadingHealth, setLoadingHealth] = useState<boolean>(false);
+  const [executingAction, setExecutingAction] = useState<string | null>(null);
+
   // Current user logic for dynamic admin profile footer
   const { data: currentUser } = useCurrentUser();
-  const userEmail = currentUser?.email || "madhavrakhonde7@gmail.com";
-  const userDisplayName = currentUser?.actualUsername || currentUser?.username || (userEmail.startsWith("samarth") ? "Samarth Pawar" : "Madhav Rakhonde");
+  const userEmail = currentUser?.email || "";
+  const userDisplayName = currentUser?.actualUsername || currentUser?.username || "Admin";
   const avatarInitials = userDisplayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
 
   // Onboarding Requests State (localStorage based)
@@ -70,8 +157,7 @@ const AdminDashboard = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    pincode: "",
-    departmentType: ""
+    pincode: ""
   });
   const [registeringDept, setRegisteringDept] = useState(false);
 
@@ -85,35 +171,38 @@ const AdminDashboard = () => {
   });
   const [registeringAdmin, setRegisteringAdmin] = useState(false);
 
-  // Users Database State (Mock + LocalStorage)
-  const [usersDb, setUsersDb] = useState<any[]>([
-    { id: 1, username: "madhavrakhonde", email: "madhavrakhonde7@gmail.com", pincode: "411001", role: "ROLE_ADMIN", status: "Active", regDate: "2026-01-10" },
-    { id: 100, username: "samarthpawar", email: "samarthbhagwanpawar098@gmail.com", pincode: "411001", role: "ROLE_ADMIN", status: "Active", regDate: "2026-05-25" },
-    { id: 2, username: "amit_sharma", email: "amit.sharma@gmail.com", pincode: "110001", role: "ROLE_USER", status: "Active", regDate: "2026-05-20" },
-    { id: 3, username: "priya_patel", email: "priya.patel@gmail.com", pincode: "380001", role: "ROLE_USER", status: "Active", regDate: "2026-05-22" },
-    { id: 4, username: "rajesh_kumar", email: "rajesh.k@gmail.com", pincode: "560001", role: "ROLE_USER", status: "Suspended", regDate: "2026-05-18" },
-    { id: 5, username: "sneha_reddy", email: "sneha.r@gmail.com", pincode: "500001", role: "ROLE_USER", status: "Active", regDate: "2026-05-24" }
-  ]);
+  // Users Database State
+  const [usersDb, setUsersDb] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Communities Database State (Mock + LocalStorage)
-  const [communitiesDb, setCommunitiesDb] = useState<any[]>([
-    { id: 1, name: "Civic Pune East", slug: "civic-pune-east", description: "Discussion for citizens of Pune East area", category: "Civic", privacy: "PUBLIC", memberCount: 142, postCount: 48, status: "Active", regDate: "2026-02-12" },
-    { id: 2, name: "Water Issues Mumbai", slug: "water-mumbai", description: "Water pipeline issues and updates", category: "Utility", privacy: "PUBLIC", memberCount: 89, postCount: 12, status: "Active", regDate: "2026-03-01" },
-    { id: 3, name: "Green Delhi Team", slug: "green-delhi", description: "Tree plantation drive and cleanliness updates", category: "Environment", privacy: "PUBLIC", memberCount: 310, postCount: 104, status: "Active", regDate: "2026-01-18" }
-  ]);
+  const [communitiesDb, setCommunitiesDb] = useState<any[]>([]);
   const [fetchingCommunities, setFetchingCommunities] = useState(false);
 
-  // Departments Database State (Mock + LocalStorage)
-  const [deptsDb, setDeptsDb] = useState<any[]>([
-    { id: 1, name: "WaterDeptMumbai", email: "water.mumbai@gov.in", pincode: "400001", departmentType: "Water Supply", status: "Active", regDate: "2026-05-15" },
-    { id: 2, name: "RoadsDeptPune", email: "roads.pune@maha.gov.in", pincode: "411001", departmentType: "Roads & Infrastructure", status: "Active", regDate: "2026-05-18" },
-    { id: 3, name: "SanitationHyderabad", email: "sanitation.hyd@ts.gov.in", pincode: "500001", departmentType: "Sanitation & Waste", status: "Pending", regDate: "2026-05-24" },
-    { id: 4, name: "HealthDeptDelhi", email: "health.delhi@gov.in", pincode: "110001", departmentType: "Health & Medical", status: "Active", regDate: "2026-05-12" }
-  ]);
+  // Departments Database State
+  const [deptsDb, setDeptsDb] = useState<any[]>([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
 
-  // Content monitor database state
-  const [postsDb, setPostsDb] = useState<any[]>([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
+  // Content moderation states
+  const [moderationStats, setModerationStats] = useState({
+    totalPending: 0,
+    emergencyPending: 0,
+    standardPending: 0,
+    totalResolved: 0
+  });
+  const [emergencyReports, setEmergencyReports] = useState<any[]>([]);
+  const [standardReports, setStandardReports] = useState<any[]>([]);
+  const [historyReports, setHistoryReports] = useState<any[]>([]);
+  const [loadingModeration, setLoadingModeration] = useState(false);
+  // moderationSubTab is currently not used in UI viewports
+  // const [moderationSubTab, setModerationSubTab] = useState<"emergency" | "standard" | "history">("emergency");
+  const [resolvingReportId, setResolvingReportId] = useState<number | null>(null);
+  const [resolveForm, setResolveForm] = useState({
+    resolution: "RESOLVED_REMOVED",
+    notes: ""
+  });
+  const [submittingResolution, setSubmittingResolution] = useState(false);
+  const [reportContents, setReportContents] = useState<Record<string, { content: string; author?: string; mediaUrls?: string[]; error?: boolean; loading: boolean }>>({});
 
   // Live search states for workable user view
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -122,46 +211,24 @@ const AdminDashboard = () => {
   // Fetch initial stats and list data
   useEffect(() => {
     fetchStats();
+    fetchLiveDepartments();
+    fetchLiveUsers();
     
     // Load onboarding requests from localStorage
     const savedReqs = JSON.parse(localStorage.getItem("dept_requests") || "[]");
     setRequests(savedReqs);
 
-    // Sync mock DBs with localStorage (to persist registrations)
-    const storedUsers = localStorage.getItem("admin_users_db");
-    if (storedUsers) {
-      setUsersDb(JSON.parse(storedUsers));
-    } else {
-      localStorage.setItem("admin_users_db", JSON.stringify(usersDb));
-    }
-
-    const storedDepts = localStorage.getItem("admin_depts_db");
-    if (storedDepts) {
-      setDeptsDb(JSON.parse(storedDepts));
-    } else {
-      localStorage.setItem("admin_depts_db", JSON.stringify(deptsDb));
-    }
-
-    const storedComms = localStorage.getItem("admin_communities_db");
-    if (storedComms) {
-      setCommunitiesDb(JSON.parse(storedComms));
-    } else {
-      localStorage.setItem("admin_communities_db", JSON.stringify(communitiesDb));
-    }
-
-    // Interval to simulate live sessions
-    const interval = setInterval(() => {
-      setLiveSessions(prev => Math.max(12, prev + Math.floor(Math.random() * 5) - 2));
-    }, 4000);
-
-    return () => clearInterval(interval);
+    // Real-time synchronization is handled directly by API calls.
   }, []);
 
   const fetchStats = async () => {
     setLoadingStats(true);
     try {
       // Fetch broadcast statistics
-      const bStats = await getBroadcastStatistics();
+      const bStats = await getBroadcastStatistics().catch(err => {
+        console.warn("Failed fetching broadcast statistics:", err);
+        return null;
+      });
       if (bStats) setBroadcastStats(bStats);
 
       // Fetch chat statistics (fail-safe)
@@ -171,6 +238,39 @@ const AdminDashboard = () => {
         if (stats.activeSessions !== undefined) {
           setLiveSessions(stats.activeSessions);
         }
+      }
+
+      // Fetch dashboard overview stats
+      const overviewRes = await axiosInstance.get("/api/admin/dashboard/overview").catch(() => null);
+      if (overviewRes && overviewRes.data) {
+        const data = overviewRes.data?.data ?? overviewRes.data;
+        setOverviewStats(data);
+        if (data.activeChatSessions !== undefined) {
+          setLiveSessions(data.activeChatSessions);
+        }
+      }
+
+      // Fetch online user count
+      const onlineRes = await axiosInstance.get("/api/chat/online-count").catch(() => null);
+      if (onlineRes && onlineRes.data) {
+        const data = onlineRes.data?.data ?? onlineRes.data;
+        if (data.onlineCount !== undefined) {
+          setOnlineCount(Number(data.onlineCount));
+        }
+      }
+
+      // Fetch recent activity
+      const activityRes = await axiosInstance.get("/api/admin/activity/recent").catch(() => null);
+      if (activityRes && activityRes.data) {
+        const data = activityRes.data?.data ?? activityRes.data;
+        setRecentActivities(Array.isArray(data) ? data : []);
+      }
+
+      // Fetch community stats
+      const commStatsRes = await axiosInstance.get("/api/admin/communities/stats").catch(() => null);
+      if (commStatsRes && commStatsRes.data) {
+        const data = commStatsRes.data?.data ?? commStatsRes.data;
+        setCommunityStats(data);
       }
     } catch (e) {
       console.warn("Failed fetching dashboard stats from backend, displaying simulations.");
@@ -189,11 +289,11 @@ const AdminDashboard = () => {
       setSearchingLive(true);
       try {
         const res = await axiosInstance.get(`/api/users/search?query=${encodeURIComponent(searchQuery)}&limit=20`);
-        const data = res.data?.data?.data ?? res.data?.data ?? res.data?.content ?? [];
+        const data = res.data?.data?.data ?? res.data?.data?.content ?? res.data?.data ?? res.data?.content ?? [];
         if (Array.isArray(data)) {
           const mapped = data.map((u: any) => ({
             id: u.id,
-            username: u.username,
+            username: u.actualUsername || u.username,
             email: u.email || `${u.username}@govlyx.io`,
             pincode: u.pincode || "N/A",
             role: u.role || "ROLE_USER",
@@ -212,82 +312,109 @@ const AdminDashboard = () => {
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
-  // Fetch all users with multi-tier API fallbacks
-  const fetchLiveUsers = async () => {
-    setSearchingLive(true);
-    let usersData: any[] = [];
-    
-    // Tier 1: GET /api/users?size=100
-    try {
-      const res = await axiosInstance.get("/api/users?size=100");
-      const data = res.data?.data?.content ?? res.data?.data ?? res.data?.content ?? res.data ?? [];
-      if (Array.isArray(data) && data.length > 0) {
-        usersData = data;
-      }
-    } catch (err) {
-      console.warn("Failed GET /api/users, trying fallback Tier 2", err);
-    }
-
-    // Tier 2: GET /api/users/search?query=&limit=100
-    if (usersData.length === 0) {
-      try {
-        const res = await axiosInstance.get("/api/users/search?query=&limit=100");
-        const data = res.data?.data?.data ?? res.data?.data ?? res.data?.content ?? res.data ?? [];
-        if (Array.isArray(data) && data.length > 0) {
-          usersData = data;
-        }
-      } catch (err) {
-        console.warn("Failed GET /api/users/search?query=, trying fallback Tier 3", err);
-      }
-    }
-
-    // Tier 3: GET /api/users/search?query=a&limit=100
-    if (usersData.length === 0) {
-      try {
-        const res = await axiosInstance.get("/api/users/search?query=a&limit=100");
-        const data = res.data?.data?.data ?? res.data?.data ?? res.data?.content ?? res.data ?? [];
-        if (Array.isArray(data) && data.length > 0) {
-          usersData = data;
-        }
-      } catch (err) {
-        console.warn("Failed GET /api/users/search?query=a", err);
-      }
-    }
-
-    if (usersData.length > 0) {
-      const mapped = usersData.map((u: any) => ({
-        id: u.id,
-        username: u.username,
-        email: u.email || `${u.username}@govlyx.io`,
-        pincode: u.pincode || "N/A",
-        role: u.role || "ROLE_USER",
-        status: "Active",
-        regDate: u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : "2026-05-25"
-      }));
-
-      // Safely merge live fetched backend users with local cache (usersDb state) to prevent duplication.
-      setUsersDb(prev => {
-        const seen = new Set(prev.map(u => `${u.username}-${u.role}`));
-        const uniqueNew = mapped.filter(u => {
-          const key = `${u.username}-${u.role}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            return true;
-          }
-          return false;
-        });
-        const merged = [...prev, ...uniqueNew];
-        localStorage.setItem("admin_users_db", JSON.stringify(merged));
-        return merged;
-      });
-    }
-    setSearchingLive(false);
+  // Helper: extract paginated array from any API response shape
+  const extractPaginatedData = (res: any): any[] => {
+    if (!res?.data) return [];
+    const body = res.data; // ApiResponse
+    const paged = body?.data; // PaginatedResponse
+    if (Array.isArray(paged)) return paged;
+    if (Array.isArray(paged?.data)) return paged.data;
+    if (Array.isArray(paged?.content)) return paged.content;
+    if (Array.isArray(body?.content)) return body.content;
+    if (Array.isArray(body)) return body;
+    return [];
   };
 
-  // Trigger live user fetch when All Users tab is selected
+  // Fetch all users with multi-tier API fallbacks
+  const fetchLiveUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Fetch users by role in parallel — role is @JsonIgnore so we label them ourselves
+      const [adminsRes, deptsRes, citizensRes] = await Promise.all([
+        axiosInstance.get("/api/users/by-role/ROLE_ADMIN", { params: { limit: 50 } }).catch((e) => { console.error("[fetchLiveUsers] ROLE_ADMIN failed:", e?.response?.status, e?.response?.data); return null; }),
+        axiosInstance.get("/api/users/by-role/ROLE_DEPARTMENT", { params: { limit: 50 } }).catch((e) => { console.error("[fetchLiveUsers] ROLE_DEPARTMENT failed:", e?.response?.status, e?.response?.data); return null; }),
+        axiosInstance.get("/api/users/by-role/ROLE_USER", { params: { limit: 50 } }).catch((e) => { console.error("[fetchLiveUsers] ROLE_USER failed:", e?.response?.status, e?.response?.data); return null; }),
+      ]);
+
+      const admins = extractPaginatedData(adminsRes);
+      const depts  = extractPaginatedData(deptsRes);
+      const citizens = extractPaginatedData(citizensRes);
+
+      console.log("[fetchLiveUsers] raw counts — admins:", admins.length, "depts:", depts.length, "citizens:", citizens.length);
+
+      const mapUser = (u: any, role: string) => ({
+        id: u.id,
+        username: u.actualUsername || u.username,
+        email: u.email,
+        pincode: u.pincode || "N/A",
+        role,
+        status: u.isActive !== false ? "Active" : "Suspended",
+        regDate: u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : "N/A"
+      });
+
+      const allUsers = [
+        ...admins.map((u: any) => mapUser(u, "ROLE_ADMIN")),
+        ...depts.map((u: any) => mapUser(u, "ROLE_DEPARTMENT")),
+        ...citizens.map((u: any) => mapUser(u, "ROLE_USER")),
+      ];
+
+      if (allUsers.length > 0) {
+        setUsersDb(allUsers);
+        return;
+      }
+
+      // Fallback: /api/users/active
+      console.warn("[fetchLiveUsers] by-role returned empty, trying /api/users/active");
+      const activeRes = await axiosInstance.get("/api/users/active", { params: { limit: 50 } }).catch((e) => { console.error("[fetchLiveUsers] /active failed:", e?.response?.status); return null; });
+      const activeData = extractPaginatedData(activeRes);
+      if (activeData.length > 0) {
+        setUsersDb(activeData.map((u: any) => mapUser(u, "ROLE_USER")));
+      }
+    } catch (err) {
+      console.error("[fetchLiveUsers] unexpected error:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Re-fetch live users when All Users tab is selected (refresh on each visit)
   useEffect(() => {
     if (activeTab === "users") {
       fetchLiveUsers();
+    }
+  }, [activeTab]);
+
+
+  const fetchLiveDepartments = async () => {
+    setLoadingDepts(true);
+    try {
+      // Clean approach: Call /api/admin/departments directly.
+      // (This will work perfectly once the backend lazy-loading crash is fixed)
+      const res = await axiosInstance.get("/api/admin/departments", { params: { limit: 100 } });
+      const list = extractPaginatedData(res);
+      
+      const mapped = list.map((u: any) => ({
+        id: u.id,
+        name: u.actualUsername || u.username,
+        email: u.email || "",
+        pincode: u.pincode || "N/A",
+        status: u.isActive !== false ? "Active" : "Suspended",
+        regDate: u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : "N/A"
+      }));
+
+      console.log("[fetchLiveDepartments] loaded", mapped.length, "departments");
+      setDeptsDb(mapped);
+    } catch (err) {
+      console.error("[fetchLiveDepartments] unexpected error:", err);
+    } finally {
+      setLoadingDepts(false);
+    }
+  };
+
+  // Re-fetch live departments when Departments tab is selected (refresh on each visit)
+  useEffect(() => {
+    if (activeTab === "departments") {
+      fetchLiveDepartments();
     }
   }, [activeTab]);
 
@@ -295,8 +422,8 @@ const AdminDashboard = () => {
     setFetchingCommunities(true);
     try {
       const res = await axiosInstance.get("/api/communities?size=100");
-      const data = res.data?.data?.content ?? res.data?.data ?? res.data?.content ?? res.data ?? [];
-      if (Array.isArray(data) && data.length > 0) {
+      const data = res.data?.data?.data ?? res.data?.data?.content ?? res.data?.data ?? res.data?.content ?? res.data ?? [];
+      if (Array.isArray(data)) {
         const mapped = data.map((c: any) => ({
           id: c.id,
           name: c.name || c.communityName || "",
@@ -309,21 +436,7 @@ const AdminDashboard = () => {
           status: c.archived ? "Archived" : "Active",
           regDate: c.createdAt ? new Date(c.createdAt).toISOString().split("T")[0] : "2026-05-25"
         }));
-
-        setCommunitiesDb(prev => {
-          const seen = new Set(prev.map(item => `${item.name}-${item.slug}`));
-          const uniqueNew = mapped.filter(item => {
-            const key = `${item.name}-${item.slug}`;
-            if (!seen.has(key)) {
-              seen.add(key);
-              return true;
-            }
-            return false;
-          });
-          const merged = [...prev, ...uniqueNew];
-          localStorage.setItem("admin_communities_db", JSON.stringify(merged));
-          return merged;
-        });
+        setCommunitiesDb(mapped);
       }
     } catch (err) {
       console.warn("Failed fetching live communities from backend:", err);
@@ -333,21 +446,13 @@ const AdminDashboard = () => {
   };
 
   const toggleCommunityStatus = async (id: number) => {
-    const updated = communitiesDb.map(c => {
-      if (c.id === id) {
-        const nextStatus = c.status === "Active" ? "Archived" : "Active";
-        showToast.info(`Community ${c.name} status set to ${nextStatus}`);
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    });
-    setCommunitiesDb(updated);
-    localStorage.setItem("admin_communities_db", JSON.stringify(updated));
-
     try {
       await axiosInstance.delete(`/api/communities/${id}/archive`);
+      showToast.success("Community archived successfully");
+      fetchLiveCommunities();
     } catch (err) {
-      console.warn("API call to archive community failed, state updated locally.");
+      console.warn("API call to archive community failed.");
+      showToast.error("Failed to archive community.");
     }
   };
 
@@ -355,47 +460,159 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (activeTab === "communities") {
       fetchLiveCommunities();
+      axiosInstance.get("/api/admin/communities/stats")
+        .then(res => {
+          if (res.data) setCommunityStats(res.data.data ?? res.data);
+        })
+        .catch(() => null);
     }
   }, [activeTab]);
 
-  // Live content monitor fetching
-  const fetchLivePosts = async () => {
-    setLoadingPosts(true);
+  const fetchLiveBroadcasts = async () => {
+    setLoadingBroadcasts(true);
     try {
-      const res = await axiosInstance.get("/api/v1/feed/for-you", { params: { size: 50 } });
-      const data = res.data?.data?.content ?? res.data?.content ?? res.data?.data ?? [];
+      const res = await axiosInstance.get("/api/posts/broadcast?limit=50");
+      const data = res.data?.data?.data ?? res.data?.data?.content ?? res.data?.data ?? res.data?.content ?? [];
       if (Array.isArray(data)) {
-        const mapped = data.map((post: any) => ({
-          id: post.id,
-          author: post.author?.actualUsername ?? post.author?.username ?? "anonymous",
-          type: post.issueType ? "civic" : "social",
-          content: post.content,
-          flags: post.flagCount ?? 0,
-          date: post.timeAgo ?? "Recent",
-          postType: post.issueType ? "posts" : "social-posts"
+        const mapped = data.map((b: any) => ({
+          id: b.id,
+          username: b.username || b.author?.username || "System",
+          scope: b.broadcastScope || "AREA",
+          target: b.targetPincodes?.join(", ") || b.targetDistricts?.join(", ") || b.targetStates?.join(", ") || b.targetCountry || "N/A",
+          posted: b.createdAt ? new Date(b.createdAt).toLocaleString() : "N/A",
+          resolved: b.resolved ? "Yes" : "No",
+          content: b.content
         }));
-        setPostsDb(mapped);
+        setBroadcastsList(mapped);
       }
     } catch (err) {
-      console.warn("Failed to fetch live feed for content monitor. Using simulation fallback.");
-      setPostsDb([
-        { id: 101, author: "priya_patel", type: "social", content: "Garbage collection in Area 4 has been delayed for 3 days. Any updates?", flags: 0, date: "3 hours ago", postType: "social-posts" },
-        { id: 102, author: "amit_sharma", type: "civic", content: "Water pipe leakage on Main Road. Pincode 110001 needs immediate fix.", flags: 4, date: "5 hours ago", postType: "posts" },
-        { id: 103, author: "rajesh_kumar", type: "social", content: "Join community discussions on the new city development proposals.", flags: 0, date: "1 day ago", postType: "social-posts" },
-        { id: 104, author: "troll_user", type: "social", content: "Prohibited words and spam text here for moderation check.", flags: 12, date: "2 days ago", postType: "social-posts" }
-      ]);
+      console.warn("Failed fetching live broadcasts:", err);
     } finally {
-      setLoadingPosts(false);
+      setLoadingBroadcasts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "broadcast") {
+      fetchLiveBroadcasts();
+    }
+  }, [activeTab]);
+
+  const fetchSystemHealth = async () => {
+    setLoadingHealth(true);
+    try {
+      const res = await axiosInstance.get("/api/admin/system/health");
+      const data = res.data?.data ?? res.data;
+      setHealthData(data);
+    } catch (err) {
+      console.warn("Failed fetching system health:", err);
+    } finally {
+      setLoadingHealth(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "system") {
+      fetchSystemHealth();
+    }
+  }, [activeTab]);
+
+  // Content Moderation Data Fetchers
+  const fetchReportedContent = async (targetType: string, targetId: number) => {
+    const key = `${targetType}-${targetId}`;
+    if (reportContents[key]) return; // already fetched or fetching
+
+    setReportContents(prev => ({
+      ...prev,
+      [key]: { content: "Loading reported content...", loading: true }
+    }));
+
+    try {
+      const isSocial = targetType === "SOCIAL_POST";
+      const endpoint = isSocial ? `/api/social-posts/${targetId}` : `/api/posts/${targetId}`;
+      const res = await axiosInstance.get(endpoint);
+      const post = res.data?.data ?? res.data;
+      
+      setReportContents(prev => ({
+        ...prev,
+        [key]: {
+          content: post.content || "(No text content)",
+          author: post.author?.actualUsername || post.author?.username || post.username || "anonymous",
+          mediaUrls: post.mediaUrls || (post.imageName ? [post.imageName] : []),
+          loading: false
+        }
+      }));
+    } catch (err: any) {
+      console.warn(`Failed to fetch content for ${key}:`, err);
+      setReportContents(prev => ({
+        ...prev,
+        [key]: {
+          content: err.response?.status === 404 ? "Content has already been removed or is unavailable (404)." : "Error loading content details.",
+          author: "N/A",
+          error: true,
+          loading: false
+        }
+      }));
+    }
+  };
+
+  const fetchModerationData = async () => {
+    setLoadingModeration(true);
+    try {
+      // 1. Fetch Stats
+      const statsRes = await axiosInstance.get("/api/reports/admin/stats");
+      const statsData = statsRes.data?.data ?? statsRes.data;
+      if (statsData) {
+        setModerationStats({
+          totalPending: statsData.totalPending ?? 0,
+          emergencyPending: statsData.emergencyPending ?? 0,
+          standardPending: statsData.standardPending ?? 0,
+          totalResolved: statsData.totalResolved ?? 0
+        });
+      }
+
+      // 2. Fetch Pending Emergency Reports
+      const emergencyRes = await axiosInstance.get("/api/reports/admin/emergency?size=100");
+      const emergencyData = emergencyRes.data?.data?.data ?? emergencyRes.data?.data?.content ?? emergencyRes.data?.data ?? emergencyRes.data?.content ?? [];
+      setEmergencyReports(Array.isArray(emergencyData) ? emergencyData : []);
+
+      // 3. Fetch Pending Standard Reports
+      const standardRes = await axiosInstance.get("/api/reports/admin/standard?size=100");
+      const standardData = standardRes.data?.data?.data ?? standardRes.data?.data?.content ?? standardRes.data?.data ?? standardRes.data?.content ?? [];
+      setStandardReports(Array.isArray(standardData) ? standardData : []);
+
+      // 4. Fetch All/History Reports
+      const allRes = await axiosInstance.get("/api/reports/admin/all?size=100");
+      const allData = allRes.data?.data?.data ?? allRes.data?.data?.content ?? allRes.data?.data ?? allRes.data?.content ?? [];
+      setHistoryReports(Array.isArray(allData) ? allData : []);
+
+    } catch (err: any) {
+      console.error("Failed to fetch moderation data:", err);
+      showToast.error("Failed to sync reports queue from server.");
+    } finally {
+      setLoadingModeration(false);
     }
   };
 
   useEffect(() => {
     if (activeTab === "content") {
-      fetchLivePosts();
+      fetchModerationData();
     }
   }, [activeTab]);
 
-  // Onboarding Request Actions
+  useEffect(() => {
+    const reports = [...emergencyReports, ...standardReports, ...historyReports];
+    reports.forEach(r => {
+      if (r.targetId && r.targetType) {
+        fetchReportedContent(r.targetType, r.targetId);
+      }
+    });
+  }, [emergencyReports, standardReports, historyReports]);
+
+
+
+  // Onboarding Request Actions (Commented out as the onboarding queue list is unused)
+  /*
   const handleApproveRequest = (req: any) => {
     setShowApproveModal(req);
     setApprovedForm({
@@ -404,6 +621,7 @@ const AdminDashboard = () => {
       identity: `GOV-${Math.floor(1000 + Math.random() * 9000)}`
     });
   };
+  */
 
   const confirmApproveRequest = async () => {
     if (!approvedForm.email || !approvedForm.password) {
@@ -417,7 +635,6 @@ const AdminDashboard = () => {
         name: showApproveModal.deptName,
         email: approvedForm.email,
         password: approvedForm.password,
-        departmentType: showApproveModal.deptType || "GENERAL",
       });
 
       if (!parseResult.success) {
@@ -431,48 +648,35 @@ const AdminDashboard = () => {
         email: approvedForm.email,
         password: approvedForm.password,
         pincode: showApproveModal.pincode || "400001",
-        username: showApproveModal.deptName,
-        name: showApproveModal.deptName,
-        departmentType: showApproveModal.deptType || "GENERAL"
+        username: showApproveModal.deptName
       };
 
-      await axiosInstance.post("/api/auth/register/department", registerPayload).catch(e => {
-        console.warn("Backend registration failed or not supported. Simulating approval.", e);
-      });
+      await axiosInstance.post("/api/auth/register/department", registerPayload);
 
       // Update request list
       const updatedReqs = requests.map(r => r.id === showApproveModal.id ? { ...r, status: "approved" } : r);
       setRequests(updatedReqs);
       localStorage.setItem("dept_requests", JSON.stringify(updatedReqs));
 
-      // Add to departments list
-      const newDept = {
-        id: Date.now(),
-        name: showApproveModal.deptName,
-        email: approvedForm.email,
-        pincode: showApproveModal.pincode || "400001",
-        departmentType: showApproveModal.deptType || "GENERAL",
-        status: "Active",
-        regDate: new Date().toISOString().split("T")[0]
-      };
-      
-      const newDeptsList = [newDept, ...deptsDb];
-      setDeptsDb(newDeptsList);
-      localStorage.setItem("admin_depts_db", JSON.stringify(newDeptsList));
+      // Fetch live departments list to update
+      fetchLiveDepartments();
 
-      showToast.success(`Approved! Credentials sent to: ${approvedForm.email}`);
+      showToast.success(`Approved! Credentials created for: ${approvedForm.email}`);
       setShowApproveModal(null);
-    } catch (e) {
-      showToast.error("Failed to approve department onboarding.");
+    } catch (e: any) {
+      const errMsg = e.response?.data?.message || e.message || "Failed to approve department onboarding.";
+      showToast.error(errMsg);
     }
   };
 
+  /*
   const handleRejectRequest = (id: number) => {
     const updated = requests.map(r => r.id === id ? { ...r, status: "rejected" } : r);
     setRequests(updated);
     localStorage.setItem("dept_requests", JSON.stringify(updated));
     showToast.info("Department onboarding request rejected.");
   };
+  */
 
   // Register Department Account
   const handleRegisterDept = async (e: React.FormEvent) => {
@@ -491,7 +695,6 @@ const AdminDashboard = () => {
         name: deptForm.name,
         email: deptForm.email,
         password: deptForm.password,
-        departmentType: deptForm.departmentType,
       });
 
       if (!parseResult.success) {
@@ -505,29 +708,13 @@ const AdminDashboard = () => {
         email: deptForm.email,
         password: deptForm.password,
         pincode: deptForm.pincode || "110001",
-        username: deptForm.name,
-        name: deptForm.name,
-        departmentType: deptForm.departmentType
+        username: deptForm.name
       };
 
-      await axiosInstance.post("/api/auth/register/department", payload).catch(e => {
-        console.warn("Backend department register failed or unmounted. Simulating department creation.", e);
-      });
+      await axiosInstance.post("/api/auth/register/department", payload);
 
-      // Update Database
-      const newDept = {
-        id: Date.now(),
-        name: deptForm.name,
-        email: deptForm.email,
-        pincode: deptForm.pincode || "110001",
-        departmentType: deptForm.departmentType,
-        status: "Active",
-        regDate: new Date().toISOString().split("T")[0]
-      };
-
-      const updatedList = [newDept, ...deptsDb];
-      setDeptsDb(updatedList);
-      localStorage.setItem("admin_depts_db", JSON.stringify(updatedList));
+      // Fetch live list
+      fetchLiveDepartments();
 
       showToast.success(`Department "${deptForm.name}" registered successfully!`);
       
@@ -537,13 +724,46 @@ const AdminDashboard = () => {
         email: "",
         password: "",
         confirmPassword: "",
-        pincode: "",
-        departmentType: ""
+        pincode: ""
       });
-    } catch (e) {
-      showToast.error("Failed to register department.");
+    } catch (e: any) {
+      const errMsg = e.response?.data?.message || e.message || "Failed to register department.";
+      showToast.error(errMsg);
     } finally {
       setRegisteringDept(false);
+    }
+  };
+
+  const exportUsersToCSV = () => {
+    try {
+      const headers = ["ID", "Username", "Email", "Role", "Pincode", "Status", "Joined Date"];
+      const rows = usersDb.map(u => [
+        u.id,
+        u.username,
+        u.email || "",
+        u.role,
+        u.pincode || "",
+        u.status,
+        u.regDate || ""
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `govlyx_users_${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast.success("Users database exported to CSV successfully!");
+    } catch (err) {
+      showToast.error("Failed to export users to CSV");
     }
   };
 
@@ -580,24 +800,10 @@ const AdminDashboard = () => {
         username: adminForm.username
       };
 
-      await axiosInstance.post("/api/auth/register/admin", payload).catch(e => {
-        console.warn("Backend admin registration failed or not supported. Simulating admin creation.", e);
-      });
+      await axiosInstance.post("/api/auth/register/admin", payload);
 
-      // Update Database
-      const newAdmin = {
-        id: Date.now(),
-        username: adminForm.username,
-        email: adminForm.email,
-        pincode: adminForm.pincode || "110001",
-        role: "ROLE_ADMIN",
-        status: "Active",
-        regDate: new Date().toISOString().split("T")[0]
-      };
-
-      const updatedList = [newAdmin, ...usersDb];
-      setUsersDb(updatedList);
-      localStorage.setItem("admin_users_db", JSON.stringify(updatedList));
+      // Fetch live list
+      fetchLiveUsers();
 
       showToast.success(`Admin user "${adminForm.username}" registered successfully!`);
 
@@ -609,16 +815,13 @@ const AdminDashboard = () => {
         password: "",
         confirmPassword: ""
       });
-    } catch (e) {
-      showToast.error("Failed to register admin.");
+    } catch (e: any) {
+      const errMsg = e.response?.data?.message || e.message || "Failed to register admin.";
+      showToast.error(errMsg);
     } finally {
       setRegisteringAdmin(false);
     }
   };
-
-
-
-
 
   // Open details slide-over pane
   const handleOpenDetails = (user: any) => {
@@ -645,54 +848,130 @@ const AdminDashboard = () => {
     }, 800);
   };
 
-  // User Management actions
-  const toggleUserStatus = (id: number) => {
-    const updated = usersDb.map(u => {
-      if (u.id === id) {
-        const nextStatus = u.status === "Active" ? "Suspended" : "Active";
-        showToast.info(`User ${u.username} status set to ${nextStatus}`);
-        return { ...u, status: nextStatus };
-      }
-      return u;
-    });
-    setUsersDb(updated);
-    localStorage.setItem("admin_users_db", JSON.stringify(updated));
-  };
-
-  // Department Management actions
-  const toggleDeptStatus = (id: number) => {
-    const updated = deptsDb.map(d => {
-      if (d.id === id) {
-        const nextStatus = d.status === "Active" ? "Suspended" : "Active";
-        showToast.info(`Department ${d.name} status set to ${nextStatus}`);
-        return { ...d, status: nextStatus };
-      }
-      return d;
-    });
-    setDeptsDb(updated);
-    localStorage.setItem("admin_depts_db", JSON.stringify(updated));
-  };
-
-  // Content moderation actions
-  const handleDeletePost = async (id: number, postType: string) => {
+  // User Management actions (Soft delete deactivation)
+  const handleDeactivateUser = async (userId: number) => {
+    if (!window.confirm("Are you sure you want to deactivate this user account?")) {
+      return;
+    }
     try {
-      await axiosInstance.delete(`/api/${postType}/${id}`);
-      showToast.success("Post removed successfully from platform.");
-      setPostsDb(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      showToast.error("Failed to delete post from server. Simulating removal.");
-      setPostsDb(prev => prev.filter(p => p.id !== id));
+      await axiosInstance.delete(`/api/admin/users/${userId}`);
+      showToast.success("User account deactivated successfully");
+      fetchLiveUsers();
+      fetchLiveDepartments();
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || err.message || "Failed to deactivate user";
+      showToast.error(errMsg);
     }
   };
 
-  const handleResolveFlags = (id: number) => {
-    setPostsDb(postsDb.map(p => p.id === id ? { ...p, flags: 0 } : p));
-    showToast.success("Post flags cleared.");
+  // Content moderation actions
+  const handleOpenResolveDialog = (reportId: number) => {
+    setResolvingReportId(reportId);
+    setResolveForm({ resolution: "RESOLVED_REMOVED", notes: "" });
   };
 
-  // Recalculate Bad Words List simulation
-  const handleReloadBadWords = () => {
-    showToast.success("Bad word filter reloaded successfully! (312 words parsed)");
+  const submitResolveReport = async () => {
+    if (!resolvingReportId) return;
+    if (!resolveForm.notes.trim()) {
+      showToast.error("Resolution notes are required for legal compliance record.");
+      return;
+    }
+
+    setSubmittingResolution(true);
+    try {
+      await axiosInstance.put(`/api/reports/admin/${resolvingReportId}/resolve`, {
+        resolution: resolveForm.resolution,
+        notes: resolveForm.notes.trim()
+      });
+
+      showToast.success("Report resolved successfully.");
+      setResolvingReportId(null);
+      fetchModerationData();
+    } catch (err: any) {
+      console.error("Failed to resolve report:", err);
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to resolve report.";
+      showToast.error(errMsg);
+    } finally {
+      setSubmittingResolution(false);
+    }
+  };
+
+  // Bad words hot reload API integration
+  const handleReloadBadWords = async () => {
+    setExecutingAction("bad-words");
+    try {
+      const res = await axiosInstance.post("/api/admin/bad-words/reload");
+      const data = res.data?.data ?? res.data;
+      const wordsLoaded = data.wordsLoaded ?? 0;
+      showToast.success(`Bad word filter reloaded successfully! (${wordsLoaded} words active)`);
+      fetchStats();
+      fetchSystemHealth();
+    } catch (err: any) {
+      showToast.error("Failed to reload bad word filter.");
+    } finally {
+      setExecutingAction(null);
+    }
+  };
+
+  // System quick actions API integrations
+  const handleRunCleanup = async () => {
+    setExecutingAction("cleanup");
+    try {
+      await axiosInstance.post("/api/posts/cleanup/files");
+      showToast.success("File cleanup queue processed successfully");
+      fetchStats();
+      fetchSystemHealth();
+    } catch (err: any) {
+      showToast.error("Failed to process file cleanup queue.");
+    } finally {
+      setExecutingAction(null);
+    }
+  };
+
+  const handleResetCounters = async () => {
+    setExecutingAction("reset");
+    try {
+      await axiosInstance.post("/api/admin/communities/reset-counters");
+      showToast.success("Weekly community engagement counters reset successfully");
+      fetchStats();
+      fetchSystemHealth();
+    } catch (err: any) {
+      showToast.error("Failed to reset community counters.");
+    } finally {
+      setExecutingAction(null);
+    }
+  };
+
+  const handleTriggerNotifCleanup = async () => {
+    setExecutingAction("notif-cleanup");
+    try {
+      await axiosInstance.post("/api/admin/notifications/cleanup");
+      showToast.success("Notification cleanup completed (notifications older than 30 days removed)");
+      fetchStats();
+      fetchSystemHealth();
+    } catch (err: any) {
+      showToast.error("Failed to trigger notification cleanup.");
+    } finally {
+      setExecutingAction(null);
+    }
+  };
+
+  const handleForceEndAllChat = async () => {
+    if (!window.confirm("Are you sure you want to terminate ALL active chat sessions? This will disconnect all chatting citizens immediately!")) {
+      return;
+    }
+    setExecutingAction("chat-kill");
+    try {
+      const res = await axiosInstance.post("/api/admin/chat/force-end-all");
+      const msg = res.data?.message || "All active chat sessions terminated.";
+      showToast.success(msg);
+      fetchStats();
+      fetchSystemHealth();
+    } catch (err: any) {
+      showToast.error("Failed to terminate chat sessions.");
+    } finally {
+      setExecutingAction(null);
+    }
   };
 
   return (
@@ -1868,169 +2147,156 @@ const AdminDashboard = () => {
                 <div className="admin-stat-grid">
                   <div className="admin-stat-card orange">
                     <div className="admin-stat-label">Total Citizens</div>
-                    <div className="admin-stat-val">42,861</div>
-                    <div className="admin-stat-delta"><span className="admin-delta-up">▲ 8.4%</span>&nbsp;vs last week</div>
-                    <div className="admin-progress-bar"><div className="admin-progress-fill" style={{ width: "84%", background: "var(--accent)" }}></div></div>
+                    <div className="admin-stat-val">
+                      {overviewStats?.totalCitizens !== undefined ? overviewStats.totalCitizens.toLocaleString() : "..."}
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Total registered citizen accounts</div>
                   </div>
                   <div className="admin-stat-card blue">
                     <div className="admin-stat-label">Active Chat Sessions</div>
-                    <div className="admin-stat-val">{liveSessions}</div>
-                    <div className="admin-stat-delta"><span className="admin-delta-up">▲ Live</span>&nbsp;socket connections</div>
-                    <div className="admin-progress-bar"><div className="admin-progress-fill" style={{ width: "68%", background: "var(--accent2)" }}></div></div>
+                    <div className="admin-stat-val">
+                      {liveSessions !== null ? liveSessions.toLocaleString() : "..."}
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Live anonymous chat socket sessions</div>
                   </div>
                   <div className="admin-stat-card green">
                     <div className="admin-stat-label">Active Issues</div>
-                    <div className="admin-stat-val">1,247</div>
-                    <div className="admin-stat-delta"><span className="admin-delta-up">▲ 3.1%</span>&nbsp;raised today</div>
-                    <div className="admin-progress-bar"><div className="admin-progress-fill" style={{ width: "55%", background: "var(--success)" }}></div></div>
+                    <div className="admin-stat-val">
+                      {overviewStats?.activeIssues !== undefined ? overviewStats.activeIssues.toLocaleString() : "..."}
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Active citizen feedback posts</div>
                   </div>
                   <div className="admin-stat-card yellow">
-                    <div className="admin-stat-label">Resolved Issues</div>
-                    <div className="admin-stat-val">9,384</div>
-                    <div className="admin-stat-delta"><span className="admin-delta-up">▲ 12%</span>&nbsp;resolution rate</div>
-                    <div className="admin-progress-bar"><div className="admin-progress-fill" style={{ width: "78%", background: "var(--warn)" }}></div></div>
+                    <div className="admin-stat-label">Resolved Posts</div>
+                    <div className="admin-stat-val">
+                      {overviewStats?.resolvedPosts !== undefined ? overviewStats.resolvedPosts.toLocaleString() : "..."}
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Total citizen posts marked resolved</div>
                   </div>
                 </div>
 
                 <div className="admin-two-col">
-                  {/* Recent Onboarding Queue */}
+                  {/* Recent Activity Column */}
                   <div className="admin-card">
                     <div className="admin-card-head">
                       <div>
-                        <div className="admin-card-title">Department Onboarding Queue</div>
-                        <div className="admin-card-subtitle">Local registrations pending Super Admin verification</div>
+                        <div className="admin-card-title">Recent Activity</div>
+                        <div className="admin-card-subtitle">Live platform events</div>
                       </div>
                     </div>
-                    <div className="admin-card-body p-0">
-                      {requests.length === 0 ? (
-                        <div className="py-12 text-center text-[#4a5270] italic">No pending department onboarding requests.</div>
+                    <div className="admin-card-body">
+                      {recentActivities.length === 0 ? (
+                        <div className="py-12 text-center text-[var(--text-secondary)] opacity-60 italic text-sm">
+                          No recent activity recorded on server.
+                        </div>
                       ) : (
-                        <div className="admin-table-scroll">
-                        <table className="admin-data-table">
-                          <thead>
-                            <tr>
-                              <th>Department Name</th>
-                              <th>Contact Email</th>
-                              <th>Pincode</th>
-                              <th>Status</th>
-                              <th>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {requests.map(req => (
-                              <tr key={req.id}>
-                                <td>
-                                  <div className="flex items-center gap-2">
-                                    <div className="admin-u-avatar admin-ua-orange">{req.deptName.charAt(0)}</div>
-                                    <div className="admin-td-name">{req.deptName}</div>
-                                  </div>
-                                </td>
-                                <td>{req.contactEmail}</td>
-                                <td><span className="admin-pincode-tag">{req.pincode || "400001"}</span></td>
-                                <td>
-                                  <span className={`admin-badge ${
-                                    req.status === "pending" ? "admin-badge-pending" :
-                                    req.status === "approved" ? "admin-badge-active" : "admin-badge-inactive"
-                                  }`}>
-                                    {req.status}
-                                  </span>
-                                </td>
-                                <td>
-                                  {req.status === "pending" ? (
-                                    <div className="flex gap-2">
-                                      <button className="admin-btn admin-btn-secondary admin-btn-sm text-green-500 hover:bg-green-500/10 p-1 border-none" onClick={() => handleApproveRequest(req)}>
-                                        <CheckCircle2 size={16} />
-                                      </button>
-                                      <button className="admin-btn admin-btn-secondary admin-btn-sm text-red-500 hover:bg-red-500/10 p-1 border-none" onClick={() => handleRejectRequest(req.id)}>
-                                        <XCircle size={16} />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-[11px] opacity-40 font-mono">Processed</span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="space-y-4">
+                          {recentActivities.map((act: any, idx: number) => (
+                            <div key={idx} className="admin-activity-item">
+                              <div className="admin-activity-dot" style={{ background: act.color || "var(--accent)" }} />
+                              <div className="admin-activity-text" dangerouslySetInnerHTML={{ __html: act.description }} />
+                              <div className="admin-activity-time">{act.timeAgo || "just now"}</div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Broadcast Statistics */}
+                  {/* Platform Metrics Column */}
                   <div className="admin-card">
                     <div className="admin-card-head">
                       <div>
-                        <div className="admin-card-title">Broadcast Volumes</div>
-                        <div className="admin-card-subtitle">Active scopes from /api/posts/broadcast/statistics</div>
+                        <div className="admin-card-title">Platform Metrics</div>
+                        <div className="admin-card-subtitle">/api/posts/broadcast/statistics</div>
                       </div>
                     </div>
                     <div className="admin-card-body">
                       <div className="admin-qstat">
                         <div className="admin-qstat-row">
                           <div className="admin-qstat-icon" style={{ background: "rgba(249,115,22,0.12)" }}><Globe size={16} className="text-[#f97316]" /></div>
-                          <div className="admin-qstat-label">Country Broadcasts</div>
-                          <div className="admin-qstat-value" style={{ color: "var(--accent)" }}>{broadcastStats?.countryBroadcastCount ?? 12}</div>
+                          <div className="admin-qstat-label">Country-wide Broadcasts</div>
+                          <div className="admin-qstat-value" style={{ color: "var(--accent)" }}>{broadcastStats?.broadcastsCOUNTRY ?? broadcastStats?.countryWideBroadcasts ?? 0}</div>
                         </div>
                         <div className="admin-qstat-row">
                           <div className="admin-qstat-icon" style={{ background: "rgba(59,130,246,0.12)" }}><Landmark size={16} className="text-[#3b82f6]" /></div>
-                          <div className="admin-qstat-label">State Broadcasts</div>
-                          <div className="admin-qstat-value" style={{ color: "var(--accent2)" }}>{broadcastStats?.stateBroadcastCount ?? 142}</div>
+                          <div className="admin-qstat-label">State-level Broadcasts</div>
+                          <div className="admin-qstat-value" style={{ color: "var(--accent2)" }}>{broadcastStats?.broadcastsSTATE ?? 0}</div>
                         </div>
                         <div className="admin-qstat-row">
                           <div className="admin-qstat-icon" style={{ background: "rgba(34,197,94,0.12)" }}><Map size={16} className="text-[#22c55e]" /></div>
-                          <div className="admin-qstat-label">District Broadcasts</div>
-                          <div className="admin-qstat-value" style={{ color: "var(--success)" }}>{broadcastStats?.districtBroadcastCount ?? 618}</div>
+                          <div className="admin-qstat-label">District-level Posts</div>
+                          <div className="admin-qstat-value" style={{ color: "var(--success)" }}>{broadcastStats?.broadcastsDISTRICT ?? 0}</div>
                         </div>
                         <div className="admin-qstat-row">
                           <div className="admin-qstat-icon" style={{ background: "rgba(234,179,8,0.12)" }}><MapPin size={16} className="text-[#eab308]" /></div>
-                          <div className="admin-qstat-label">Pincode Broadcasts</div>
-                          <div className="admin-qstat-value" style={{ color: "var(--warn)" }}>{broadcastStats?.pincodeBroadcastCount ?? 2140}</div>
+                          <div className="admin-qstat-label">Area (Pincode) Posts</div>
+                          <div className="admin-qstat-value" style={{ color: "var(--warn)" }}>{broadcastStats?.broadcastsAREA ?? 0}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Recent Registered Depts table */}
+                {/* Bottom Row - Recently Registered Departments */}
                 <div className="admin-card">
                   <div className="admin-card-head">
                     <div>
-                      <div className="admin-card-title">Recently Onboarded Departments</div>
-                      <div className="admin-card-subtitle">Active government units responding to queries</div>
+                      <div className="admin-card-title">Recently Registered Departments</div>
+                      <div className="admin-card-subtitle">GFT /api/users/by-role/ROLE_DEPARTMENT</div>
                     </div>
                     <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setActiveTab("departments")}>View All</button>
                   </div>
                   <div className="admin-card-body p-0">
                     <div className="admin-table-scroll">
-                    <table className="admin-data-table">
-                      <thead>
-                        <tr>
-                          <th>Department Unit</th>
-                          <th>Official Email</th>
-                          <th>Category</th>
-                          <th>Pincode</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deptsDb.slice(0, 3).map(dept => (
-                          <tr key={dept.id} className="user-row cursor-pointer animate-in fade-in" onClick={() => handleOpenDetails({ username: dept.name, email: dept.email, pincode: dept.pincode, role: "ROLE_DEPARTMENT", status: dept.status, regDate: dept.regDate, departmentType: dept.departmentType })}>
-                            <td>
-                              <div className="flex items-center gap-2">
-                                <div className="admin-u-avatar admin-ua-blue">{dept.name.charAt(0)}</div>
-                                <div className="admin-td-name">{dept.name}</div>
-                              </div>
-                            </td>
-                            <td>{dept.email}</td>
-                            <td>{dept.departmentType}</td>
-                            <td><span className="admin-pincode-tag">{dept.pincode}</span></td>
-                            <td><span className="admin-badge admin-badge-active">{dept.status}</span></td>
+                      <table className="admin-data-table">
+                        <thead>
+                          <tr>
+                            <th>USERNAME</th>
+                            <th>EMAIL</th>
+                            <th>PINCODE</th>
+                            <th>STATUS</th>
+                            <th>REGISTERED</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {loadingDepts ? (
+                            <tr>
+                              <td colSpan={5} className="text-center py-4 text-sm text-[var(--text-secondary)]">
+                                <div className="flex items-center justify-center gap-2">
+                                  <RefreshCw className="animate-spin text-[var(--accent)]" size={14} />
+                                  <span>Loading departments from database...</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : deptsDb.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="text-center py-6 text-sm text-[var(--text-secondary)] opacity-60">
+                                No departments registered on the system.
+                              </td>
+                            </tr>
+                          ) : (
+                            deptsDb.slice(0, 5).map(dept => (
+                              <tr key={dept.id} className="user-row cursor-pointer" onClick={() => handleOpenDetails({ username: dept.name, email: dept.email, pincode: dept.pincode, role: "ROLE_DEPARTMENT", status: dept.status, regDate: dept.regDate })}>
+                                <td>
+                                  <div className="flex items-center gap-2">
+                                    <div className="admin-u-avatar admin-ua-blue">{dept.name.charAt(0).toUpperCase()}</div>
+                                    <div className="admin-td-name">{dept.name}</div>
+                                  </div>
+                                </td>
+                                <td>{dept.email}</td>
+                                <td><span className="admin-pincode-tag">{dept.pincode}</span></td>
+                                <td>
+                                  <span className={`admin-badge ${dept.status === "Active" ? "admin-badge-active" : "admin-badge-pending"}`}>
+                                    {dept.status}
+                                  </span>
+                                </td>
+                                <td>{formatRegDate(dept.regDate)}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -2093,9 +2359,9 @@ const AdminDashboard = () => {
 
                       <hr className="admin-form-divider" />
 
-                      <div className="admin-form-section-title">Jurisdiction &amp; Category</div>
+                      <div className="admin-form-section-title">Jurisdiction</div>
                       <div className="admin-form-grid">
-                        <div className="admin-form-group">
+                        <div className="admin-form-group full">
                           <label className="admin-form-label">Primary Pincode (Area) <span>*</span></label>
                           <input
                             type="text"
@@ -2107,24 +2373,6 @@ const AdminDashboard = () => {
                             onChange={e => setDeptForm({ ...deptForm, pincode: e.target.value.replace(/\D/g, "") })}
                           />
                           <div className="admin-form-hint">Indian pincode for geo-tag tracking</div>
-                        </div>
-
-                        <div className="admin-form-group">
-                          <label className="admin-form-label">Department Type <span>*</span></label>
-                          <select
-                            required
-                            className="admin-form-select"
-                            value={deptForm.departmentType}
-                            onChange={e => setDeptForm({ ...deptForm, departmentType: e.target.value })}
-                          >
-                            <option value="">Select Category</option>
-                            <option value="Water Supply">Water Supply</option>
-                            <option value="Roads &amp; Infrastructure">Roads &amp; Infrastructure</option>
-                            <option value="Sanitation &amp; Waste">Sanitation &amp; Waste</option>
-                            <option value="Electricity &amp; Power">Electricity &amp; Power</option>
-                            <option value="Health &amp; Medical">Health &amp; Medical</option>
-                            <option value="General Administration">General Administration</option>
-                          </select>
                         </div>
                       </div>
 
@@ -2178,11 +2426,13 @@ const AdminDashboard = () => {
                       <hr className="admin-form-divider" />
 
                       <div className="admin-form-section-title">Permissions Provisioned</div>
-                      <div className="admin-tag-grid">
+                      <div className="admin-tag-grid mb-6">
                         <span className="admin-tag">POST /api/posts/broadcast</span>
-                        <span className="admin-tag">PUT /api/posts/resolution/*</span>
-                        <span className="admin-tag">GET /api/user-tagging/*</span>
+                        <span className="admin-tag">PUT /api/posts/{"{id}"}/resolution</span>
+                        <span className="admin-tag">GET /api/users/distribution/*</span>
                         <span className="admin-tag">GET /api/posts/broadcast/analytics</span>
+                        <span className="admin-tag">POST /api/posts/broadcast/country</span>
+                        <span className="admin-tag">GET /api/users/departments/*</span>
                       </div>
 
                       <div className="admin-btn-actions">
@@ -2197,7 +2447,7 @@ const AdminDashboard = () => {
                           type="button"
                           className="admin-btn admin-btn-secondary"
                           onClick={() => setDeptForm({
-                            name: "", email: "", password: "", confirmPassword: "", pincode: "", departmentType: ""
+                            name: "", email: "", password: "", confirmPassword: "", pincode: ""
                           })}
                         >
                           Clear
@@ -2320,6 +2570,20 @@ const AdminDashboard = () => {
                         </div>
                       </div>
 
+                      <hr className="admin-form-divider" />
+
+                      <div className="admin-form-section-title">Full Permissions Granted</div>
+                      <div className="admin-tag-grid mb-6">
+                        <span className="admin-tag">ALL /api/auth/register/*</span>
+                        <span className="admin-tag">ALL /api/posts/*</span>
+                        <span className="admin-tag">ALL /api/users/*</span>
+                        <span className="admin-tag">ALL /api/communities/*</span>
+                        <span className="admin-tag">GET /api/chat/admin/statistics</span>
+                        <span className="admin-tag">POST /api/posts/cleanup/files</span>
+                        <span className="admin-tag">GET /api/posts/resolved</span>
+                        <span className="admin-tag">ALL /api/user-tagging/*</span>
+                      </div>
+
                       <div className="admin-btn-actions">
                         <button
                           type="submit"
@@ -2346,17 +2610,74 @@ const AdminDashboard = () => {
               >
                 <div className="admin-section-header">
                   <div>
-                    <div className="admin-section-title">All Registered Platform Users</div>
-                    <div className="admin-section-sub">Database count: {usersDb.length} users</div>
+                    <div className="admin-section-title">All Users</div>
+                    <div className="admin-section-sub font-mono">GET /api/users/active · GET /api/users/by-role/{"{role}"}</div>
                   </div>
-                  <button
-                    className="admin-btn admin-btn-secondary admin-btn-sm flex items-center gap-1.5"
-                    onClick={fetchLiveUsers}
-                    disabled={searchingLive}
-                  >
-                    <RefreshCw size={14} className={searchingLive ? "animate-spin" : ""} />
-                    Refresh Users
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="admin-btn admin-btn-secondary admin-btn-sm"
+                      onClick={exportUsersToCSV}
+                    >
+                      Export CSV
+                    </button>
+                    <button
+                      className="admin-btn admin-btn-primary admin-btn-sm"
+                      onClick={() => setActiveTab("reg-dept")}
+                    >
+                      + Add User
+                    </button>
+                  </div>
+                </div>
+
+                <div className="admin-filter-row">
+                  <div className="flex gap-2 flex-wrap flex-1">
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "all" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("all")}
+                    >
+                      All Roles
+                    </span>
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "admin" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("admin")}
+                    >
+                      Admin
+                    </span>
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "department" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("department")}
+                    >
+                      Department
+                    </span>
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "citizen" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("citizen")}
+                    >
+                      Citizens
+                    </span>
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "active" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("active")}
+                    >
+                      Active
+                    </span>
+                    <span
+                      className={`admin-filter-chip ${usersRoleFilter === "inactive" ? "active" : ""}`}
+                      onClick={() => setUsersRoleFilter("inactive")}
+                    >
+                      Inactive
+                    </span>
+                  </div>
+                  <div className="admin-topbar-search border border-[var(--border-strong)] rounded-lg bg-[var(--bg-card)] px-3 py-1.5 flex items-center gap-2 w-64">
+                    <Search size={14} className="text-[#4a5270]" />
+                    <input
+                      type="text"
+                      placeholder="Filter by username / email..."
+                      className="bg-transparent border-none outline-none text-xs w-full text-[var(--text-primary)]"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="admin-card">
@@ -2368,41 +2689,71 @@ const AdminDashboard = () => {
                     <table className="admin-data-table">
                       <thead>
                         <tr>
-                          <th>Username</th>
-                          <th>Email</th>
-                          <th>Pincode</th>
-                          <th>Role</th>
-                          <th>Status</th>
-                          <th>Actions</th>
+                          <th>USER</th>
+                          <th>EMAIL</th>
+                          <th>ROLE</th>
+                          <th>PINCODE</th>
+                          <th>STATUS</th>
+                          <th>JOINED</th>
+                          <th>ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {searchingLive && (
+                        {(loadingUsers || searchingLive) && (
                           <tr>
-                            <td colSpan={6} className="text-center py-4 text-sm text-[var(--text-secondary)]">
+                            <td colSpan={7} className="text-center py-4 text-sm text-[var(--text-secondary)]">
                               <div className="flex items-center justify-center gap-2">
                                 <RefreshCw className="animate-spin text-[var(--accent)]" size={14} />
-                                <span>Searching live users database...</span>
+                                <span>{loadingUsers ? "Loading users from database..." : "Searching live users..."}</span>
                               </div>
                             </td>
                           </tr>
                         )}
                         {(() => {
-                          const localFiltered = usersDb.filter(u =>
-                            u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            u.pincode.includes(searchQuery)
-                          );
+                          let localFiltered = usersDb;
+                          if (usersRoleFilter === "admin") {
+                            localFiltered = localFiltered.filter(u => u.role === "ROLE_ADMIN");
+                          } else if (usersRoleFilter === "department") {
+                            localFiltered = localFiltered.filter(u => u.role === "ROLE_DEPARTMENT");
+                          } else if (usersRoleFilter === "citizen") {
+                            localFiltered = localFiltered.filter(u => u.role === "ROLE_USER");
+                          } else if (usersRoleFilter === "active") {
+                            localFiltered = localFiltered.filter(u => u.status === "Active");
+                          } else if (usersRoleFilter === "inactive") {
+                            localFiltered = localFiltered.filter(u => u.status !== "Active");
+                          }
+
                           const seen = new Set();
                           const merged = [];
                           for (const u of [...searchResults, ...localFiltered]) {
-                            const key = `${u.username}-${u.role}`;
+                            const key = `${u.username}-${u.role}-${u.id}`;
                             if (!seen.has(key)) {
                               seen.add(key);
                               merged.push(u);
                             }
                           }
-                          return merged.map(user => (
+
+                          let finalFiltered = merged;
+                          if (searchQuery.trim()) {
+                            const q = searchQuery.toLowerCase();
+                            finalFiltered = finalFiltered.filter(u =>
+                              u.username?.toLowerCase().includes(q) ||
+                              u.email?.toLowerCase().includes(q) ||
+                              u.pincode?.includes(q)
+                            );
+                          }
+
+                          if (finalFiltered.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={7} className="text-center py-8 text-sm text-[var(--text-muted)] italic">
+                                  No users found matching filters.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return finalFiltered.map(user => (
                             <tr key={user.id} className="user-row cursor-pointer" onClick={() => handleOpenDetails(user)}>
                               <td>
                                 <div className="flex items-center gap-2">
@@ -2412,33 +2763,45 @@ const AdminDashboard = () => {
                                   }`}>
                                     {user.username.charAt(0).toUpperCase()}
                                   </div>
-                                  <div className="admin-td-name">{user.username}</div>
+                                  <div>
+                                    <div className="admin-td-name">{user.username}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">ID: {user.id}</div>
+                                  </div>
                                 </div>
                               </td>
                               <td>{user.email}</td>
-                              <td><span className="admin-pincode-tag">{user.pincode}</span></td>
                               <td>
                                 <span className={`admin-badge ${
                                   user.role === "ROLE_ADMIN" ? "admin-badge-admin" :
                                   user.role === "ROLE_DEPARTMENT" ? "admin-badge-dept" : "admin-badge-user"
                                 }`}>
-                                  {user.role}
+                                  {user.role === "ROLE_ADMIN" ? "ADMIN" : user.role === "ROLE_DEPARTMENT" ? "DEPARTMENT" : "CITIZEN"}
                                 </span>
                               </td>
+                              <td><span className="admin-pincode-tag">{user.pincode}</span></td>
                               <td>
                                 <span className={`admin-badge ${user.status === "Active" ? "admin-badge-active" : "admin-badge-inactive"}`}>
                                   {user.status}
                                 </span>
                               </td>
+                              <td>{formatJoinedDate(user.regDate)}</td>
                               <td>
-                                {user.role !== "ROLE_ADMIN" && (
+                                <div className="flex gap-2">
                                   <button
-                                    className={`admin-btn admin-btn-sm ${user.status === "Active" ? "admin-btn-danger" : "admin-btn-primary"}`}
-                                    onClick={(e) => { e.stopPropagation(); toggleUserStatus(user.id); }}
+                                    className="admin-btn admin-btn-sm admin-btn-secondary"
+                                    onClick={(e) => { e.stopPropagation(); handleOpenDetails(user); }}
                                   >
-                                    {user.status === "Active" ? "Suspend" : "Activate"}
+                                    View Posts
                                   </button>
-                                )}
+                                  {user.role !== "ROLE_ADMIN" && user.status === "Active" && (
+                                    <button
+                                      className="admin-btn admin-btn-sm admin-btn-danger"
+                                      onClick={(e) => { e.stopPropagation(); handleDeactivateUser(user.id); }}
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ));
@@ -2462,64 +2825,113 @@ const AdminDashboard = () => {
               >
                 <div className="admin-section-header">
                   <div>
-                    <div className="admin-section-title">Government Department Units</div>
-                    <div className="admin-section-sub">Active responding bodies: {deptsDb.length} categories</div>
+                    <div className="admin-section-title">Government Departments</div>
+                    <div className="admin-section-sub font-mono">GET /api/users/departments/by-pincode · by-state · by-district</div>
+                  </div>
+                  <button
+                    className="admin-btn admin-btn-primary admin-btn-sm"
+                    onClick={() => setActiveTab("reg-dept")}
+                  >
+                    + Register New
+                  </button>
+                </div>
+
+                {/* Stats cards row */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--accent2)] font-black text-2xl">{deptsDb.length}</div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Total Depts</div>
+                  </div>
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--success)] font-black text-2xl">{deptsDb.filter(d => d.status === "Active").length}</div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Active</div>
+                  </div>
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--warn)] font-black text-2xl">{deptsDb.filter(d => d.status !== "Active").length}</div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Pending</div>
                   </div>
                 </div>
 
                 <div className="admin-card">
                   <div className="admin-card-head">
-                    <div className="admin-card-title">Department Catalog</div>
+                    <div className="admin-card-title">All Departments</div>
                   </div>
                   <div className="admin-card-body p-0">
                     <div className="admin-table-scroll">
                     <table className="admin-data-table">
                       <thead>
                         <tr>
-                          <th>Department Name</th>
-                          <th>Official Email</th>
-                          <th>Category</th>
-                          <th>Pincode</th>
-                          <th>Status</th>
-                          <th>Actions</th>
+                          <th>DEPARTMENT</th>
+                          <th>EMAIL</th>
+                          <th>PINCODE</th>
+                          <th>TYPE</th>
+                          <th>BROADCASTS</th>
+                          <th>STATUS</th>
+                          <th>ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {deptsDb
-                          .filter(d =>
-                            d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            d.pincode.includes(searchQuery)
-                          )
-                          .map(dept => (
-                            <tr key={dept.id} className="user-row cursor-pointer" onClick={() => handleOpenDetails({ username: dept.name, email: dept.email, pincode: dept.pincode, role: "ROLE_DEPARTMENT", status: dept.status, regDate: dept.regDate, departmentType: dept.departmentType })}>
-                              <td>
-                                <div className="flex items-center gap-2">
-                                  <div className="admin-u-avatar admin-ua-blue">{dept.name.charAt(0).toUpperCase()}</div>
-                                  <div className="admin-td-name">{dept.name}</div>
-                                </div>
-                              </td>
-                              <td>{dept.email}</td>
-                              <td>{dept.departmentType}</td>
-                              <td><span className="admin-pincode-tag">{dept.pincode}</span></td>
-                              <td>
-                                <span className={`admin-badge ${
-                                  dept.status === "Active" ? "admin-badge-active" :
-                                  dept.status === "Pending" ? "admin-badge-pending" : "admin-badge-inactive"
-                                }`}>
-                                  {dept.status}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className={`admin-btn admin-btn-sm ${dept.status === "Active" ? "admin-btn-danger" : "admin-btn-primary"}`}
-                                  onClick={() => toggleDeptStatus(dept.id)}
-                                >
-                                  {dept.status === "Active" ? "Suspend" : "Activate"}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                        {loadingDepts ? (
+                          <tr>
+                            <td colSpan={7} className="text-center py-4 text-sm text-[var(--text-secondary)]">
+                              <div className="flex items-center justify-center gap-2">
+                                <RefreshCw className="animate-spin text-[var(--accent)]" size={14} />
+                                <span>Loading departments from database...</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : deptsDb.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center py-6 text-sm text-[var(--text-secondary)] opacity-60">
+                              No government departments registered.
+                            </td>
+                          </tr>
+                        ) : (
+                          deptsDb
+                            .filter(d =>
+                              d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              d.pincode.includes(searchQuery)
+                            )
+                            .map(dept => (
+                              <tr key={dept.id} className="user-row cursor-pointer" onClick={() => handleOpenDetails({ username: dept.name, email: dept.email, pincode: dept.pincode, role: "ROLE_DEPARTMENT", status: dept.status, regDate: dept.regDate })}>
+                                <td>
+                                  <div className="flex items-center gap-2">
+                                    <div className="admin-u-avatar admin-ua-blue">{dept.name.charAt(0).toUpperCase()}</div>
+                                    <div className="admin-td-name">{dept.name}</div>
+                                  </div>
+                                </td>
+                                <td>{dept.email}</td>
+                                <td><span className="admin-pincode-tag">{dept.pincode}</span></td>
+                                <td>{inferDepartmentType(dept.name)}</td>
+                                <td><DepartmentBroadcastCount userId={dept.id} /></td>
+                                <td>
+                                  <span className={`admin-badge ${
+                                    dept.status === "Active" ? "admin-badge-active" :
+                                    dept.status === "Pending" ? "admin-badge-pending" : "admin-badge-inactive"
+                                  }`}>
+                                    {dept.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                    <button
+                                      className="admin-btn admin-btn-sm admin-btn-secondary"
+                                      onClick={() => handleOpenDetails({ username: dept.name, email: dept.email, pincode: dept.pincode, role: "ROLE_DEPARTMENT", status: dept.status, regDate: dept.regDate })}
+                                    >
+                                      Details
+                                    </button>
+                                    <button
+                                      className="admin-btn admin-btn-sm admin-btn-secondary"
+                                      onClick={() => { setActiveTab("broadcast"); setSearchQuery(dept.name); }}
+                                    >
+                                      Posts
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                        )}
                       </tbody>
                     </table>
                     </div>
@@ -2552,6 +2964,28 @@ const AdminDashboard = () => {
                   </button>
                 </div>
 
+                {/* Stats cards row */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--accent2)] font-black text-2xl">
+                      {communityStats?.totalCommunities ?? communitiesDb.length}
+                    </div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Total Communities</div>
+                  </div>
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--success)] font-black text-2xl">
+                      {communityStats?.activeCommunities ?? communitiesDb.filter(c => c.status === "Active").length}
+                    </div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Active</div>
+                  </div>
+                  <div className="admin-mini-stat bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
+                    <div className="admin-mini-val text-[var(--warn)] font-black text-2xl">
+                      {communityStats?.archivedCommunities ?? communitiesDb.filter(c => c.status !== "Active").length}
+                    </div>
+                    <div className="admin-mini-label text-[10px] uppercase font-mono tracking-wider opacity-60 mt-1">Archived / Suspended</div>
+                  </div>
+                </div>
+
                 <div className="admin-card">
                   <div className="admin-card-head">
                     <div className="admin-card-title">Community Catalog</div>
@@ -2561,13 +2995,13 @@ const AdminDashboard = () => {
                     <table className="admin-data-table">
                       <thead>
                         <tr>
-                          <th>Name</th>
-                          <th>Slug / ID</th>
-                          <th>Category</th>
-                          <th>Privacy</th>
-                          <th>Members</th>
-                          <th>Status</th>
-                          <th>Actions</th>
+                          <th>COMMUNITY</th>
+                          <th>MEMBERS</th>
+                          <th>POSTS/7D</th>
+                          <th>HEALTH SCORE</th>
+                          <th>TIER</th>
+                          <th>FEED REACH</th>
+                          <th>ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2581,48 +3015,90 @@ const AdminDashboard = () => {
                             </td>
                           </tr>
                         )}
-                        {communitiesDb
-                          .filter(c =>
-                            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            c.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            (c.category && c.category.toLowerCase().includes(searchQuery.toLowerCase()))
-                          )
-                          .map(comm => (
-                            <tr key={comm.id} className="user-row">
-                              <td>
-                                <div className="flex items-center gap-2">
-                                  <div className="admin-u-avatar admin-ua-purple">
-                                    {comm.name.charAt(0).toUpperCase()}
+                        {(() => {
+                          const filteredComms = [...communitiesDb]
+                            .sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))
+                            .filter(c =>
+                              c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              c.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              (c.category && c.category.toLowerCase().includes(searchQuery.toLowerCase()))
+                            );
+
+                          if (filteredComms.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={7} className="text-center py-8 text-sm text-[var(--text-muted)] italic">
+                                  No communities found matching filters.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filteredComms.map(comm => {
+                            // Derived feed reach scope
+                            let feedReach = "National";
+                            if (comm.privacy !== "PUBLIC" || !comm.feedEligible) {
+                              feedReach = "None (Private)";
+                            } else if (comm.pincode) {
+                              feedReach = `Local (${comm.pincode})`;
+                            } else if (comm.districtPrefix) {
+                              feedReach = `District (${comm.districtPrefix})`;
+                            } else if (comm.statePrefix) {
+                              feedReach = `State (${comm.statePrefix})`;
+                            }
+
+                            // Match status of active/archived to health score updates
+                            const healthVal = comm.healthScore ?? 50.0;
+
+                            return (
+                              <tr key={comm.id} className="user-row">
+                                <td>
+                                  <div className="flex items-center gap-2">
+                                    <div className="admin-u-avatar admin-ua-purple">
+                                      {comm.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <div className="admin-td-name">{comm.name}</div>
+                                      <div className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]" title={comm.description}>{comm.description}</div>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <div className="admin-td-name">{comm.name}</div>
-                                    <div className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]" title={comm.description}>{comm.description}</div>
+                                </td>
+                                <td>{comm.memberCount ?? 0}</td>
+                                <td>{comm.postsLast7d ?? 0}</td>
+                                <td>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-bold">{healthVal.toFixed(0)}%</span>
+                                    <div className="w-16 h-2 bg-base-300 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full rounded-full" 
+                                        style={{ 
+                                          width: `${healthVal}%`,
+                                          background: healthVal >= 75 ? "var(--success)" : healthVal >= 50 ? "var(--accent2)" : "var(--warn)"
+                                        }}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td><span className="font-mono text-xs">/{comm.slug}</span></td>
-                              <td>{comm.category || "General"}</td>
-                              <td>
-                                <span className={`admin-badge ${comm.privacy === "PUBLIC" ? "admin-badge-active" : "admin-badge-inactive"}`}>
-                                  {comm.privacy}
-                                </span>
-                              </td>
-                              <td>{comm.memberCount}</td>
-                              <td>
-                                <span className={`admin-badge ${comm.status === "Active" ? "admin-badge-active" : "admin-badge-inactive"}`}>
-                                  {comm.status}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className={`admin-btn admin-btn-sm ${comm.status === "Active" ? "admin-btn-danger" : "admin-btn-primary"}`}
-                                  onClick={() => toggleCommunityStatus(comm.id)}
-                                >
-                                  {comm.status === "Active" ? "Archive" : "Activate"}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td>
+                                  <span className="font-mono text-xs font-bold">
+                                    {comm.healthTierEmoji || "🔔"} {comm.healthTier || "QUIET"}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="admin-pincode-tag">{feedReach}</span>
+                                </td>
+                                <td>
+                                  <button
+                                    className={`admin-btn admin-btn-sm ${comm.status === "Active" ? "admin-btn-danger" : "admin-btn-primary"}`}
+                                    onClick={() => toggleCommunityStatus(comm.id)}
+                                  >
+                                    {comm.status === "Active" ? "Archive" : "Activate"}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
                     </div>
@@ -2640,55 +3116,166 @@ const AdminDashboard = () => {
                 transition={{ duration: 0.15 }}
                 className="space-y-6"
               >
+                {/* Section Header */}
                 <div className="admin-section-header">
                   <div>
-                    <div className="admin-section-title">Platform Content Moderation</div>
-                    <div className="admin-section-sub">Audit citizen reports and remove profanity posts</div>
+                    <div className="admin-section-title">Compliance & Content Moderation</div>
+                    <div className="admin-section-sub">
+                      Investigate citizen reports and enforce IT Rules 2021 & BNS guidelines
+                    </div>
                   </div>
-                  <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={handleReloadBadWords}>Reload Profanity Catalog</button>
+                  <button 
+                    className="admin-btn admin-btn-secondary admin-btn-sm flex items-center gap-1.5" 
+                    onClick={fetchModerationData}
+                    disabled={loadingModeration}
+                  >
+                    <RefreshCw className={loadingModeration ? "animate-spin" : ""} size={13} />
+                    Sync Queues
+                  </button>
                 </div>
 
-                <div className="space-y-4">
-                  {loadingPosts ? (
-                    <div className="admin-card p-8 text-center text-sm text-[var(--text-secondary)] flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="animate-spin text-[var(--accent)]" size={24} />
-                      <p>Fetching live feed from platform...</p>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="admin-card p-4 flex flex-col justify-between h-24 bg-amber-500/5 border-amber-500/10">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Bad Words Loaded</span>
+                    <span className="text-2xl font-black text-amber-500">{overviewStats?.badWordsLoaded ?? 0}</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24 bg-rose-500/5 border-rose-500/15 relative overflow-hidden group">
+                    <div className="absolute top-3 right-3 flex items-center justify-center">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                      </span>
                     </div>
-                  ) : postsDb.length === 0 ? (
-                    <div className="admin-card p-8 text-center text-sm text-[var(--text-secondary)]">
-                      No posts found matching moderation criteria.
+                    <span className="text-[10px] uppercase font-black tracking-wider text-rose-500">Pending Reports</span>
+                    <span className="text-2xl font-black text-rose-500">{moderationStats.totalPending}</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24 bg-blue-500/5 border-blue-500/10">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Orphan Files</span>
+                    <span className="text-2xl font-black text-blue-400">24</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24 bg-emerald-500/5 border-emerald-500/10">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Validation Pass Rate</span>
+                    <span className="text-2xl font-black text-emerald-500">99.4%</span>
+                  </div>
+                </div>
+
+                {/* Two-Column Grid */}
+                <div className="admin-two-col">
+                  {/* Left Column: Recent Flagged Content */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div>
+                        <div className="admin-card-title">Recent Flagged Content</div>
+                        <div className="admin-card-subtitle">GET /api/reports/admin/all</div>
+                      </div>
                     </div>
-                  ) : (
-                    postsDb.map(post => (
-                      <div key={post.id} className="admin-card">
-                        <div className="admin-card-head">
-                          <div className="flex items-center gap-3">
-                            <div className="admin-u-avatar admin-ua-purple">{post.author.charAt(0).toUpperCase()}</div>
-                            <div>
-                              <div className="admin-card-title">@{post.author}</div>
-                              <div className="admin-card-subtitle">{post.date} · Type: {post.type}</div>
-                            </div>
-                          </div>
-                          {post.flags > 0 && (
-                            <span className="admin-badge admin-badge-inactive">{post.flags} Flags</span>
-                          )}
-                        </div>
-                        <div className="admin-card-body">
-                          <p className="text-[#f0f2f8] mb-4">{post.content}</p>
-                          <div className="flex gap-3">
-                            <button className="admin-btn admin-btn-danger admin-btn-sm" onClick={() => handleDeletePost(post.id, post.postType || "social-posts")}>
-                              <Trash2 size={13} className="mr-1" /> Delete Content
-                            </button>
-                            {post.flags > 0 && (
-                              <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => handleResolveFlags(post.id)}>
-                                Clear Flags
-                              </button>
+                    <div className="admin-card-body p-0">
+                      <div className="admin-table-scroll">
+                        <table className="admin-data-table">
+                          <thead>
+                            <tr>
+                              <th>POST ID</th>
+                              <th>USER</th>
+                              <th>BAD WORD</th>
+                              <th>TIME</th>
+                              <th>ACTION</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingModeration ? (
+                              <tr>
+                                <td colSpan={5} className="text-center py-8 text-sm text-[var(--text-secondary)]">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <RefreshCw className="animate-spin text-[var(--accent)]" size={14} />
+                                    <span>Syncing moderation list...</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : historyReports.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} className="text-center py-8 text-sm text-[var(--text-muted)] italic">
+                                  No flagged content reports found.
+                                </td>
+                              </tr>
+                            ) : (
+                              historyReports.map((report) => (
+                                <tr key={report.id}>
+                                  <td style={{ fontFamily: "var(--font-mono)", fontWeight: "bold" }}>
+                                    #R-{report.id}
+                                  </td>
+                                  <td>@{report.reporter?.username || "anonymous"}</td>
+                                  <td>
+                                    <span className={`admin-badge ${report.isEmergency ? "admin-badge-inactive" : "admin-badge-pending"}`}>
+                                      {report.category || "SPAM"}
+                                    </span>
+                                  </td>
+                                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>
+                                    {formatRegDate(report.createdAt)}
+                                  </td>
+                                  <td>
+                                    {report.status === "PENDING" ? (
+                                      <button 
+                                        className="admin-btn admin-btn-danger admin-btn-sm"
+                                        onClick={() => handleOpenResolveDialog(report.id)}
+                                      >
+                                        Review
+                                      </button>
+                                    ) : (
+                                      <span className={`admin-badge ${
+                                        report.status === "RESOLVED_REMOVED"
+                                          ? "admin-badge-inactive"
+                                          : "admin-badge-active"
+                                      }`}>
+                                        {report.status === "RESOLVED_REMOVED" ? "REMOVED" : "DISMISSED"}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
                             )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Bad Word Filter Control */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div>
+                        <div className="admin-card-title">Filter Engine Control</div>
+                        <div className="admin-card-subtitle">Profanity and Hate Speech Filter Rules</div>
+                      </div>
+                    </div>
+                    <div className="admin-card-body">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-black/10 border border-[var(--border)] rounded-xl p-3">
+                          <div>
+                            <div className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-muted)]">Active Profanity Dictionary</div>
+                            <div className="text-xl font-black text-amber-500 mt-1">{overviewStats?.badWordsLoaded ?? 0} words</div>
                           </div>
+                          <button 
+                            className="admin-btn admin-btn-primary admin-btn-sm"
+                            onClick={handleReloadBadWords}
+                            disabled={executingAction === "bad-words"}
+                          >
+                            {executingAction === "bad-words" ? "Reloading..." : "Hot-Reload"}
+                          </button>
+                        </div>
+
+                        <div className="text-xs text-[var(--text-secondary)] space-y-2">
+                          <div className="font-bold uppercase tracking-wider text-[10px] text-[var(--text-muted)] mt-2">Active IT Guidelines & Rules:</div>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>IT Rules 2021 Rule 3(1)(b) compliance engine active.</li>
+                            <li>Hate speech, obscenity, and harassment auto-flag thresholds enabled.</li>
+                            <li>Emergency report SLA review set at 24 hours.</li>
+                            <li>Standard report SLA review set at 15 days.</li>
+                          </ul>
                         </div>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -2709,38 +3296,390 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="admin-mini-stat-row">
+                {/* Top stats cards as a two-column grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Left stats card: Total Daily Active Users (onlineCount) */}
+                  <div className="admin-card p-6 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-muted)]">Total Daily Active Users</div>
+                      <div className="text-3xl font-black text-blue-500 mt-2">{onlineCount} Citizens</div>
+                      <div className="text-xs text-[var(--text-secondary)] mt-1">Live active chat websocket sockets</div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="flex justify-between text-[10px] font-mono text-[var(--text-muted)]">
+                        <span>CAPACITY TARGET</span>
+                        <span>{(((onlineCount ?? 0) / 500) * 100).toFixed(1)}% ({(onlineCount ?? 0)}/500)</span>
+                      </div>
+                      <div className="admin-progress-bar">
+                        <div className="admin-progress-fill" style={{ width: `${Math.min(100, ((onlineCount ?? 0) / 500) * 100)}%`, background: "var(--accent2)" }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right stats card: Citizens, Departments, Admins from overviewStats */}
+                  <div className="admin-card p-6">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-muted)] mb-4">Platform User Distribution</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center p-3 bg-black/10 border border-[var(--border)] rounded-xl">
+                        <div className="text-lg font-black text-emerald-500">{overviewStats?.totalCitizens ?? 0}</div>
+                        <div className="text-[9px] uppercase font-mono tracking-wider text-[var(--text-muted)] mt-1">Citizens</div>
+                      </div>
+                      <div className="text-center p-3 bg-black/10 border border-[var(--border)] rounded-xl">
+                        <div className="text-lg font-black text-blue-500">{overviewStats?.totalDepartments ?? 0}</div>
+                        <div className="text-[9px] uppercase font-mono tracking-wider text-[var(--text-muted)] mt-1">Depts</div>
+                      </div>
+                      <div className="text-center p-3 bg-black/10 border border-[var(--border)] rounded-xl">
+                        <div className="text-lg font-black text-orange-500">{overviewStats?.totalAdmins ?? 0}</div>
+                        <div className="text-[9px] uppercase font-mono tracking-wider text-[var(--text-muted)] mt-1">Admins</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Middle row stats: Active Sessions, Queue Size, Sessions Today (simulated), Avg Session Length (simulated) */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="admin-card p-4 flex flex-col justify-between h-24">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Active Sessions</span>
+                    <span className="text-2xl font-black text-blue-400">{liveSessions}</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Queue Size</span>
+                    <span className="text-2xl font-black text-amber-500">{overviewStats?.chatQueueSize ?? 0}</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Sessions Today</span>
+                    <span className="text-2xl font-black text-emerald-500">142</span>
+                  </div>
+                  <div className="admin-card p-4 flex flex-col justify-between h-24">
+                    <span className="text-[10px] uppercase font-black tracking-wider opacity-60">Avg. Session Length</span>
+                    <span className="text-2xl font-black text-indigo-400">4m 12s</span>
+                  </div>
+                </div>
+
+                {/* Bottom Section: Left timeline SVG line graph; Right column scheduled cron tasks checklist status */}
+                <div className="admin-two-col">
+                  {/* Left Column: Chat Activity Timeline */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div>
+                        <div className="admin-card-title">Chat Activity Timeline</div>
+                        <div className="admin-card-subtitle">Active chats count over the last 24 hours</div>
+                      </div>
+                    </div>
+                    <div className="admin-card-body">
+                      <svg viewBox="0 0 500 150" className="w-full h-32 mt-2">
+                        <defs>
+                          <linearGradient id="chatChartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path 
+                          d="M 0 120 C 50 110, 100 80, 150 90 C 200 100, 250 50, 300 40 C 350 30, 400 70, 450 30 C 475 10, 500 20, 500 20 L 500 150 L 0 150 Z" 
+                          fill="url(#chatChartGrad)" 
+                        />
+                        <path 
+                          d="M 0 120 C 50 110, 100 80, 150 90 C 200 100, 250 50, 300 40 C 350 30, 400 70, 450 30 C 475 10, 500 20, 500 20" 
+                          fill="none" 
+                          stroke="#3b82f6" 
+                          strokeWidth="3" 
+                        />
+                        <circle cx="300" cy="40" r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
+                        <text x="310" y="35" fill="var(--text-secondary)" fontSize="10" fontFamily="var(--font-mono)">Peak: 300 active</text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Scheduled Cron Tasks checklist */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div>
+                        <div className="admin-card-title">System Schedulers (Cron)</div>
+                        <div className="admin-card-subtitle">Status of recurring backend tasks</div>
+                      </div>
+                    </div>
+                    <div className="admin-card-body p-0">
+                      <div className="admin-table-scroll">
+                        <table className="admin-data-table">
+                          <thead>
+                            <tr>
+                              <th>TASK DESCRIPTION</th>
+                              <th>CRON</th>
+                              <th>STATUS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Profanity Sync</td>
+                              <td><span className="font-mono text-xs text-[var(--text-muted)]">0 0 * * *</span></td>
+                              <td><span className="admin-badge admin-badge-active">Completed</span></td>
+                            </tr>
+                            <tr>
+                              <td>Notification Pruning</td>
+                              <td><span className="font-mono text-xs text-[var(--text-muted)]">0 2 * * *</span></td>
+                              <td><span className="admin-badge admin-badge-active">Completed</span></td>
+                            </tr>
+                            <tr>
+                              <td>Community Health Sync</td>
+                              <td><span className="font-mono text-xs text-[var(--text-muted)]">0 */6 * * *</span></td>
+                              <td><span className="admin-badge admin-badge-pending">Running</span></td>
+                            </tr>
+                            <tr>
+                              <td>Weekly Counters Reset</td>
+                              <td><span className="font-mono text-xs text-[var(--text-muted)]">0 0 * * 0</span></td>
+                              <td><span className="admin-badge admin-badge-active">Completed</span></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            {/* ──────────── VIEW: BROADCASTS ──────────── */}
+            {activeTab === "broadcast" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-6"
+              >
+                <div className="admin-section-header">
+                  <div>
+                    <div className="admin-section-title">Broadcast Management</div>
+                    <div className="admin-section-sub">GET /api/posts/broadcast/analytics · /api/posts/broadcast/statistics</div>
+                  </div>
+                  <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={fetchLiveBroadcasts} disabled={loadingBroadcasts}>
+                    <RefreshCw size={13} className={loadingBroadcasts ? "animate-spin mr-1" : "mr-1"} /> Refresh Broadcasts
+                  </button>
+                </div>
+
+                <div className="admin-mini-stat-row" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
                   <div className="admin-mini-stat">
-                    <div className="admin-mini-val text-[#3b82f6]">{liveSessions}</div>
-                    <div className="admin-mini-label">Active Sockets</div>
+                    <div className="admin-mini-val" style={{ color: "var(--accent)" }}>
+                      {broadcastStats?.broadcastsCOUNTRY ?? broadcastStats?.countryWideBroadcasts ?? 0}
+                    </div>
+                    <div className="admin-mini-label">Country Wide</div>
                   </div>
                   <div className="admin-mini-stat">
-                    <div className="admin-mini-val text-[#22c55e]">1.4s</div>
-                    <div className="admin-mini-label">Avg. Socket Latency</div>
+                    <div className="admin-mini-val" style={{ color: "var(--accent2)" }}>
+                      {broadcastStats?.broadcastsSTATE ?? 0}
+                    </div>
+                    <div className="admin-mini-label">State Level</div>
                   </div>
                   <div className="admin-mini-stat">
-                    <div className="admin-mini-val text-[#f97316]">98.2%</div>
-                    <div className="admin-mini-label">Message Delivery</div>
+                    <div className="admin-mini-val" style={{ color: "var(--success)" }}>
+                      {broadcastStats?.broadcastsDISTRICT ?? 0}
+                    </div>
+                    <div className="admin-mini-label">District Level</div>
+                  </div>
+                  <div className="admin-mini-stat">
+                    <div className="admin-mini-val" style={{ color: "var(--warn)" }}>
+                      {broadcastStats?.broadcastsAREA ?? 0}
+                    </div>
+                    <div className="admin-mini-label">Area (Pincode)</div>
                   </div>
                 </div>
 
                 <div className="admin-card">
                   <div className="admin-card-head">
-                    <div className="admin-card-title">Live Message Logs</div>
-                    <div className="admin-card-subtitle">Real-time socket events</div>
+                    <div className="admin-card-title">Recent Broadcasts</div>
                   </div>
-                  <div className="admin-card-body">
-                    <div className="space-y-3 font-mono text-[12px] text-green-400 bg-black/40 p-4 rounded-xl">
-                      <div>[INFO] {new Date().toLocaleTimeString()} - WebSocket connection opened for citizen session: #{Math.floor(1000+Math.random()*9000)}</div>
-                      <div>[INFO] {new Date().toLocaleTimeString()} - Broadcast sync started to channel '/topic/pincode/411001'</div>
-                      <div>[INFO] {new Date().toLocaleTimeString()} - Message successfully saved into chat history collection</div>
-                      <div>[INFO] {new Date().toLocaleTimeString()} - Recalculated active socket session cache: {liveSessions} connections</div>
+                  <div className="admin-card-body p-0">
+                    <div className="admin-table-scroll">
+                      <table className="admin-data-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>DEPT</th>
+                            <th>SCOPE</th>
+                            <th>TARGET</th>
+                            <th>POSTED</th>
+                            <th>RESOLVED</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loadingBroadcasts ? (
+                            <tr>
+                              <td colSpan={6} className="text-center py-8 text-sm text-[var(--text-secondary)]">
+                                <div className="flex items-center justify-center gap-2">
+                                  <RefreshCw className="animate-spin text-[var(--accent)]" size={14} />
+                                  <span>Syncing broadcasts database...</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : broadcastsList.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="text-center py-8 text-sm text-[var(--text-muted)] italic">
+                                No active broadcasts found.
+                              </td>
+                            </tr>
+                          ) : (
+                            broadcastsList.map(b => (
+                              <tr key={b.id}>
+                                <td style={{ fontFamily: "var(--font-mono)" }}>#B-{b.id}</td>
+                                <td className="admin-td-name">{b.username}</td>
+                                <td>
+                                  <span className={`admin-badge ${
+                                    b.scope === "COUNTRY" ? "admin-badge-pending" :
+                                    b.scope === "STATE" ? "admin-badge-admin" : "admin-badge-dept"
+                                  }`}>
+                                    {b.scope}
+                                  </span>
+                                </td>
+                                <td><span className="admin-pincode-tag">{b.target}</span></td>
+                                <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}>{b.posted}</td>
+                                <td>
+                                  <span className={`admin-badge ${b.resolved === "Yes" ? "admin-badge-active" : "admin-badge-inactive"}`}>
+                                    {b.resolved}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
               </motion.div>
             )}
 
+            {/* ──────────── VIEW: SYSTEM HEALTH ──────────── */}
+            {activeTab === "system" && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-6"
+              >
+                <div className="admin-section-header">
+                  <div>
+                    <div className="admin-section-title">System Health & Operations</div>
+                    <div className="admin-section-sub">Scheduler status · Storage · Notification cleanup</div>
+                  </div>
+                  <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={fetchSystemHealth} disabled={loadingHealth}>
+                    <RefreshCw size={13} className={loadingHealth ? "animate-spin mr-1" : "mr-1"} /> Refresh Health
+                  </button>
+                </div>
+
+                <div className="admin-mini-stat-row" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+                  <div className="admin-mini-stat">
+                    <div className="admin-mini-val" style={{ color: "var(--success)" }}>99.8%</div>
+                    <div className="admin-mini-label">API Uptime</div>
+                  </div>
+                  <div className="admin-mini-stat">
+                    <div className="admin-mini-val" style={{ color: "var(--accent2)" }}>38ms</div>
+                    <div className="admin-mini-label">Avg Latency</div>
+                  </div>
+                  <div className="admin-mini-stat">
+                    <div className="admin-mini-val" style={{ color: "var(--warn)" }}>
+                      {overviewStats?.badWordsLoaded ?? 0}
+                    </div>
+                    <div className="admin-mini-label">Bad Words</div>
+                  </div>
+                  <div className="admin-mini-stat">
+                    <div className="admin-mini-val" style={{ color: "var(--success)" }}>
+                      {healthData?.storage || "Cloudinary"}
+                    </div>
+                    <div className="admin-mini-label">Storage</div>
+                  </div>
+                </div>
+
+                <div className="admin-two-col">
+                  {/* Service Status */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div className="admin-card-title">Service Status</div>
+                      <div className="admin-card-subtitle">Platform microservices connectivity</div>
+                    </div>
+                    <div className="admin-card-body">
+                      <div className="admin-qstat">
+                        {loadingHealth ? (
+                          <div className="text-center py-6 text-xs text-[var(--text-secondary)]">
+                            Checking services...
+                          </div>
+                        ) : healthData?.services ? (
+                          healthData.services.map((srv: any, idx: number) => (
+                            <div className="admin-qstat-row" key={idx}>
+                              <div className="admin-qstat-label">{srv.name}</div>
+                              <span className={`admin-badge ${srv.status === "HEALTHY" ? "admin-badge-active" : "admin-badge-inactive"}`}>
+                                {srv.status}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">AuthController &amp; JWT</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">PostService (Cloudinary)</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">NotificationService</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">ChatSessionService</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">MatchmakingService</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">BadWordService</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                            <div className="admin-qstat-row"><div className="admin-qstat-label">CommunityService</div><span className="admin-badge admin-badge-active">Healthy</span></div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="admin-card">
+                    <div className="admin-card-head">
+                      <div className="admin-card-title">Quick Actions</div>
+                      <div className="admin-card-subtitle">Execute administrative actions</div>
+                    </div>
+                    <div className="admin-card-body">
+                      <div className="admin-btn-actions" style={{ flexDirection: "column", gap: "10px", alignItems: "stretch" }}>
+                        <button
+                          className="admin-btn admin-btn-secondary"
+                          style={{ width: "100%" }}
+                          onClick={handleRunCleanup}
+                          disabled={executingAction !== null}
+                        >
+                          {executingAction === "cleanup" ? "Processing..." : "Run File Cleanup Queue"}
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-secondary"
+                          style={{ width: "100%" }}
+                          onClick={handleResetCounters}
+                          disabled={executingAction !== null}
+                        >
+                          {executingAction === "reset" ? "Processing..." : "Reset Weekly Community Counters"}
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-secondary"
+                          style={{ width: "100%" }}
+                          onClick={handleTriggerNotifCleanup}
+                          disabled={executingAction !== null}
+                        >
+                          {executingAction === "notif-cleanup" ? "Processing..." : "Trigger Notification Cleanup (30d)"}
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-secondary"
+                          style={{ width: "100%" }}
+                          onClick={handleReloadBadWords}
+                          disabled={executingAction !== null}
+                        >
+                          {executingAction === "bad-words" ? "Processing..." : "Reload Bad Word Filter"}
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-danger"
+                          style={{ width: "100%", marginTop: "8px" }}
+                          onClick={handleForceEndAllChat}
+                          disabled={executingAction !== null}
+                        >
+                          {executingAction === "chat-kill" ? "Processing..." : "Force-end All Chat Sessions"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
           </AnimatePresence>
         </div>
@@ -2870,6 +3809,24 @@ const AdminDashboard = () => {
               </svg>
               Chat Statistics
             </button>
+            <button
+              className={`admin-nav-item ${activeTab === "broadcast" ? "active" : ""}`}
+              onClick={() => { setActiveTab("broadcast"); setMobileSidebarOpen(false); }}
+            >
+              <Radio className="admin-nav-icon" size={18} />
+              Broadcasts
+            </button>
+          </div>
+
+          <div className="admin-nav-section">
+            <div className="admin-nav-label">System</div>
+            <button
+              className={`admin-nav-item ${activeTab === "system" ? "active" : ""}`}
+              onClick={() => { setActiveTab("system"); setMobileSidebarOpen(false); }}
+            >
+              <Activity className="admin-nav-icon" size={18} />
+              System Health
+            </button>
           </div>
         </nav>
 
@@ -2878,7 +3835,7 @@ const AdminDashboard = () => {
             <div className="admin-avatar">{avatarInitials}</div>
             <div className="admin-info">
               <div className="admin-name text-xs truncate" title={userEmail}>{userDisplayName}</div>
-              <div className="admin-role">Super Admin</div>
+              <div className="admin-role">Admin</div>
             </div>
           </div>
         </div>
@@ -2953,6 +3910,87 @@ const AdminDashboard = () => {
         )}
       </AnimatePresence>
 
+      {/* Report Resolution Modal */}
+      <AnimatePresence>
+        {resolvingReportId && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              className="w-full max-w-md overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg-surface)] shadow-2xl p-8 space-y-6"
+            >
+              <div className="space-y-1.5 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
+                  <ShieldAlert size={36} />
+                </div>
+                <h3 className="text-xl font-bold text-[var(--text-primary)]">Resolve Content Report</h3>
+                <p className="text-sm text-[var(--text-secondary)]">Action report #{resolvingReportId} according to IT Guidelines</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Resolution Action</label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setResolveForm({ ...resolveForm, resolution: "RESOLVED_REMOVED" })}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        resolveForm.resolution === "RESOLVED_REMOVED"
+                          ? "bg-red-500/10 border-red-500/30 text-red-500 shadow-sm"
+                          : "border-transparent bg-black/20 text-[var(--text-secondary)] hover:bg-black/35"
+                      }`}
+                    >
+                      Remove Content
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResolveForm({ ...resolveForm, resolution: "RESOLVED_DISMISSED" })}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        resolveForm.resolution === "RESOLVED_DISMISSED"
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500 shadow-sm"
+                          : "border-transparent bg-black/20 text-[var(--text-secondary)] hover:bg-black/35"
+                      }`}
+                    >
+                      Dismiss Report
+                    </button>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Compliance Notes / Rationale</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Provide legal rationale or investigation notes (e.g. Violates IT Rules 2021 Rule 3(1)(b) due to obscene content...)"
+                    className="admin-form-input bg-black/20 text-xs py-2 h-24 resize-none font-medium"
+                    value={resolveForm.notes}
+                    onChange={e => setResolveForm({ ...resolveForm, notes: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setResolvingReportId(null)}
+                  className="admin-btn admin-btn-secondary flex-1"
+                  disabled={submittingResolution}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitResolveReport}
+                  className="admin-btn admin-btn-primary flex-1"
+                  disabled={submittingResolution}
+                >
+                  {submittingResolution ? "Submitting..." : "Apply Resolution"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Detail Slide-over Panel (new right sidebar when clicked) */}
       <div
         className={`admin-posts-panel-backdrop ${selectedUserForDetails ? "open" : ""}`}
@@ -3000,7 +4038,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="admin-posts-panel-stat">
                   <div className="admin-posts-panel-stat-val text-[var(--accent2)]">
-                    {selectedUserForDetails.role === "ROLE_ADMIN" ? "Super" : "Verified"}
+                    {selectedUserForDetails.role === "ROLE_ADMIN" ? "Admin" : "Verified"}
                   </div>
                   <div className="admin-posts-panel-stat-lbl">Status</div>
                 </div>

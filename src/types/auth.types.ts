@@ -3,6 +3,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   pincode: string;
+  username?: string;
 }
 
 export interface AuthRequest {

@@ -14,7 +14,7 @@ import DepartmentFeed from "../pages/DepartmentFeed";
 import DepartmentDashboard from "../pages/DepartmentDashboard";
 import AdminDashboard from "../pages/AdminDashboard";
 import QuickChatPage from "../pages/QuickChatPage";
-import { isSuperAdmin } from "../utils/auth";
+import { isAdminUser } from "../utils/auth";
 import Profile from "../pages/Profile";
 import Settings from "../pages/Settings";
 import NotificationsPage from "../pages/NotificationsPage";
@@ -23,6 +23,7 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import LandingPage from "../pages/LandingPage";
 import { AcceptInvitePage } from "../pages/Communities";
+import VerifyEmail from "../pages/VerifyEmail";
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -66,6 +67,7 @@ const useTokenExpiryWatcher = () => {
       location.pathname === "/" ||
       location.pathname === "/login" ||
       location.pathname === "/register" ||
+      location.pathname === "/verify-email" ||
       location.pathname.startsWith("/invite/")
     ) {
       return;
@@ -107,6 +109,17 @@ const useTokenExpiryWatcher = () => {
   }, [navigate, location.pathname]);
 };
 
+// ── Dashboard Redirect Helper ──────────────────────────────────────────────────
+const DashboardRedirect = () => {
+  if (isAdminUser()) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  if (isDepartmentUser()) {
+    return <Navigate to="/department/dashboard" replace />;
+  }
+  return <Home />;
+};
+
 // ── Router ────────────────────────────────────────────────────────────────────
 const AppRouter = () => {
   const location = useLocation();
@@ -140,6 +153,10 @@ const AppRouter = () => {
               : <PageWrapper><Register /></PageWrapper>
           }
         />
+        <Route
+          path="/verify-email"
+          element={<PageWrapper><VerifyEmail /></PageWrapper>}
+        />
 
         {/* ── Invite accept route ── */}
         <Route
@@ -155,7 +172,7 @@ const AppRouter = () => {
         <Route
           element={isLoggedIn() ? <MainLayout /> : <Navigate to="/login" replace />}
         >
-          <Route path="/dashboard" element={<PageWrapper><Home /></PageWrapper>} />
+          <Route path="/dashboard" element={<PageWrapper><DashboardRedirect /></PageWrapper>} />
           <Route path="/communities/:id?" element={<PageWrapper><Communities /></PageWrapper>} />
           <Route path="/department-feed" element={<PageWrapper><DepartmentFeed /></PageWrapper>} />
           <Route path="/department/dashboard"
@@ -172,7 +189,7 @@ const AppRouter = () => {
           <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
           <Route path="/admin/dashboard" 
             element={
-              !isSuperAdmin() 
+              !isAdminUser() 
                 ? <Navigate to="/dashboard" replace /> 
                 : <PageWrapper><AdminDashboard /></PageWrapper>
             } 

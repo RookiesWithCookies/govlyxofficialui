@@ -3,10 +3,12 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthHeader from "../components/auth/AuthHeader";
 import AuthInput from "../components/auth/AuthInput";
-import { loginUser } from "../api/authService";
+import { loginUser, resendVerification } from "../api/authService";
 import { Info, Eye, EyeOff } from "lucide-react";
 import { queryClient } from "../api/queryClient";
 import { persistAuthToken } from "../utils/auth";
+import { showToast } from "../utils/toast";
+import { parseError } from "../utils/error-handler";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,6 +25,25 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Resend Verification states
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+
+  const handleResendVerification = async () => {
+    if (!form.email) return;
+    setResending(true);
+    setResendSuccess(null);
+    try {
+      const response = await resendVerification(form.email);
+      setResendSuccess(response.message || "Verification link resent successfully.");
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Failed to resend verification email.";
+      showToast.error(errMsg);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -52,19 +73,13 @@ const Login = () => {
         persistAuthToken(response.data.token);
         // Ensure the query cache starts fresh for the new user session
         queryClient.clear();
-        // Admin Redirect
-        if (form.email === "madhavrakhonde7@gmail.com" || form.email === "samarthbhagwanpawar098@gmail.com") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/dashboard");
-        }
+        // Role-based redirect will be handled by DashboardRedirect at /dashboard
+        navigate("/dashboard");
       } else {
         setError(response.message || "Login failed");
       }
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message || "Login failed. Please try again.";
-      setError(msg);
+      setError(parseError(err));
     } finally {
       setLoading(false);
     }
@@ -87,8 +102,23 @@ const Login = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-2 text-sm text-red-400">
-          {error}
+        <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400 flex flex-col gap-2">
+          <span>{error}</span>
+          {error.toLowerCase().includes("verify") && (
+            <div className="mt-1 pt-2 border-t border-red-500/20 flex flex-col gap-2">
+              {resendSuccess ? (
+                <span className="text-xs font-bold text-green-400">{resendSuccess}</span>
+              ) : (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="text-xs font-black uppercase text-left tracking-wider text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors"
+                >
+                  {resending ? "Sending Link..." : "Didn't receive email? Resend verification link"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
