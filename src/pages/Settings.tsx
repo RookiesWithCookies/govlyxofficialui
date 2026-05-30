@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../api/axiosConfig";
 import { useCurrentUser } from "../hooks/useUser";
 import { clearAuthTokens } from "../utils/auth";
+import ImageEditorModal from "../components/modals/ImageEditorModal";
 
 // ─── Inline Toast ──────────────────────────────────────────────────────────────
 function InlineToast({
@@ -141,6 +142,8 @@ const Settings = () => {
 
   // ── Profile image ──
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorImageSrc, setEditorImageSrc] = useState<string | null>(null);
 
   // ── Deactivation ──
   const [showDeactivate, setShowDeactivate] = useState(false);
@@ -216,8 +219,8 @@ const Settings = () => {
     }
   };
 
-  // ── Image upload ──
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── Image upload & edit triggers ──
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -226,10 +229,23 @@ const Settings = () => {
     if (file.size > 5 * 1024 * 1024) {
       return showToast("Image must be under 5 MB", "error");
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditorImageSrc(reader.result as string);
+      setEditorOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditorSave = async (editedBlob: Blob) => {
     setUploadingImg(true);
+    setEditorOpen(false);
     try {
       const fd = new FormData();
+      const file = new File([editedBlob], "profile.jpg", { type: "image/jpeg" });
       fd.append("file", file);
+      
       await axiosInstance.post("/api/users/profile-image", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -239,6 +255,7 @@ const Settings = () => {
       showToast(err.response?.data?.message || "Failed to upload photo", "error");
     } finally {
       setUploadingImg(false);
+      setEditorImageSrc(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -640,6 +657,20 @@ const Settings = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══════════════ IMAGE EDITOR MODAL ═══════════════ */}
+      {editorImageSrc && (
+        <ImageEditorModal
+          isOpen={editorOpen}
+          onClose={() => {
+            setEditorOpen(false);
+            setEditorImageSrc(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+          imageSrc={editorImageSrc}
+          onSave={handleEditorSave}
+        />
       )}
     </div>
   );

@@ -255,7 +255,7 @@ function canUpdateResolution(post: IssuePost, currentUser?: CurrentUser): boolea
 }
 
 function commentPostType(variant: PostVariant): PostType {
-  return variant === "issue" ? "post" : "social-posts";
+  return (variant === "issue" || variant === "government") ? "posts" : "social-posts";
 }
 
 function isCommunityPost(post: AnyPost): boolean {
@@ -837,14 +837,13 @@ function ShareModal({
   );
 }
 
-// ─── Action Pill ──────────────────────────────────────────────────────────────
 function ActionPill({
   onClick,
   active = false,
   disabled = false,
   children,
   vertical = false,
-  activeClass = "bg-blue-600/10 text-blue-600",
+  activeClass = "bg-primary/10 border-primary/20 text-primary",
 }: {
   onClick: () => void;
   active?: boolean;
@@ -857,12 +856,12 @@ function ActionPill({
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      whileHover={{ scale: disabled ? 1 : 1.05, backgroundColor: "var(--base-200)" }}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
       whileTap={{ scale: disabled ? 1 : 0.95 }}
-      className={`flex items-center gap-1 sm:gap-1.5 rounded-2xl transition-all duration-200 disabled:opacity-30 select-none border border-transparent ${vertical ? "p-2 sm:p-2.5 flex-col min-w-[48px] sm:min-w-[54px]" : "px-2 sm:px-3 py-1 sm:py-2"
+      className={`flex items-center gap-1 sm:gap-1.5 rounded-2xl transition-all duration-200 disabled:opacity-30 select-none border ${vertical ? "p-2 sm:p-2.5 flex-col min-w-[48px] sm:min-w-[54px]" : "px-2 sm:px-3 py-1 sm:py-2"
         } text-[9px] sm:text-[10px] font-black uppercase tracking-tighter ${active
-          ? `${activeClass} bg-current/5 border-current/10 shadow-sm`
-          : "text-base-content/60 hover:text-base-content bg-base-200/50 hover:bg-base-300/80"
+          ? `${activeClass} shadow-sm`
+          : "text-base-content/70 hover:text-base-content bg-base-200 hover:bg-base-300 border-base-content/5"
         }`}
     >
       {children}
@@ -1075,7 +1074,7 @@ export default function PostCard({
   const isIssue = post.variant === "issue";
   const isGovt = post.variant === "government";
   const isCommunity = post.variant === "community";
-  const interactionType: "posts" | "social-posts" = isIssue ? "posts" : "social-posts";
+  const interactionType: "posts" | "social-posts" = (isIssue || isGovt) ? "posts" : "social-posts";
   const isResolved = isIssue && (post as IssuePost).status === "RESOLVED";
 
   const govCanResolve =
@@ -1462,24 +1461,24 @@ export default function PostCard({
 
               {/* Horizontal Action Bar: Shown for all posts on mobile, and on desktop if NO media */}
               <div className={`flex items-center gap-1 sm:gap-2 border-t border-base-300 pt-3 ${hasMedia ? "lg:hidden" : "flex"}`}>
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} activeClass="text-pink-500">
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
                   <Heart size={16} className={liked ? "fill-current" : ""} />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} activeClass="text-sky-500">
+                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} activeClass="text-sky-600 bg-sky-500/10 border-sky-500/20">
                   <MessageSquare size={16} className={commentsOpen ? "fill-current" : ""} />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} activeClass="text-emerald-500">
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
                   <Share2 size={16} />
                   <span>{copied ? "Copied!" : (shareCount || "0")}</span>
                 </ActionPill>
                 <div className="flex-1" />
-                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} activeClass="text-amber-500">
+                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
                   <Bookmark size={16} className={saved ? "fill-current" : ""} />
                 </ActionPill>
                 {isIssue && (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} activeClass="text-rose-500">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
                     <ThumbsDown size={16} className={disliked ? "fill-current" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
@@ -1494,23 +1493,23 @@ export default function PostCard({
                 animate={{ opacity: 1, x: 0 }}
                 className="hidden lg:flex flex-col gap-2 p-1 rounded-2xl bg-base-200/50 border border-base-300 lg:order-2 shrink-0 sticky top-0"
               >
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} vertical activeClass="text-pink-500">
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} vertical activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
                   <Heart size={18} className={liked ? "fill-current" : ""} />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} vertical activeClass="text-sky-500">
+                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} vertical activeClass="text-sky-600 bg-sky-500/10 border-sky-500/20">
                   <MessageSquare size={18} className={commentsOpen ? "fill-current" : ""} />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} vertical activeClass="text-emerald-500">
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} vertical activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
                   <Share2 size={18} />
                   <span className="text-[9px] leading-tight mt-0.5">{copied ? "Copied" : (shareCount || "0")}</span>
                 </ActionPill>
-                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} vertical activeClass="text-amber-500">
+                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} vertical activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
                   <Bookmark size={18} className={saved ? "fill-current" : ""} />
                 </ActionPill>
                 {isIssue && (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} vertical activeClass="text-rose-500">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} vertical activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
                     <ThumbsDown size={18} className={disliked ? "fill-current" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>

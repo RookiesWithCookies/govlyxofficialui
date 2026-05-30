@@ -92,7 +92,7 @@ async function apiDelete(url: string) {
 }
 
 // ─── types ────────────────────────────────────────────────────────────────────
-export type PostType = "post" | "social-posts";
+export type PostType = "posts" | "social-posts";
 
 export type AuthorDto = {
   username: string; actualUsername?: string;
@@ -519,8 +519,9 @@ function SingleComment({
       setReplies((prev) => (cursor ? [...prev, ...fetched] : fetched));
       setHasMoreReplies(container?.hasMore ?? false);
       setRepliesCursor(container?.nextCursor);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("Load replies error:", e);
+      showToast.error("Failed to load replies: " + parseError(e));
     } finally {
       setLoadingReplies(false);
     }
@@ -535,8 +536,8 @@ function SingleComment({
 
   async function handleReply(text: string) {
     const endpoint =
-      postType === "post"
-        ? `/api/comments/post/${postId}`
+      postType === "posts"
+        ? `/api/comments/posts/${postId}`
         : `/api/comments/social-posts/${postId}`;
     const res = await apiPost(endpoint, { text, parentCommentId: comment.id });
     const created: CommentDto = res?.data ?? res;
@@ -862,8 +863,8 @@ export default function CommentSection({
         const params = new URLSearchParams({ limit: String(LIMIT) });
         if (beforeId) params.set("beforeId", String(beforeId));
         const endpoint =
-          postType === "post"
-            ? `/api/comments/post/${postId}/top-level?${params}`
+          postType === "posts"
+            ? `/api/comments/posts/${postId}/top-level?${params}`
             : `/api/comments/social-posts/${postId}/top-level?${params}`;
 
         const json = await apiFetch(endpoint);
@@ -896,7 +897,8 @@ export default function CommentSection({
         setCursor(paginationInfo?.nextCursor);
         setFetchedOnce(true);
       } catch (e) {
-
+        console.error("Fetch comments error:", e);
+        showToast.error("Failed to load comments: " + parseError(e));
         setFetchedOnce(true); // Prevent UI from getting stuck if it fails
       } finally {
         setLoading(false);
@@ -921,8 +923,8 @@ export default function CommentSection({
 
   async function handleNewComment(text: string) {
     const endpoint =
-      postType === "post"
-        ? `/api/comments/post/${postId}`
+      postType === "posts"
+        ? `/api/comments/posts/${postId}`
         : `/api/comments/social-posts/${postId}`;
     const res = await apiPost(endpoint, { text });
     const created: CommentDto = res?.data ?? res;

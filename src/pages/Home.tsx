@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Flame, Clock, ArrowUp, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Flame, Clock, ArrowUp, SlidersHorizontal, Sparkles, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PostCard from "../components/post/PostCard";
@@ -173,8 +173,23 @@ const SORT_TABS: { key: "hot" | "new" | "top"; label: string; icon: any }[] = [
 const Home = () => {
   const [sourceTab, setSourceTab] = useState<"all" | "location" | "following" | "official">("all");
   const [sortTab, setSortTab] = useState<"hot" | "new" | "top">("hot");
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const sourceDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+      if (sourceDropdownRef.current && !sourceDropdownRef.current.contains(event.target as Node)) {
+        setSourceDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const { data: user } = useCurrentUser();
   const { posts, loading, initialLoading, hasMore, error, fatalError, loadMore, retry, updatePost, prependPost, deletePost } =
@@ -222,72 +237,94 @@ const Home = () => {
   return (
     <div className="space-y-4">
       <div className="sticky top-2 z-30">
-        <div className="flex flex-col gap-2 rounded-2xl border border-base-300 bg-base-100/90 p-2 backdrop-blur-md shadow-sm lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-          <div className="flex lg:hidden items-center justify-between px-2 py-1">
-            <span className="text-sm font-bold opacity-60">Feed Filters</span>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-sm font-bold ${showFilters ? "bg-[#1D4ED8] text-white border-[#1D4ED8] shadow-md" : "bg-base-200 border-base-300 text-base-content/70"}`}
-            >
-              <SlidersHorizontal size={16} />
-              {showFilters ? "Hide" : "Explore"}
-            </button>
-          </div>
-          <AnimatePresence>
-            {(showFilters || window.innerWidth >= 1024) && (
-              <motion.div
-                initial={window.innerWidth < 1024 ? { height: 0, opacity: 0 } : false}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:w-full lg:gap-4"
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-base-300 bg-base-100/90 p-1.5 backdrop-blur-md shadow-sm">
+          {/* Desktop Scrollable Feed Tabs */}
+          <div className="hidden sm:flex gap-1 bg-base-200/50 p-1 rounded-xl overflow-x-auto scrollbar-hide flex-1">
+            {SOURCE_TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setSourceTab(t.key)}
+                className={`shrink-0 rounded-lg px-4 py-1.5 text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${sourceTab === t.key ? "bg-[#1D4ED8] text-white shadow-sm" : "text-base-content/70 hover:text-base-content hover:bg-base-300/50"}`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex gap-1 bg-base-200/50 p-1 rounded-xl w-full lg:w-auto overflow-x-auto scrollbar-hide">
-                    {SOURCE_TABS.map((t) => (
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Source Dropdown */}
+          <div className="relative flex-1 sm:hidden z-40" ref={sourceDropdownRef}>
+            <button
+              onClick={() => setSourceDropdownOpen(!sourceDropdownOpen)}
+              className="flex items-center justify-between w-full px-4 py-2 h-[36px] sm:h-[38px] rounded-xl border border-base-300 bg-base-200/50 hover:bg-base-300/50 transition-all text-sm font-bold text-base-content cursor-pointer"
+            >
+              <span>{SOURCE_TABS.find((t) => t.key === sourceTab)?.label}</span>
+              <ChevronDown size={14} className={`transition-transform duration-200 ${sourceDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            <AnimatePresence>
+              {sourceDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="absolute left-0 mt-1.5 z-40 w-full overflow-hidden rounded-xl border border-base-300 bg-base-100 p-1 shadow-lg"
+                >
+                  {SOURCE_TABS.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        setSourceTab(t.key);
+                        setSourceDropdownOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold transition-all cursor-pointer ${sourceTab === t.key ? "bg-[#1D4ED8] text-white" : "text-base-content/70 hover:bg-base-200/60 hover:text-base-content"}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="relative shrink-0" ref={dropdownRef}>
+            <button
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 h-[36px] sm:h-[38px] rounded-xl border border-base-300 bg-base-200/50 hover:bg-base-300/50 transition-all text-xs sm:text-sm font-bold text-base-content/70 hover:text-base-content cursor-pointer ${sortDropdownOpen ? "border-[#1D4ED8]/30 bg-[#1D4ED8]/5 text-[#1D4ED8]" : ""}`}
+            >
+              <SlidersHorizontal size={14} className="sm:w-4 sm:h-4" />
+              <span className="capitalize">{sortTab}</span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${sortDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            <AnimatePresence>
+              {sortDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="absolute right-0 mt-1.5 z-40 overflow-hidden rounded-xl border border-base-300 bg-base-100 p-1 shadow-lg min-w-[120px]"
+                >
+                  {SORT_TABS.map((t) => {
+                    const ActiveIcon = t.icon;
+                    return (
                       <button
                         key={t.key}
-                        onClick={() => setSourceTab(t.key)}
-                        className={`shrink-0 lg:flex-none rounded-lg px-4 py-1.5 text-sm font-bold transition-all whitespace-nowrap ${sourceTab === t.key ? "bg-[#1D4ED8] text-white shadow-md" : "text-base-content/70 hover:text-base-content hover:bg-base-300/50"}`}
+                        onClick={() => {
+                          setSortTab(t.key);
+                          setSortDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs sm:text-sm font-bold transition-all cursor-pointer ${sortTab === t.key ? "bg-[#1D4ED8] text-white" : "text-base-content/70 hover:bg-base-200/60 hover:text-base-content"}`}
                       >
+                        <ActiveIcon size={14} />
                         {t.label}
                       </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setShowSort(!showSort)}
-                    className={`lg:hidden flex items-center justify-center p-2 h-[38px] w-[38px] rounded-xl border transition-all ${showSort ? "bg-[#1D4ED8]/10 border-[#1D4ED8]/30 text-[#1D4ED8]" : "bg-base-200 border-base-300 text-base-content/60"}`}
-                  >
-                    <Clock size={18} />
-                  </button>
-                </div>
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4 lg:flex-1 lg:justify-end">
-                  <AnimatePresence>
-                    {(showSort || window.innerWidth >= 1024) && (
-                      <motion.div
-                        initial={window.innerWidth < 1024 ? { height: 0, opacity: 0 } : false}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="flex gap-1 bg-base-200/50 p-1 rounded-xl lg:bg-transparent lg:p-0 overflow-hidden"
-                      >
-                        <div className="flex gap-1 bg-base-200/50 p-1 rounded-xl w-full lg:w-auto overflow-x-auto scrollbar-hide">
-                          {SORT_TABS.map((t) => (
-                            <button
-                              key={t.key}
-                              onClick={() => { setSortTab(t.key); if (window.innerWidth < 1024) setShowSort(false); }}
-                              className={`flex shrink-0 lg:flex-none items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-sm font-bold transition-all ${sortTab === t.key ? "bg-[#1D4ED8] text-white shadow-md" : "text-base-content/70 hover:text-base-content hover:bg-base-300/50"}`}
-                            >
-                              <t.icon size={16} />
-                              {t.label}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

@@ -24,7 +24,11 @@ import {
   Wifi,
   Battery,
   Users,
-  Eye
+  Eye,
+  TrafficCone,
+  Droplet,
+  Bot,
+  MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -319,16 +323,16 @@ export default function LandingPage() {
       </AnimatePresence>
 
       {/* ─── Hero Section ────────────────────────────────────────────────────── */}
-      <section className="relative pt-20 pb-6 lg:pt-24 lg:pb-8 px-4 sm:px-6 overflow-hidden min-h-[80vh] lg:min-h-0 flex items-center bg-transparent">
+      <section className="relative pt-20 pb-6 lg:pt-24 lg:pb-8 px-4 sm:px-8 lg:px-24 xl:px-32 overflow-hidden min-h-[80vh] lg:min-h-0 flex items-center bg-transparent">
         {/* Background Decor */}
         <div className="absolute inset-0 bg-grid-pattern opacity-40 dark:opacity-30 pointer-events-none"></div>
         <div className="absolute top-0 right-0 w-[400px] lg:w-[600px] h-[400px] lg:h-[600px] bg-brand-100 dark:bg-brand-900/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 translate-x-1/3 -translate-y-1/4 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[300px] lg:w-[500px] h-[300px] lg:h-[500px] bg-blue-100 dark:bg-blue-900/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 -translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
 
-        <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center relative z-10">
+        <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-6 items-center relative z-10">
           
           {/* Left Column: Title & Replicated Portal Gateway Card */}
-          <div className="max-w-xl mx-auto lg:mx-0 w-full text-center lg:text-left order-2 lg:order-1 mt-4 lg:mt-0">
+          <div className="max-w-2xl mx-auto lg:mx-0 w-full text-center lg:text-left order-1 lg:order-1 mt-4 lg:mt-0 lg:pl-10">
             <div className="inline-flex items-center gap-2 bg-brand-50 dark:bg-brand-900/25 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-400 font-semibold text-[10px] sm:text-xs px-3 py-0.5 rounded-full uppercase tracking-wider mb-3">
               Portal Gateway
             </div>
@@ -338,19 +342,19 @@ export default function LandingPage() {
               <span className="text-brand-600 dark:text-brand-500">Apna feed.</span>
             </h1>
             
-            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-355 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0">
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0">
               The civic-tech transparency infrastructure. Connect with your neighbors, get verified government alerts, and join local communities based on your 6-digit pincode.
             </p>
 
             {/* Replicated Portal Gateway Card */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-soft dark:shadow-none text-left max-w-md mx-auto lg:mx-0 relative overflow-hidden transition-colors">
+            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-soft dark:shadow-none text-left max-w-md mx-auto lg:mx-0 relative transition-colors">
               <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white mb-0.5">Welcome to Govlyx</h3>
-              <p className="text-[11px] sm:text-xs text-slate-505 dark:text-slate-400 mb-4 leading-normal">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4 leading-normal">
                 Select your destination below to enter the platform.
               </p>
               
               <div className="bg-slate-50 dark:bg-[#0B0F1A] border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 sm:p-4 transition-colors">
-                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-450 dark:text-slate-500 tracking-wider uppercase mb-1.5">
+                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-500 tracking-wider uppercase mb-1.5">
                   Select Destination
                 </label>
                 
@@ -389,7 +393,7 @@ export default function LandingPage() {
                               className={`w-full px-3.5 py-2 text-left text-xs transition-colors cursor-pointer ${
                                 active
                                   ? "bg-brand-600 text-white font-semibold"
-                                  : "bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#0B0F1A] dark:text-slate-350 dark:hover:bg-[#121829] dark:hover:text-white"
+                                  : "bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#0B0F1A] dark:text-slate-300 dark:hover:bg-[#121829] dark:hover:text-white"
                               }`}
                             >
                               {dest.name}
@@ -412,7 +416,7 @@ export default function LandingPage() {
           </div>
 
           {/* Right Column: Realistic CSS Mobile Phone Mockup */}
-          <div className="relative flex justify-center items-center order-1 lg:order-2">
+          <div className="relative flex justify-center items-center order-2 lg:order-2">
             {/* Decorative Blur behind phone */}
             <div className="absolute w-[280px] sm:w-[320px] h-[360px] sm:h-[440px] bg-brand-400/20 dark:bg-brand-500/10 rounded-full blur-[60px] animate-pulse pointer-events-none"></div>
 
@@ -535,20 +539,20 @@ export default function LandingPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-white mr-1.5 sm:mr-2 animate-pulse"></span> LIVE
         </div>
         <div className="flex whitespace-nowrap animate-marquee pl-[90px] sm:pl-[120px] space-x-8 sm:space-x-12 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-          <span>Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400">📍 Kolhapur</span></span>
-          <span>Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400">📍 Sangli</span></span>
-          <span>New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400">📍 Nashik</span></span>
-          <span>Pothole on SH-10 repaired! <span className="text-brand-600 dark:text-brand-400">📍 Solapur</span></span>
-          <span>Power cut Sunday 9AM–1PM <span className="text-brand-600 dark:text-brand-400">📍 Aurangabad</span></span>
+          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
+          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
+          <span className="inline-flex items-center gap-1.5">Pothole on SH-10 repaired! <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Solapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Power cut Sunday 9AM–1PM <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Aurangabad</span></span>
           {/* Duplicated for seamless loop */}
-          <span>Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400">📍 Kolhapur</span></span>
-          <span>Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400">📍 Sangli</span></span>
-          <span>New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400">📍 Nashik</span></span>
+          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
+          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
         </div>
       </div>
 
       {/* ─── Platform Features Section (Features Indicator for anchor link) ─── */}
-      <section id="features" className="py-12 bg-transparent"></section>
+      <div id="features" className="scroll-mt-20"></div>
 
       {/* ─── Communities Section ─────────────────────────────────────────────── */}
       <section id="communities" className="py-16 sm:py-24 px-4 sm:px-6 bg-[#F8FAFC] dark:bg-[#0B0F1A] border-t border-slate-200/50 dark:border-slate-800/40 transition-colors">
@@ -569,7 +573,9 @@ export default function LandingPage() {
             <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center flex-shrink-0 text-xl shadow-inner group-hover:scale-110 transition-transform duration-300">🚦</div>
+                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center flex-shrink-0 text-orange-500 dark:text-orange-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <TrafficCone className="w-5 h-5" />
+                  </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-slate-900 dark:text-white text-base">Pune traffic update</h3>
@@ -600,7 +606,9 @@ export default function LandingPage() {
             <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center flex-shrink-0 text-xl shadow-inner group-hover:scale-110 transition-transform duration-300">💧</div>
+                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center flex-shrink-0 text-brand-500 dark:text-brand-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <Droplet className="w-5 h-5 fill-current" />
+                  </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-slate-900 dark:text-white text-base">Water Supply Dept.</h3>
@@ -624,7 +632,9 @@ export default function LandingPage() {
             <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center flex-shrink-0 text-xl shadow-inner group-hover:scale-110 transition-transform duration-300">🤖</div>
+                  <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center flex-shrink-0 text-purple-500 dark:text-purple-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <Bot className="w-5 h-5" />
+                  </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-slate-900 dark:text-white text-base">Local Chat</h3>
