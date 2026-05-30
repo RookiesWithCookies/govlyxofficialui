@@ -157,7 +157,7 @@ export default function LandingPage() {
       id: "post-3",
       author: "KINDCROW9071",
       avatarInitials: "KC",
-      avatarBg: "bg-brand-100 text-brand-600",
+      avatarBg: "bg-[#eff4ff] text-[#1D4ED8]",
       time: "1 DAY AGO",
       content: "Streetlights have been out on 4th Cross Street for three days straight. It's completely pitch dark at night and unsafe for pedestrians. @CityCouncil please look into this urgently! 🔦⚠️",
       reactions: 892,
@@ -223,7 +223,7 @@ export default function LandingPage() {
   const selectedDestination = DESTINATIONS.find((dest) => dest.url === targetUrl) ?? DESTINATIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1D] text-slate-800 dark:text-slate-200 selection:bg-brand-500/20 selection:text-brand-900 dark:selection:text-white transition-colors duration-300 flex flex-col justify-between overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1D] text-slate-800 dark:text-slate-200 selection:bg-[#1D4ED8]/20 selection:text-[#1e3a8a] dark:selection:text-white transition-colors duration-300 flex flex-col justify-between overflow-x-hidden">
       
       {/* ─── Navbar ──────────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 inset-x-0 z-[100] bg-white/90 dark:bg-[#0A0F1D]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 h-[72px] transition-colors duration-300">
@@ -234,9 +234,9 @@ export default function LandingPage() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Platform</a>
-            <a href="#communities" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Communities</a>
-            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Docs</a>
+            <a href="#features" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Platform</a>
+            <a href="#communities" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Communities</a>
+            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Docs</a>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -250,9 +250,9 @@ export default function LandingPage() {
             
             <button 
               onClick={handleEnterPlatform}
-              className="bg-brand-600 hover:bg-brand-700 dark:bg-brand-600 dark:hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg shadow-md shadow-brand-500/10 transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-[#1D4ED8] hover:bg-[#1e40af] dark:bg-[#1D4ED8] dark:hover:bg-[#1e40af] text-white font-semibold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg shadow-md shadow-[#1D4ED8]/10 transition-all cursor-pointer"
             >
-              Enter Platform <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Enter
             </button>
 
             {/* Mobile Menu Toggle */}
@@ -312,9 +312,9 @@ export default function LandingPage() {
                     setIsMobileMenuOpen(false);
                     handleEnterPlatform(e);
                   }}
-                  className="w-1/2 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-md shadow-brand-500/10 flex justify-center items-center gap-1.5"
+                  className="w-1/2 py-2.5 rounded-lg bg-[#1D4ED8] hover:bg-[#1e40af] text-white text-sm font-semibold shadow-md shadow-[#1D4ED8]/10 flex justify-center items-center"
                 >
-                  Enter Platform <ArrowRight className="w-4 h-4" />
+                  Enter
                 </button>
               </div>
             </div>
@@ -326,20 +326,20 @@ export default function LandingPage() {
       <section className="relative pt-20 pb-6 lg:pt-24 lg:pb-8 px-4 sm:px-8 lg:px-24 xl:px-32 overflow-hidden min-h-[80vh] lg:min-h-0 flex items-center bg-transparent">
         {/* Background Decor */}
         <div className="absolute inset-0 bg-grid-pattern opacity-40 dark:opacity-30 pointer-events-none"></div>
-        <div className="absolute top-0 right-0 w-[400px] lg:w-[600px] h-[400px] lg:h-[600px] bg-brand-100 dark:bg-brand-900/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 translate-x-1/3 -translate-y-1/4 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-[300px] lg:w-[500px] h-[300px] lg:h-[500px] bg-blue-100 dark:bg-blue-900/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 -translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-[400px] lg:w-[600px] h-[400px] lg:h-[600px] bg-[#eff4ff] dark:bg-[#1D4ED8]/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 translate-x-1/3 -translate-y-1/4 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[300px] lg:w-[500px] h-[300px] lg:h-[500px] bg-[#eff4ff] dark:bg-[#1D4ED8]/10 rounded-full mix-blend-multiply filter blur-[80px] lg:blur-[100px] opacity-70 dark:opacity-40 -translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
 
         <div className="max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-6 items-center relative z-10">
           
           {/* Left Column: Title & Replicated Portal Gateway Card */}
           <div className="max-w-2xl mx-auto lg:mx-0 w-full text-center lg:text-left order-1 lg:order-1 mt-4 lg:mt-0 lg:pl-10">
-            <div className="inline-flex items-center gap-2 bg-brand-50 dark:bg-brand-900/25 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-400 font-semibold text-[10px] sm:text-xs px-3 py-0.5 rounded-full uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 bg-[#eff4ff] dark:bg-[#1D4ED8]/10 border border-[#bfdbfe] dark:border-[#1D4ED8]/20 text-[#1D4ED8] dark:text-blue-400 font-semibold text-[10px] sm:text-xs px-3 py-0.5 rounded-full uppercase tracking-wider mb-3">
               Portal Gateway
             </div>
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-3 lg:mb-4">
               Apni baat.<br className="hidden sm:block" /> Apna shehar.<br />
-              <span className="text-brand-600 dark:text-brand-500">Apna feed.</span>
+              <span className="text-[#1D4ED8] dark:text-blue-400">Apna feed.</span>
             </h1>
             
             <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0">
@@ -362,16 +362,16 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={() => setDestinationOpen(!destinationOpen)}
-                    className={`w-full bg-white dark:bg-[#121829] border rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-left text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/40 transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  className={`w-full bg-white dark:bg-[#121829] border rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-left text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                       destinationOpen
-                        ? "border-brand-500"
-                        : "border-slate-200 dark:border-slate-800 hover:border-brand-500/60 dark:hover:border-brand-500/60"
+                        ? "border-[#1D4ED8]"
+                        : "border-slate-200 dark:border-slate-800 hover:border-[#1D4ED8]/60 dark:hover:border-[#1D4ED8]/60"
                     }`}
                   >
                     <span className="truncate">{selectedDestination.name}</span>
                     <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${destinationOpen ? "rotate-180" : ""}`} />
                   </button>
-
+ 
                   <AnimatePresence>
                     {destinationOpen && (
                       <motion.div
@@ -392,7 +392,7 @@ export default function LandingPage() {
                               }}
                               className={`w-full px-3.5 py-2 text-left text-xs transition-colors cursor-pointer ${
                                 active
-                                  ? "bg-brand-600 text-white font-semibold"
+                                  ? "bg-[#1D4ED8] text-white font-semibold"
                                   : "bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#0B0F1A] dark:text-slate-300 dark:hover:bg-[#121829] dark:hover:text-white"
                               }`}
                             >
@@ -404,10 +404,10 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </div>
-
+ 
                 <button 
                   onClick={handleEnterPlatform}
-                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm shadow-md shadow-brand-500/20 transition-all flex justify-center items-center gap-1.5 cursor-pointer"
+                  className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm shadow-md shadow-[#1D4ED8]/20 transition-all flex justify-center items-center gap-1.5 cursor-pointer"
                 >
                   Enter Platform <ArrowRight className="w-4 h-4" />
                 </button>
@@ -418,8 +418,8 @@ export default function LandingPage() {
           {/* Right Column: Realistic CSS Mobile Phone Mockup */}
           <div className="relative flex justify-center items-center order-2 lg:order-2">
             {/* Decorative Blur behind phone */}
-            <div className="absolute w-[280px] sm:w-[320px] h-[360px] sm:h-[440px] bg-brand-400/20 dark:bg-brand-500/10 rounded-full blur-[60px] animate-pulse pointer-events-none"></div>
-
+            <div className="absolute w-[280px] sm:w-[320px] h-[360px] sm:h-[440px] bg-[#1D4ED8]/25 dark:bg-[#1D4ED8]/10 rounded-full blur-[60px] animate-pulse pointer-events-none"></div>
+ 
             {/* Phone Body */}
             <div className="relative w-[280px] sm:w-[296px] h-[500px] sm:h-[540px] bg-slate-900 dark:bg-slate-950 rounded-[40px] sm:rounded-[44px] border-[10px] sm:border-[12px] border-slate-900 dark:border-slate-800 shadow-phone overflow-hidden animate-float flex flex-col select-none transition-colors">
               
@@ -431,10 +431,10 @@ export default function LandingPage() {
                   <Battery className="w-3.5 h-3.5 text-slate-800 dark:text-slate-300" />
                 </div>
               </div>
-
+ 
               {/* Dynamic Island / Camera Notch */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-900 dark:bg-slate-800 rounded-b-2xl z-30 transition-colors"></div>
-
+ 
               {/* App Header */}
               <div className="bg-white dark:bg-[#121829] px-4 pt-3.5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 z-10 shrink-0 transition-colors">
                 <div className="flex items-center gap-2">
@@ -443,7 +443,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <div className="bg-brand-600 text-white text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
+                  <div className="bg-[#1D4ED8] text-white text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
                     <Plus className="w-2.5 h-2.5" /> Create
                   </div>
                 </div>
@@ -514,12 +514,12 @@ export default function LandingPage() {
                         onClick={() => handleBookmarkPost(post.id)}
                         className={`ml-auto transition-colors duration-200 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
                           post.bookmarked 
-                            ? "text-brand-600 dark:text-brand-400" 
+                            ? "text-[#1D4ED8] dark:text-blue-400" 
                             : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                         }`}
                         aria-label="Bookmark"
                       >
-                        <Bookmark className={`w-3.5 h-3.5 ${post.bookmarked ? "fill-brand-600 dark:fill-brand-400" : ""}`} />
+                        <Bookmark className={`w-3.5 h-3.5 ${post.bookmarked ? "fill-[#1D4ED8] dark:fill-blue-400" : ""}`} />
                       </button>
 
                     </div>
@@ -535,19 +535,19 @@ export default function LandingPage() {
 
       {/* ─── Ticker Section ──────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-[#121829] border-y border-slate-200 dark:border-slate-800 py-3 overflow-hidden relative flex items-center transition-colors">
-        <div className="absolute left-0 top-0 bottom-0 z-20 bg-brand-600 dark:bg-brand-700 px-3 sm:px-4 flex items-center font-bold text-[9px] sm:text-[10px] text-white tracking-widest uppercase shadow-md">
+        <div className="absolute left-0 top-0 bottom-0 z-20 bg-[#1D4ED8] dark:bg-[#1e40af] px-3 sm:px-4 flex items-center font-bold text-[9px] sm:text-[10px] text-white tracking-widest uppercase shadow-md">
           <span className="w-1.5 h-1.5 rounded-full bg-white mr-1.5 sm:mr-2 animate-pulse"></span> LIVE
         </div>
         <div className="flex whitespace-nowrap animate-marquee pl-[90px] sm:pl-[120px] space-x-8 sm:space-x-12 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
-          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
-          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
-          <span className="inline-flex items-center gap-1.5">Pothole on SH-10 repaired! <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Solapur</span></span>
-          <span className="inline-flex items-center gap-1.5">Power cut Sunday 9AM–1PM <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Aurangabad</span></span>
+          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
+          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
+          <span className="inline-flex items-center gap-1.5">Pothole on SH-10 repaired! <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Solapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Power cut Sunday 9AM–1PM <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Aurangabad</span></span>
           {/* Duplicated for seamless loop */}
-          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
-          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
-          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-brand-600 dark:text-brand-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
+          <span className="inline-flex items-center gap-1.5">Street light fixed after 200+ reactions <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Kolhapur</span></span>
+          <span className="inline-flex items-center gap-1.5">Free health camp this Saturday <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Sangli</span></span>
+          <span className="inline-flex items-center gap-1.5">New bus route approved by MSRTC <span className="text-[#1D4ED8] dark:text-blue-400 inline-flex items-center gap-0.5"><MapPin className="w-3.5 h-3.5" /> Nashik</span></span>
         </div>
       </div>
 
@@ -570,7 +570,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             {/* Card 1 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center flex-shrink-0 text-orange-500 dark:text-orange-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -592,7 +592,7 @@ export default function LandingPage() {
                   <Users className="w-3.5 h-3.5" /> 14,203 members
                 </p>
                 <div className="flex gap-2">
-                  <button className="flex-1 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                  <button className="flex-1 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                     <Eye className="w-3.5 h-3.5" /> View
                   </button>
                   <button className="flex-1 py-1.5 text-xs font-semibold text-orange-500 hover:text-orange-600 hover:bg-orange-50/30 border border-orange-200 dark:border-orange-900/40 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
@@ -603,16 +603,16 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center flex-shrink-0 text-brand-500 dark:text-brand-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-12 h-12 rounded-full bg-[#eff4ff] dark:bg-[#1D4ED8]/10 flex items-center justify-center flex-shrink-0 text-[#1D4ED8] dark:text-[#60a5fa] shadow-inner group-hover:scale-110 transition-transform duration-300">
                     <Droplet className="w-5 h-5 fill-current" />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-slate-900 dark:text-white text-base">Water Supply Dept.</h3>
-                      <span className="bg-blue-50 dark:bg-blue-950/45 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-900/60 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">Official</span>
+                      <span className="bg-[#eff4ff] dark:bg-[#1D4ED8]/10 text-[#1D4ED8] dark:text-blue-400 border border-[#bfdbfe] dark:border-[#1D4ED8]/20 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">Official</span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">Verified alerts for water cuts & supply scheduling.</p>
                   </div>
@@ -622,14 +622,14 @@ export default function LandingPage() {
                 <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-2">
                   <Users className="w-3.5 h-3.5" /> 5,892 members
                 </p>
-                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-brand-600 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                   View Community <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-brand-500/40 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center flex-shrink-0 text-purple-500 dark:text-purple-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -650,7 +650,7 @@ export default function LandingPage() {
                 <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-2">
                   <Zap className="w-3.5 h-3.5 text-yellow-500" /> Ephemeral chats
                 </p>
-                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-brand-600 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                   Start Chatting <MessageCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -667,10 +667,10 @@ export default function LandingPage() {
           <LandingLogo showText size={26} />
           
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-500 dark:text-slate-400 font-semibold">
-            <a href="#features" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Platform</a>
-            <a href="https://github.com/govlyx/govlyx" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">GitHub</a>
-            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Docs</a>
-            <a href="#" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Privacy Policy</a>
+            <a href="#features" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Platform</a>
+            <a href="https://github.com/govlyx/govlyx" target="_blank" rel="noopener noreferrer" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">GitHub</a>
+            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Docs</a>
+            <a href="#" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Privacy Policy</a>
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">

@@ -19,6 +19,7 @@
     "@tanstack/react-query-persist-client": "^5.99.0",
     "axios": "^1.13.5",
     "daisyui": "^5.5.14",
+    "dompurify": "^3.4.7",
     "framer-motion": "^12.29.2",
     "jwt-decode": "^4.0.0",
     "leo-profanity": "^1.9.0",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

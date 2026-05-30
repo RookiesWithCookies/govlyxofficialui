@@ -2004,6 +2004,7 @@ const Community = () => {
 
   const { id: slugParam } = useParams<{ id?: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const quickDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2062,6 +2063,7 @@ const Community = () => {
 
   // ── Auto-select community from URL /:slug or search navigation state ──────────
   useEffect(() => {
+    let active = true;
     const navState = (location.state ?? {}) as { selectedCommunity?: any; searchQuery?: string };
 
     // If navigated with a pre-built community object (from search overlay), select immediately
@@ -2075,7 +2077,11 @@ const Community = () => {
     if (slugParam) {
       fetch(apiUrl(`/api/communities/${slugParam}`), { headers: hdrs() })
         .then(r => r.ok ? r.json() : Promise.reject())
-        .then(d => { const c = d?.data ?? d; if (c?.id) setSelected(c); })
+        .then(d => {
+          if (!active) return;
+          const c = d?.data ?? d;
+          if (c?.id) setSelected(c);
+        })
         .catch(() => { /* slug not found — stay on list view */ });
     }
 
@@ -2086,6 +2092,10 @@ const Community = () => {
       doSearch(navState.searchQuery, null, true);
       window.history.replaceState({}, "");
     }
+
+    return () => {
+      active = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam]);
 
@@ -2180,6 +2190,7 @@ const Community = () => {
     const entry: CommunityData = { ...c, isMember: true, isOwner: true };
     setMyCommunities(prev => [entry, ...prev.filter(x => x.id !== entry.id)]);
     setSelected(entry);
+    navigate("/communities/" + entry.slug);
   }
 
   function handleCommunityUpdated(updated: CommunityData) {
@@ -2304,6 +2315,7 @@ const Community = () => {
                     isMember={!!local?.isMember} isOwner={!!local?.isOwner} hasPendingRequest={!!local?.hasPendingRequest}
                     onClick={() => {
                       setSelected(local ? { ...c, isMember: local.isMember, isOwner: local.isOwner, hasPendingRequest: local.hasPendingRequest } : c);
+                      navigate("/communities/" + c.slug);
                     }} />
                 );
               })}
@@ -2350,7 +2362,7 @@ const Community = () => {
                       const ownedImgSrc = c.avatarUrl || `https://robohash.org/${encodeURIComponent(c.name)}`;
                       return (
                         <div key={c.id} className="group relative rounded-2xl border border-base-300 bg-base-100 overflow-hidden transition-all duration-200 min-w-0" style={{ transform: "translateZ(0)" }}>
-                          <div className="p-4 cursor-pointer" onClick={() => setSelected({ ...c, isMember: true })}>
+                          <div className="p-4 cursor-pointer" onClick={() => { setSelected({ ...c, isMember: true }); navigate("/communities/" + c.slug); }}>
                             <div className="flex items-center gap-3.5">
                               <div className="shrink-0 w-12 h-12 rounded-full overflow-hidden ring-2 ring-base-300 transition-all duration-200 shadow-sm">
                                 <img
@@ -2382,7 +2394,7 @@ const Community = () => {
                           <div className="border-t border-base-200 grid grid-cols-2 divide-x divide-base-200">
                             <button
                               className="py-2.5 text-xs font-semibold text-base-content/60 hover:text-base-content hover:bg-base-200 transition-all duration-200 flex items-center justify-center gap-1.5"
-                              onClick={() => setSelected({ ...c, isMember: true })}
+                              onClick={() => { setSelected({ ...c, isMember: true }); navigate("/communities/" + c.slug); }}
                             >
                               <Eye size={13} /> View
                             </button>
@@ -2414,7 +2426,7 @@ const Community = () => {
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     {joinedOnly.map(c => (
                       <CommunityCard key={c.id} id={c.id} slug={c.slug} name={c.name} description={c.description}
-                        members={c.memberCount} avatarUrl={c.avatarUrl} privacy={c.privacy} onClick={() => setSelected(c)} />
+                        members={c.memberCount} avatarUrl={c.avatarUrl} privacy={c.privacy} onClick={() => { setSelected(c); navigate("/communities/" + c.slug); }} />
                     ))}
                   </div>
                 </div>
@@ -2433,11 +2445,11 @@ const Community = () => {
       )}
 
       {selected && !adminTarget && (
-        <DetailPanel community={selected} onClose={() => setSelected(null)} onMembershipChange={syncMembership} />
+        <DetailPanel key={selected.id} community={selected} onClose={() => { setSelected(null); navigate("/communities"); }} onMembershipChange={syncMembership} />
       )}
 
       {adminTarget && (
-        <AdminPanel community={adminTarget} onClose={() => setAdminTarget(null)} onCommunityUpdated={handleCommunityUpdated} onMembershipChange={syncMembership} />
+        <AdminPanel key={adminTarget.id} community={adminTarget} onClose={() => { setAdminTarget(null); navigate("/communities"); }} onCommunityUpdated={handleCommunityUpdated} onMembershipChange={syncMembership} />
       )}
 
       {showCreate && (

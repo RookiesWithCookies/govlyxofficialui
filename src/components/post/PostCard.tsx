@@ -765,7 +765,7 @@ function ShareModal({
 
   const handleInstagram = () => {
     navigator.clipboard.writeText(url).catch(() => {});
-    alert("Post link copied to clipboard! Paste it into Instagram DMs or Stories.");
+    showToast.success("Link copied! Opening Instagram...");
     window.open("https://instagram.com", "_blank");
     onShareAction("instagram");
     onClose();
@@ -1027,12 +1027,55 @@ export default function PostCard({
   const [reportOpen, setReportOpen] = useState(false);
   const { copied, flash } = useCopied();
 
+  // Synced backend states to resolve optimistic updates on network errors / debouncing
+  const syncedLikedRef = useRef(!!(post as AnyPost)?.isLikedByCurrentUser);
+  const syncedLikeCountRef = useRef(post?.likeCount ?? 0);
+  const syncedSavedRef = useRef(!!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false));
+
+  // Debounce timers
+  const pendingLikeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Ref to prevent duplicate simultaneous share clicks
+  const isSharingRef = useRef(false);
+
+  // Ref tracking visual state for debounce closure safety
+  const currentLikedValueRef = useRef(liked);
+  const currentSavedValueRef = useRef(saved);
+
+  useEffect(() => {
+    currentLikedValueRef.current = liked;
+  }, [liked]);
+
+  useEffect(() => {
+    currentSavedValueRef.current = saved;
+  }, [saved]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingLikeTimerRef.current) clearTimeout(pendingLikeTimerRef.current);
+      if (pendingSaveTimerRef.current) clearTimeout(pendingSaveTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (post) {
-      setLiked(!!(post as AnyPost)?.isLikedByCurrentUser);
-      setLikeCount(post.likeCount ?? 0);
+      const isLiked = !!(post as AnyPost)?.isLikedByCurrentUser;
+      const isSaved = !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false);
+
+      // Only sync if there is no pending optimistic interaction
+      if (!pendingLikeTimerRef.current) {
+        setLiked(isLiked);
+        syncedLikedRef.current = isLiked;
+        setLikeCount(post.likeCount ?? 0);
+        syncedLikeCountRef.current = post.likeCount ?? 0;
+      }
+      if (!pendingSaveTimerRef.current) {
+        setSaved(isSaved);
+        syncedSavedRef.current = isSaved;
+      }
+
       setShareCount(post.shareCount ?? 0);
-      setSaved(!!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false));
       if ("dislikeCount" in post) setDislikeCount((post as IssuePost).dislikeCount ?? 0);
       if ("isDislikedByCurrentUser" in post) setDisliked(!!(post as IssuePost).isDislikedByCurrentUser);
       setIsJoined((post as any).isMember ?? false);
@@ -1046,9 +1089,14 @@ export default function PostCard({
       if (e.detail.postId !== post?.id) return;
       if (e.detail.source === 'like') {
         setLiked(e.detail.liked);
-        if (e.detail.likeCount !== undefined) setLikeCount(e.detail.likeCount);
+        syncedLikedRef.current = e.detail.liked;
+        if (e.detail.likeCount !== undefined) {
+          setLikeCount(e.detail.likeCount);
+          syncedLikeCountRef.current = e.detail.likeCount;
+        }
       } else if (e.detail.source === 'save') {
         setSaved(e.detail.saved);
+        syncedSavedRef.current = e.detail.saved;
       } else if (e.detail.source === 'share') {
         if (e.detail.shareCount !== undefined) setShareCount(e.detail.shareCount);
       } else if (e.detail.source === 'comment') {
@@ -1103,38 +1151,66 @@ export default function PostCard({
 
   // Handlers
   async function handleLike() {
-    if (isResolved || isProcessing) return;
-    setIsProcessing(true);
-    const next = !liked;
-    const nextLikeCount = next ? likeCount + 1 : Math.max(0, likeCount - 1);
-    setLiked(next);
-    if (next && disliked) {
+    if (isResolved) return;
+    
+    const nextLiked = !currentLikedValueRef.current;
+    const nextLikeCount = nextLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+    
+    // 1. Optimistic updates
+    setLiked(nextLiked);
+    setLikeCount(nextLikeCount);
+    if (nextLiked && disliked) {
       setDisliked(false);
       setDislikeCount((n) => Math.max(0, n - 1));
     }
-    setLikeCount(nextLikeCount);
-    onLike?.(post.id, next);
-
+    
+    // 2. Notify parent and sync instances
+    onLike?.(post.id, nextLiked);
     window.dispatchEvent(new CustomEvent('POST_SYNC', {
-      detail: { postId: post.id, source: 'like', liked: next, likeCount: nextLikeCount }
+      detail: { postId: post.id, source: 'like', liked: nextLiked, likeCount: nextLikeCount }
     }));
 
-    const ep = `/api/interactions/${interactionType}/${post.id}/like`;
-    try {
-      const res = await apiPost(ep, {});
-      const data = (res as any)?.data ?? res;
-      if (data && typeof data.liked === "boolean") setLiked(data.liked);
-      if (data && typeof data.likeCount === "number") setLikeCount(data.likeCount);
-    } catch {
-      const prevLikeCount = next ? Math.max(0, nextLikeCount - 1) : nextLikeCount + 1;
-      setLiked(!next);
-      setLikeCount(prevLikeCount);
-      window.dispatchEvent(new CustomEvent('POST_SYNC', {
-        detail: { postId: post.id, source: 'like', liked: !next, likeCount: prevLikeCount }
-      }));
-    } finally {
-      setIsProcessing(false);
+    // 3. Debounce API call
+    if (pendingLikeTimerRef.current) {
+      clearTimeout(pendingLikeTimerRef.current);
     }
+
+    pendingLikeTimerRef.current = setTimeout(async () => {
+      pendingLikeTimerRef.current = null;
+      const finalLikedState = currentLikedValueRef.current;
+      const originalSyncedState = syncedLikedRef.current;
+
+      if (finalLikedState === originalSyncedState) {
+        return;
+      }
+
+      const ep = `/api/interactions/${interactionType}/${post.id}/like`;
+      try {
+        const res = await apiPost(ep, {});
+        const data = (res as any)?.data ?? res;
+        
+        let serverLiked = finalLikedState;
+        let serverLikeCount = nextLikeCount;
+        if (data && typeof data.liked === "boolean") serverLiked = data.liked;
+        if (data && typeof data.likeCount === "number") serverLikeCount = data.likeCount;
+
+        syncedLikedRef.current = serverLiked;
+        syncedLikeCountRef.current = serverLikeCount;
+
+        setLiked(serverLiked);
+        setLikeCount(serverLikeCount);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'like', liked: serverLiked, likeCount: serverLikeCount }
+        }));
+      } catch (err) {
+        console.error("Failed to sync like interaction", err);
+        setLiked(originalSyncedState);
+        setLikeCount(syncedLikeCountRef.current);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'like', liked: originalSyncedState, likeCount: syncedLikeCountRef.current }
+        }));
+      }
+    }, 400);
   }
 
   async function handleDislike() {
@@ -1143,34 +1219,58 @@ export default function PostCard({
   }
 
   async function handleSave() {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    const next = !saved;
-    setSaved(next);
-    onSave?.(post.id, next);
+    const nextSaved = !currentSavedValueRef.current;
     
+    // 1. Optimistic updates
+    setSaved(nextSaved);
+    
+    // 2. Notify parent and sync instances
+    onSave?.(post.id, nextSaved);
     window.dispatchEvent(new CustomEvent('POST_SYNC', {
-      detail: { postId: post.id, source: 'save', saved: next }
+      detail: { postId: post.id, source: 'save', saved: nextSaved }
     }));
 
-    try {
-      const res = await apiPost(`/api/interactions/${interactionType}/${post.id}/save`, {});
-      const data = (res as any)?.data ?? res;
-      if (data && typeof data.saved === "boolean") setSaved(data.saved);
-      else if (data && typeof data.isSaved === "boolean") setSaved(data.isSaved);
-    } catch {
-      setSaved(!next);
-      window.dispatchEvent(new CustomEvent('POST_SYNC', {
-        detail: { postId: post.id, source: 'save', saved: !next }
-      }));
-    } finally {
-      setIsProcessing(false);
+    // 3. Debounce API call
+    if (pendingSaveTimerRef.current) {
+      clearTimeout(pendingSaveTimerRef.current);
     }
+
+    pendingSaveTimerRef.current = setTimeout(async () => {
+      pendingSaveTimerRef.current = null;
+      const finalSavedState = currentSavedValueRef.current;
+      const originalSyncedState = syncedSavedRef.current;
+
+      if (finalSavedState === originalSyncedState) {
+        return;
+      }
+
+      try {
+        const res = await apiPost(`/api/interactions/${interactionType}/${post.id}/save`, {});
+        const data = (res as any)?.data ?? res;
+        
+        let serverSaved = finalSavedState;
+        if (data && typeof data.saved === "boolean") serverSaved = data.saved;
+        else if (data && typeof data.isSaved === "boolean") serverSaved = data.isSaved;
+
+        syncedSavedRef.current = serverSaved;
+
+        setSaved(serverSaved);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'save', saved: serverSaved }
+        }));
+      } catch (err) {
+        console.error("Failed to sync save interaction", err);
+        setSaved(originalSyncedState);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'save', saved: originalSyncedState }
+        }));
+      }
+    }, 400);
   }
 
   async function actuallyTriggerShare(method: string) {
-    if (isProcessing) return;
-    setIsProcessing(true);
+    if (isSharingRef.current) return;
+    isSharingRef.current = true;
     if (method === "copy") flash();
     try {
       if (!hasSharedLocally) {
@@ -1185,10 +1285,13 @@ export default function PostCard({
       }
 
       await recordShare(interactionType, post.id, hasSharedLocally, method);
+    } catch (err) {
+      console.error("Failed to log share", err);
     } finally {
-      setIsProcessing(false);
+      isSharingRef.current = false;
     }
   }
+
 
   async function handleResolveConfirm(message: string) {
     if (checkProfanity(message)) {
@@ -1461,7 +1564,7 @@ export default function PostCard({
 
               {/* Horizontal Action Bar: Shown for all posts on mobile, and on desktop if NO media */}
               <div className={`flex items-center gap-1 sm:gap-2 border-t border-base-300 pt-3 ${hasMedia ? "lg:hidden" : "flex"}`}>
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
                   <Heart size={16} className={liked ? "fill-current" : ""} />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
@@ -1469,16 +1572,18 @@ export default function PostCard({
                   <MessageSquare size={16} className={commentsOpen ? "fill-current" : ""} />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
                   <Share2 size={16} />
                   <span>{copied ? "Copied!" : (shareCount || "0")}</span>
                 </ActionPill>
                 <div className="flex-1" />
-                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
-                  <Bookmark size={16} className={saved ? "fill-current" : ""} />
-                </ActionPill>
+                {!isIssue && (
+                  <ActionPill onClick={handleSave} active={saved} activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
+                    <Bookmark size={16} className={saved ? "fill-current" : ""} />
+                  </ActionPill>
+                )}
                 {isIssue && (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
                     <ThumbsDown size={16} className={disliked ? "fill-current" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
@@ -1493,7 +1598,7 @@ export default function PostCard({
                 animate={{ opacity: 1, x: 0 }}
                 className="hidden lg:flex flex-col gap-2 p-1 rounded-2xl bg-base-200/50 border border-base-300 lg:order-2 shrink-0 sticky top-0"
               >
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved || isProcessing} vertical activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} vertical activeClass="text-pink-600 bg-pink-500/10 border-pink-500/20">
                   <Heart size={18} className={liked ? "fill-current" : ""} />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
@@ -1501,15 +1606,17 @@ export default function PostCard({
                   <MessageSquare size={18} className={commentsOpen ? "fill-current" : ""} />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} disabled={isProcessing} vertical activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} vertical activeClass="text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
                   <Share2 size={18} />
                   <span className="text-[9px] leading-tight mt-0.5">{copied ? "Copied" : (shareCount || "0")}</span>
                 </ActionPill>
-                <ActionPill onClick={handleSave} active={saved} disabled={isProcessing} vertical activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
-                  <Bookmark size={18} className={saved ? "fill-current" : ""} />
-                </ActionPill>
+                {!isIssue && (
+                  <ActionPill onClick={handleSave} active={saved} vertical activeClass="text-amber-600 bg-amber-500/10 border-amber-500/20">
+                    <Bookmark size={18} className={saved ? "fill-current" : ""} />
+                  </ActionPill>
+                )}
                 {isIssue && (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved || isProcessing} vertical activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} vertical activeClass="text-rose-600 bg-rose-500/10 border-rose-500/20">
                     <ThumbsDown size={18} className={disliked ? "fill-current" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>

@@ -314,45 +314,6 @@ export function useChat(): UseChatReturn {
     }, POLL_MS);
   }, [onMatchSuccess]);
 
-  // ── Page-load session restore ───────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false;
-
-    async function tryRestore() {
-      const storedId = sessionStore.get();
-
-      if (!storedId) {
-        if (!cancelled) setRestoring(false);
-        return;
-      }
-
-      try {
-        const res = await chatApi.getCurrentSession();
-
-        if (cancelled) return;
-
-        if (
-          res.success &&
-          res.data &&
-          res.data.status === "ACTIVE" &&
-          res.data.sessionId === storedId
-        ) {
-          await onMatchSuccess(res.data);
-        } else {
-          sessionStore.clear();
-        }
-      } catch {
-        sessionStore.clear();
-      } finally {
-        if (!cancelled) setRestoring(false);
-      }
-    }
-
-    tryRestore();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ── Public API ────────────────────────────────────────────────────────────
 
   const startSearch = useCallback(async () => {
@@ -408,6 +369,50 @@ export function useChat(): UseChatReturn {
       }
     }
   }, [onMatchSuccess, _startPolling]);
+
+  // ── Page-load session restore ───────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function tryRestore() {
+      const storedId = sessionStore.get();
+
+      if (!storedId) {
+        if (!cancelled) setRestoring(false);
+        return;
+      }
+
+      try {
+        const res = await chatApi.getCurrentSession();
+
+        if (cancelled) return;
+
+        if (
+          res.success &&
+          res.data &&
+          res.data.sessionId === storedId
+        ) {
+          if (res.data.status === "ACTIVE") {
+            await onMatchSuccess(res.data);
+          } else if (res.data.status === "DISCONNECTED") {
+            await startSearch();
+          } else {
+            sessionStore.clear();
+          }
+        } else {
+          sessionStore.clear();
+        }
+      } catch {
+        sessionStore.clear();
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    }
+
+    tryRestore();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cancelSearch = useCallback(async () => {
     searchActiveRef.current = false;

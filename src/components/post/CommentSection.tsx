@@ -517,8 +517,8 @@ function SingleComment({
         : (container?.data ?? container?.content ?? []);
         
       setReplies((prev) => (cursor ? [...prev, ...fetched] : fetched));
-      setHasMoreReplies(container?.hasMore ?? false);
-      setRepliesCursor(container?.nextCursor);
+      setHasMoreReplies(res?.hasMore ?? false);
+      setRepliesCursor(res?.nextCursor);
     } catch (e) {
       console.error("Load replies error:", e);
       showToast.error("Failed to load replies: " + parseError(e));

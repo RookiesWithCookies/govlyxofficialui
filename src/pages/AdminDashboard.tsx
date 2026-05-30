@@ -26,6 +26,7 @@ import axiosInstance from "../api/axiosConfig";
 import { getBroadcastStatistics } from "../api/departmentService";
 import govlyxLogo from "../assets/govlyx.svg";
 import { useCurrentUser } from "../hooks/useUser";
+import DOMPurify from "dompurify";
 
 const inferDepartmentType = (name: string) => {
   const n = (name || "").toLowerCase();
@@ -2303,7 +2304,7 @@ const AdminDashboard = () => {
                           {recentActivities.map((act: any, idx: number) => (
                             <div key={idx} className="admin-activity-item">
                               <div className="admin-activity-dot" style={{ background: act.color || "var(--accent)" }} />
-                              <div className="admin-activity-text" dangerouslySetInnerHTML={{ __html: act.description }} />
+                              <div className="admin-activity-text" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(act.description) }} />
                               <div className="admin-activity-time">{act.timeAgo || "just now"}</div>
                             </div>
                           ))}

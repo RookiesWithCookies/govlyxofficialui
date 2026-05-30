@@ -18,6 +18,7 @@ export interface UserProfile {
   profanityFilterLevel?: "STRICT" | "BLUR" | "OFF";
   mutedWords?: string;
   hasInvalidPincode?: boolean;
+  isEmailVerified?: boolean;
 }
 
 /**

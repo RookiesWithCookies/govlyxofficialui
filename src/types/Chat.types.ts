@@ -30,7 +30,7 @@ export interface ChatMessageDto {
 
 // ── Session ───────────────────────────────────────────────────────────────────
 
-export type SessionStatus = "ACTIVE" | "ENDED" | "EXPIRED";
+export type SessionStatus = "ACTIVE" | "ENDED" | "EXPIRED" | "DISCONNECTED";
 
 export interface ChatSessionDto {
   sessionId:          string;

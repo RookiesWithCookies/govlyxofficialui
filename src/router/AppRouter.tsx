@@ -126,10 +126,17 @@ const AppRouter = () => {
   const location = useLocation();
   useTokenExpiryWatcher(); 
 
+  const getTransitionKey = (path: string) => {
+    if (path.startsWith("/communities")) {
+      return "/communities";
+    }
+    return path;
+  };
+
   return (
     <ModalProvider>
       <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+        <Routes location={location} key={getTransitionKey(location.pathname)}>
 
         {/* ── Public landing page route ── */}
         <Route

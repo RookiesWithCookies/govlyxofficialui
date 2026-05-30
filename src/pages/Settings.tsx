@@ -43,6 +43,7 @@ function InlineToast({
 function EditableRow({
   icon, label, value, placeholder, editing, onEdit, onCancel,
   inputValue, onInputChange, type = "text", maxLength, hint,
+  rightContent,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -56,6 +57,7 @@ function EditableRow({
   type?: string;
   maxLength?: number;
   hint?: string;
+  rightContent?: React.ReactNode;
 }) {
   if (editing) {
     return (
@@ -97,9 +99,12 @@ function EditableRow({
         <span className="opacity-60 shrink-0">{icon}</span>
         <div className="min-w-0">
           <p className="text-sm font-medium">{label}</p>
-          <p className="text-xs opacity-60 truncate">
-            {value || <span className="italic">Not set</span>}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs opacity-60 truncate">
+              {value || <span className="italic">Not set</span>}
+            </p>
+            {rightContent}
+          </div>
         </div>
       </div>
       <button className="btn btn-xs btn-ghost text-blue-700 dark:text-white shrink-0" onClick={onEdit}>
@@ -150,6 +155,12 @@ const Settings = () => {
   const [confirmText, setConfirmText] = useState("");
   const [deactivating, setDeactivating] = useState(false);
 
+  // ── Scenario B: Pincode Auto-Lookup & Email Verification ──
+  const [pincodeDetails, setPincodeDetails] = useState<string | null>(null);
+  const [fetchingPincode, setFetchingPincode] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
   // ── Sync user data ──
   // ── Sync user data ──
   useEffect(() => {
@@ -162,6 +173,47 @@ const Settings = () => {
     setProfanityFilterLevel(u.profanityFilterLevel || "STRICT");
     setMutedWords(u.mutedWords || "");
   }, [user]);
+
+  // ── Scenario B Hooks & Methods ──
+  useEffect(() => {
+    if (editField === "pincode" && /^[1-9]\d{5}$/.test(pincode)) {
+      const fetchPincodeDetails = async () => {
+        setFetchingPincode(true);
+        setPincodeDetails(null);
+        try {
+          const res = await axiosInstance.get(`/api/pincode/${pincode}`);
+          if (res.data?.success && res.data?.data) {
+            const data = res.data.data;
+            const locationStr = `${data.areaName ? data.areaName + ", " : ""}${data.city || data.district}, ${data.state}`;
+            setPincodeDetails(locationStr);
+          } else {
+            setPincodeDetails("Invalid location");
+          }
+        } catch (err) {
+          setPincodeDetails("Location not found");
+        } finally {
+          setFetchingPincode(false);
+        }
+      };
+      fetchPincodeDetails();
+    } else {
+      setPincodeDetails(null);
+    }
+  }, [pincode, editField]);
+
+  const handleSendVerification = async () => {
+    if (!user?.email) return;
+    setSendingVerification(true);
+    try {
+      await axiosInstance.post(`/api/auth/resend-verification?email=${encodeURIComponent(user.email)}`);
+      showToast("Verification link sent! Please check your email.");
+      setShowVerificationModal(true);
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to send verification link", "error");
+    } finally {
+      setSendingVerification(false);
+    }
+  };
 
   // ── Save profile ──
   const saveProfile = async () => {
@@ -365,6 +417,28 @@ const Settings = () => {
           onInputChange={setEmail}
           type="email"
           hint="Used for login and account recovery"
+          rightContent={
+            user?.role === "ROLE_USER" && user?.email ? (
+              user.isEmailVerified ? (
+                <span className="badge badge-success badge-sm text-[10px] py-2 font-semibold text-white flex items-center gap-0.5 shrink-0">
+                  <Check size={10} /> Verified
+                </span>
+              ) : (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="badge badge-warning badge-sm text-[10px] py-2 font-semibold text-white">
+                    Unverified
+                  </span>
+                  <button
+                    onClick={handleSendVerification}
+                    disabled={sendingVerification}
+                    className="text-[10px] text-blue-700 dark:text-blue-400 hover:underline font-semibold focus:outline-none"
+                  >
+                    {sendingVerification ? "Sending..." : "Verify"}
+                  </button>
+                </div>
+              )
+            ) : null
+          }
         />
 
 
@@ -378,10 +452,14 @@ const Settings = () => {
             placeholder="e.g. 411001"
             editing={editField === "pincode"}
             onEdit={() => setEditField("pincode")}
-            onCancel={() => { setEditField(null); setPincode(user?.pincode || ""); }}
+            onCancel={() => { setEditField(null); setPincode(user?.pincode || ""); setPincodeDetails(null); }}
             inputValue={pincode}
             onInputChange={setPincode}
-            hint="6-digit Indian pincode — used for local content"
+            hint={
+              fetchingPincode ? "🔍 Fetching location details..." :
+              pincodeDetails ? `📍 ${pincodeDetails}` :
+              "6-digit Indian pincode — used for local content"
+            }
           />
           {user?.hasInvalidPincode && editField !== "pincode" && (
             <p className="text-xs text-error font-semibold flex items-center gap-1.5 mt-1 bg-error/10 border border-error/20 p-2.5 rounded-xl">
@@ -671,6 +749,30 @@ const Settings = () => {
           imageSrc={editorImageSrc}
           onSave={handleEditorSave}
         />
+      )}
+      {/* ═══════════════ VERIFICATION EMAIL MODAL ═══════════════ */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-base-200 border border-base-300 p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <Mail size={20} />
+              <h3 className="font-semibold text-base">Verify Your Email</h3>
+            </div>
+            <div className="text-sm opacity-80 space-y-2">
+              <p>We've sent a verification link to your registered email address:</p>
+              <p className="font-semibold text-center py-1.5 bg-base-100 rounded-lg text-xs break-all">{user?.email}</p>
+              <p className="text-xs text-error">Note: Please check your Spam or Junk folder if you do not receive the email within 2 minutes.</p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="btn btn-sm btn-primary text-white"
+                onClick={() => setShowVerificationModal(false)}
+              >
+                Okay, I'll Check
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
