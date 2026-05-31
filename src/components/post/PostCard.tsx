@@ -110,6 +110,9 @@ export type CurrentUser = {
 type BasePost = {
   id: number;
   content: string;
+  // Auto-translate fields returned by the backend
+  translatedContent?: string;
+  isTranslated?: boolean;
   timeAgo?: string;
   username: string;
   userDisplayName?: string;
@@ -1127,6 +1130,8 @@ export default function PostCard({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isContentRevealed, setIsContentRevealed] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  // Translation toggle — when true shows the original untranslated text
+  const [showOriginal, setShowOriginal] = useState(false);
   const { copied, flash } = useCopied();
 
   // Synced backend states to resolve optimistic updates on network errors / debouncing
@@ -1619,14 +1624,39 @@ export default function PostCard({
               </div>
             )}
 
-            <motion.p className={`text-[13px] leading-relaxed font-medium text-base-content/90 ${!expanded ? "line-clamp-3" : ""} ${post.contentHidden && !isContentRevealed ? "blur-sm opacity-50 select-none" : ""}`}>
-              {post.content}
-            </motion.p>
-            {(!post.contentHidden || isContentRevealed) && (post.content?.length ?? 0) > 160 && (
-              <button onClick={() => setExpanded(!expanded)} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">
-                {expanded ? "Less ↑" : "More ↓"}
-              </button>
-            )}
+            {/* Determine which text to display based on translation state */}
+            {(() => {
+              const hasTranslation = !!(post as BasePost).isTranslated && !!(post as BasePost).translatedContent;
+              const displayText = hasTranslation && !showOriginal
+                ? (post as BasePost).translatedContent!
+                : post.content;
+              return (
+                <>
+                  {/* Translation badge */}
+                  {hasTranslation && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-500/80 bg-blue-500/8 border border-blue-500/15 rounded-full px-2 py-0.5">
+                        <Globe size={10} /> Translated
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
+                        className="text-[10px] font-bold text-base-content/40 hover:text-base-content/70 transition-colors underline-offset-2 hover:underline"
+                      >
+                        {showOriginal ? "See Translation" : "See Original"}
+                      </button>
+                    </div>
+                  )}
+                  <motion.p className={`text-[13px] leading-relaxed font-medium text-base-content/90 ${!expanded ? "line-clamp-3" : ""} ${post.contentHidden && !isContentRevealed ? "blur-sm opacity-50 select-none" : ""}`}>
+                    {displayText}
+                  </motion.p>
+                  {(!post.contentHidden || isContentRevealed) && (displayText?.length ?? 0) > 160 && (
+                    <button onClick={() => setExpanded(!expanded)} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">
+                      {expanded ? "Less ↑" : "More ↓"}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </motion.div>
 
           {/* Hashtags / Tagged depts */}

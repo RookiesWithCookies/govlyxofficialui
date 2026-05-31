@@ -38,8 +38,8 @@ function useBackNavigation(onClose: () => void) {
   const closedByUI = useRef(false);
 
   useEffect(() => {
-    // Push a marker state so pressing back lands here first
-    window.history.pushState({ overlay: true }, "");
+    // Detail panels are already represented by /communities/:slug, so this
+    // listener only closes local overlay state when the URL changes.
 
     const handlePop = () => {
       // Browser back was pressed — close the overlay
@@ -49,11 +49,8 @@ function useBackNavigation(onClose: () => void) {
     window.addEventListener("popstate", handlePop);
     return () => {
       window.removeEventListener("popstate", handlePop);
-      // If the component unmounted because the UI closed it (not back-nav),
-      // we need to remove the extra history entry we pushed.
+      // Keep browser history intact while closing the overlay.
       if (!closedByUI.current) return;
-      // go back to consume the pushed state
-      window.history.go(-1);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -2959,6 +2956,9 @@ const Community = () => {
           if (c?.id) setSelected(c);
         })
         .catch(() => { /* slug not found — stay on list view */ });
+    } else {
+      setSelected(null);
+      setAdminTarget(null);
     }
 
     // If navigated with a hashtag search query (from HashtagCard)
