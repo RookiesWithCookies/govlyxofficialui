@@ -28,7 +28,27 @@ import {
   TrafficCone,
   Droplet,
   Bot,
-  MapPin
+  MapPin,
+  CheckCircle2,
+  Smartphone,
+  ShieldAlert as ShieldIcon,
+  Landmark,
+  Handshake,
+  Tv,
+  XCircle,
+  Pin,
+  Camera,
+  Building,
+  Lightbulb,
+  AlertTriangle,
+  BarChart3,
+  UserX,
+  TrendingUp,
+  Building2,
+  Cpu,
+  Rocket,
+  Radio,
+  User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -114,8 +134,7 @@ const LandingLogo: React.FC<LogoProps> = ({ className = "", size = 36, showText 
 // ─── Destinations Config ─────────────────────────────────────────────────────
 const DESTINATIONS = [
   { name: "Main Platform (govlyx.com)", url: "https://govlyx.com" },
-  { name: "Open Source Repository (GitHub)", url: "https://github.com/govlyx/govlyx" },
-  { name: "Developer Documentation", url: "https://github.com/govlyx/govlyx#readme" }
+  { name: "Upcoming Updates", url: "/upcoming-updates" }
 ];
 
 export default function LandingPage() {
@@ -215,6 +234,8 @@ export default function LandingPage() {
       } else {
         navigate("/login");
       }
+    } else if (targetUrl.startsWith("/")) {
+      navigate(targetUrl);
     } else {
       window.open(targetUrl, "_blank", "noopener,noreferrer");
     }
@@ -223,10 +244,10 @@ export default function LandingPage() {
   const selectedDestination = DESTINATIONS.find((dest) => dest.url === targetUrl) ?? DESTINATIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0A0F1D] text-slate-800 dark:text-slate-200 selection:bg-[#1D4ED8]/20 selection:text-[#1e3a8a] dark:selection:text-white transition-colors duration-300 flex flex-col justify-between overflow-x-hidden">
+    <div className="min-h-screen bg-base-100 text-slate-800 dark:text-slate-200 selection:bg-[#1D4ED8]/20 selection:text-[#1e3a8a] dark:selection:text-white transition-colors duration-300 flex flex-col justify-between overflow-x-hidden">
       
       {/* ─── Navbar ──────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 inset-x-0 z-[100] bg-white/90 dark:bg-[#0A0F1D]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 h-[72px] transition-colors duration-300">
+      <nav className="fixed top-0 inset-x-0 z-[100] bg-base-100/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 h-[72px] transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <a href="#" className="flex items-center">
             <LandingLogo showText size={34} />
@@ -234,9 +255,8 @@ export default function LandingPage() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Platform</a>
-            <a href="#communities" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Communities</a>
-            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Docs</a>
+            <a href="#features" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
+            <button onClick={() => navigate("/upcoming-updates")} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Updates</button>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -274,7 +294,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="fixed top-[72px] inset-x-0 z-[99] bg-white dark:bg-[#0A0F1D] border-b border-slate-200 dark:border-slate-800/80 shadow-lg md:hidden transition-colors"
+            className="fixed top-[72px] inset-x-0 z-[99] bg-base-100 border-b border-slate-200 dark:border-slate-800/80 shadow-lg md:hidden transition-colors"
           >
             <div className="px-4 pt-3 pb-6 space-y-3">
               <a 
@@ -284,22 +304,16 @@ export default function LandingPage() {
               >
                 Platform
               </a>
-              <a 
-                href="#communities" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/upcoming-updates");
+                }}
+                className="w-full text-left block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors bg-transparent border-none cursor-pointer"
               >
-                Communities
-              </a>
-              <a 
-                href="https://github.com/govlyx/govlyx#readme" 
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Docs
-              </a>
+                Updates
+              </button>
+
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
                 <button
                   onClick={toggleTheme}
@@ -333,27 +347,31 @@ export default function LandingPage() {
           
           {/* Left Column: Title & Replicated Portal Gateway Card */}
           <div className="max-w-2xl mx-auto lg:mx-0 w-full text-center lg:text-left order-1 lg:order-1 mt-4 lg:mt-0 lg:pl-10">
-            <div className="inline-flex items-center gap-2 bg-[#eff4ff] dark:bg-[#1D4ED8]/10 border border-[#bfdbfe] dark:border-[#1D4ED8]/20 text-[#1D4ED8] dark:text-blue-400 font-semibold text-[10px] sm:text-xs px-3 py-0.5 rounded-full uppercase tracking-wider mb-3">
-              Portal Gateway
-            </div>
+
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-3 lg:mb-4">
-              Apni baat.<br className="hidden sm:block" /> Apna shehar.<br />
-              <span className="text-[#1D4ED8] dark:text-blue-400">Apna feed.</span>
+              Connecting Every Indian to Their <br className="hidden sm:block" />
+              <motion.span 
+                whileHover={{ scale: 1.04, y: -2 }}
+                transition={{ type: "spring", stiffness: 400, damping: 12 }}
+                className="text-[#1D4ED8] dark:text-[#1D4ED8] hover:text-red-600 dark:hover:text-red-400 transition-colors inline-block cursor-default origin-left select-none"
+              >
+                Neighbourhood & Govt
+              </motion.span>
             </h1>
             
-            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0">
-              The civic-tech transparency infrastructure. Connect with your neighbors, get verified government alerts, and join local communities based on your 6-digit pincode.
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0 font-medium">
+              A student-built platform to give every Indian citizen a voice in their own area. Safe, anonymous, and centered around your 6-digit pincode.
             </p>
 
             {/* Replicated Portal Gateway Card */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-soft dark:shadow-none text-left max-w-md mx-auto lg:mx-0 relative transition-colors">
+            <div className="bg-base-200 border border-base-300 rounded-2xl p-4 sm:p-5 shadow-soft dark:shadow-none text-left max-w-md mx-auto lg:mx-0 relative transition-colors">
               <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white mb-0.5">Welcome to Govlyx</h3>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4 leading-normal">
                 Select your destination below to enter the platform.
               </p>
               
-              <div className="bg-slate-50 dark:bg-[#0B0F1A] border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 sm:p-4 transition-colors">
+              <div className="bg-base-300/30 border border-base-300 rounded-xl p-3 sm:p-4 transition-colors">
                 <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-500 tracking-wider uppercase mb-1.5">
                   Select Destination
                 </label>
@@ -362,11 +380,11 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={() => setDestinationOpen(!destinationOpen)}
-                  className={`w-full bg-white dark:bg-[#121829] border rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-left text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      destinationOpen
-                        ? "border-[#1D4ED8]"
-                        : "border-slate-200 dark:border-slate-800 hover:border-[#1D4ED8]/60 dark:hover:border-[#1D4ED8]/60"
-                    }`}
+                  className={`w-full bg-base-200 border rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-left text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                    destinationOpen
+                      ? "border-[#1D4ED8]"
+                      : "border-base-300 hover:border-[#1D4ED8]/60 dark:hover:border-[#1D4ED8]/60"
+                  }`}
                   >
                     <span className="truncate">{selectedDestination.name}</span>
                     <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${destinationOpen ? "rotate-180" : ""}`} />
@@ -378,7 +396,7 @@ export default function LandingPage() {
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
-                        className="absolute left-0 right-0 top-full mt-1.5 z-30 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A] shadow-xl"
+                        className="absolute left-0 right-0 top-full mt-1.5 z-30 overflow-hidden rounded-lg border border-base-300 bg-base-200 shadow-xl"
                       >
                         {DESTINATIONS.map((dest) => {
                           const active = dest.url === targetUrl;
@@ -393,7 +411,7 @@ export default function LandingPage() {
                               className={`w-full px-3.5 py-2 text-left text-xs transition-colors cursor-pointer ${
                                 active
                                   ? "bg-[#1D4ED8] text-white font-semibold"
-                                  : "bg-white text-slate-700 hover:bg-slate-50 dark:bg-[#0B0F1A] dark:text-slate-300 dark:hover:bg-[#121829] dark:hover:text-white"
+                                  : "bg-base-200 text-slate-700 hover:bg-base-300/50 dark:text-slate-300 dark:hover:bg-base-300/50 dark:hover:text-white"
                               }`}
                             >
                               {dest.name}
@@ -554,8 +572,511 @@ export default function LandingPage() {
       {/* ─── Platform Features Section (Features Indicator for anchor link) ─── */}
       <div id="features" className="scroll-mt-20"></div>
 
+      {/* ─── WHAT IS GOVLYX & PROBLEM/SOLUTION ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-24 bg-base-100 border-t border-slate-100 dark:border-slate-800/40 transition-colors">
+        <div className="max-w-[1400px] mx-auto">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-[#1D4ED8] dark:text-[#60A5FA] text-xs font-black tracking-widest uppercase bg-[#1D4ED8]/10 dark:bg-[#60A5FA]/15 px-3.5 py-1.5 rounded-full">
+              What is Govlyx?
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-4 tracking-tight leading-tight">
+              A Simple App Built for Every Indian Citizen
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm sm:text-base leading-relaxed font-medium">
+              Just enter your <strong>6-digit pincode</strong> and instantly see news, civic issues, government announcements, and community discussions happening in your own neighbourhood — safely and anonymously.
+            </p>
+          </div>
+
+          {/* Pillars Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Neighbourhood</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+                See only posts and issues from your pincode area. Not national noise — just your street, ward, and colony.
+              </p>
+            </div>
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <Landmark className="w-6 h-6" />
+                </div>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Government</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+                Government departments post updates, schemes, real-time alerts and announcements directly to you.
+              </p>
+            </div>
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <Handshake className="w-6 h-6" />
+                </div>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Community</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+                Join local groups, discuss issues, vote in polls, and connect with neighbours — all in one place.
+              </p>
+            </div>
+          </div>
+
+          {/* Problem vs Solution Split */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 bg-base-200 border border-base-300 p-8 sm:p-10 rounded-3xl transition-colors">
+            {/* Problems */}
+            <div className="space-y-6">
+              <h3 className="font-black text-xl sm:text-2xl text-red-500 dark:text-red-400 flex items-center gap-2">
+                <ShieldIcon className="w-6 h-6 shrink-0" /> Problems Every Indian Faces Daily
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-semibold">
+                Why does nobody know what is happening in their own neighbourhood?
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <div className="flex gap-3.5 items-start">
+                  <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-1.5 rounded-lg shrink-0 mt-0.5">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">WhatsApp Groups Are a Mess</h4>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-normal">Your mohalla group has 200 people, fake news, and memes. Nobody knows when the water was cut or why the road is broken.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3.5 items-start">
+                  <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-1.5 rounded-lg shrink-0 mt-0.5">
+                    <Tv className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">News Shows Only Big City Stories</h4>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-normal">Facebook and Instagram show you Bollywood and national politics. Local issues in your ward or village are completely invisible online.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3.5 items-start">
+                  <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-1.5 rounded-lg shrink-0 mt-0.5">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Government Announcements Never Reach You</h4>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-normal">A new scheme was launched in your district last month. You never heard about it. Government posts on MyGov.in — but nobody visits it.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3.5 items-start">
+                  <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-1.5 rounded-lg shrink-0 mt-0.5">
+                    <XCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">No Safe Space to Speak Up</h4>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-normal">You want to report a corrupt official or a local problem — but you are afraid to put your name on it publicly. So you stay silent.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Solution */}
+            <div className="space-y-6 lg:border-l lg:border-slate-200 dark:lg:border-slate-800 lg:pl-10">
+              <h3 className="font-black text-xl sm:text-2xl text-green-500 flex items-center gap-2">
+                <CheckCircle2 className="w-6 h-6 shrink-0" /> Govlyx Solves All of This
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-semibold">
+                One app. Your pincode. Everything local and safe.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <div className="bg-base-200 border border-base-300 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+                  <span className="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1"><XCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" /> WhatsApp chaos</span>
+                  <span className="text-slate-400 text-xs rotate-90 sm:rotate-0">→</span>
+                  <span className="text-green-500 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> Organised Pincode Feed
+                  </span>
+                </div>
+
+                <div className="bg-base-200 border border-base-300 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+                  <span className="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1"><XCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" /> Missing Schemes</span>
+                  <span className="text-slate-400 text-xs rotate-90 sm:rotate-0">→</span>
+                  <span className="text-green-500 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> Direct Pincode Broadcasts
+                  </span>
+                </div>
+
+                <div className="bg-base-200 border border-base-300 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+                  <span className="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1"><XCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" /> Unresolved Issues</span>
+                  <span className="text-slate-400 text-xs rotate-90 sm:rotate-0">→</span>
+                  <span className="text-green-500 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> Post → Viral → Resolved
+                  </span>
+                </div>
+
+                <div className="bg-base-200 border border-base-300 p-3.5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+                  <span className="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1"><XCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" /> Name Exposure Fear</span>
+                  <span className="text-slate-400 text-xs rotate-90 sm:rotate-0">→</span>
+                  <span className="text-green-500 text-xs sm:text-sm font-bold flex items-center justify-center sm:justify-start gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" /> Random Anonymity Protects You
+                  </span>
+                </div>
+
+                <div className="p-3 bg-blue-500/5 border border-blue-500/20 text-xs font-semibold rounded-xl text-blue-600 dark:text-blue-400 flex gap-2 items-center">
+                  <Pin className="w-4 h-4 rotate-45 shrink-0" />
+                  <span>Govlyx works on just one thing from you: your <strong>6-digit pincode</strong>. No GPS. No long forms. No complicated setup.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CIVIC ISSUE LIFECYCLE ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-24 bg-base-100 border-t border-base-300 transition-colors">
+        <div className="max-w-[1400px] mx-auto">
+
+          {/* Civic Issue Lifecycle Block */}
+          <div className="bg-base-200 border border-base-300 rounded-3xl p-8 sm:p-10 shadow-soft">
+            <h3 className="font-black text-xl sm:text-2xl text-slate-900 dark:text-white mb-2 text-center lg:text-left">
+              Civic Issue Lifecycle
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-semibold mb-8 text-center lg:text-left">
+              Your complaint does not just sit there — Govlyx fights for it automatically!
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
+              {/* Step 1 */}
+              <div className="flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm mb-3"><Camera className="w-5 h-5" /></div>
+                <h5 className="font-bold text-xs text-slate-900 dark:text-white">1. You Post</h5>
+                <p className="text-slate-400 text-[10px] mt-1.5">Snap a photo of the broken road. Post with your pincode and tag the department.</p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm mb-3"><Landmark className="w-5 h-5" /></div>
+                <h5 className="font-bold text-xs text-slate-900 dark:text-white">2. Govt Notified</h5>
+                <p className="text-slate-400 text-[10px] mt-1.5">The tagged department gets alerted on their portal dashboard and assigns a fixer.</p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm mb-3"><Users className="w-5 h-5" /></div>
+                <h5 className="font-bold text-xs text-slate-900 dark:text-white">3. Neighbours React</h5>
+                <p className="text-slate-400 text-[10px] mt-1.5">People nearby react and comment. The issue starts getting traction in the area.</p>
+              </div>
+
+              {/* Step 4 */}
+              <div className="flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-sm mb-3"><TrendingUp className="w-5 h-5" /></div>
+                <h5 className="font-bold text-xs text-slate-900 dark:text-white">4. Auto-Promoted</h5>
+                <p className="text-slate-400 text-[10px] mt-1.5">Enough reactions? App expands coverage to district → state → national automatically.</p>
+              </div>
+
+              {/* Step 5 */}
+              <div className="flex flex-col items-center text-center p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center shadow-sm mb-3"><CheckCircle2 className="w-5 h-5" /></div>
+                <h5 className="font-bold text-xs text-green-500">5. Resolved!</h5>
+                <p className="text-slate-400 text-[10px] mt-1.5">Department marks it fixed with proof. You and all local supporters are notified instantly.</p>
+              </div>
+            </div>
+
+            <div className="mt-8 p-4 bg-emerald-500/5 border border-emerald-500/20 text-xs font-semibold rounded-xl text-emerald-600 dark:text-emerald-400 text-center flex items-center justify-center gap-2">
+              <Lightbulb className="w-4 h-4 shrink-0" />
+              <span>The more your neighbours engage with the issue, the further it travels — all the way to national level if needed. Zero manual effort from you.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── KEY FEATURES GRID ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-24 bg-base-100 border-t border-slate-100 dark:border-slate-800/40 transition-colors">
+        <div className="max-w-[1400px] mx-auto">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-[#1D4ED8] dark:text-blue-400 text-xs font-black tracking-widest uppercase bg-blue-50 dark:bg-blue-950/30 px-3.5 py-1.5 rounded-full">
+              Feature Suite
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-4 tracking-tight leading-tight">
+              Everything You Can Do on Govlyx
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-3 text-sm leading-relaxed font-semibold">
+              Power packed features tailored specifically for hyperlocal communities
+            </p>
+          </div>
+
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 1. Local Feed */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <MapPin className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Local Feed</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                See posts and issues only from your pincode. Sort by Hot, New, and Top tabs.
+              </p>
+            </div>
+
+            {/* 2. Govt Broadcasts */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <Landmark className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Govt Broadcasts</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Departments post schemes, alerts, and real-time notices to citizens by area.
+              </p>
+            </div>
+
+            {/* 3. Civic Tracker */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <AlertTriangle className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Civic Issue Tracker</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Post problems. Complaints auto-escalate from ward → district → state if engagement grows.
+              </p>
+            </div>
+
+            {/* 4. Communities */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <Users className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Communities</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Create or join local groups — colony, school, RWA. Filter by Public, Private, or Secret.
+              </p>
+            </div>
+
+            {/* 5. Polls */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <BarChart3 className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Neighbourhood Polls</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Ask your neighbourhood a question and get instant votes and stats.
+              </p>
+            </div>
+
+            {/* 6. Identity Protection */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <UserX className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Identity Protection</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Random username hides who you are. Post videos safely without your real name.
+              </p>
+            </div>
+
+            {/* 7. Anonymous Chat */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <MessageCircle className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Anonymous 1-vs-1 Chat</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Talk 1-on-1 with a fellow citizen safely. Absolutely no identity revealed.
+              </p>
+            </div>
+
+            {/* 8. Local Search */}
+            <div className="bg-base-200 border border-base-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 mb-3">
+                <Search className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm leading-tight">Hyperlocal Search</h4>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Search posts, communities, and hashtags specifically near your pincode.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ─── GOVT INTEGRATION & SCHEME ALIGNMENT ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-24 bg-base-100 border-t border-slate-100 dark:border-slate-800/40 transition-colors">
+        <div className="max-w-[1400px] mx-auto">
+          {/* Two-Way Citizen Govt platform */}
+          <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-12 items-center mb-20">
+            <div>
+              <span className="text-[#1D4ED8] dark:text-blue-400 text-xs font-black tracking-widest uppercase bg-blue-50 dark:bg-blue-950/30 px-3.5 py-1.5 rounded-full">
+                SaaS Integration
+              </span>
+              <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white leading-tight mt-4 text-left">
+                India's First Two-Way Citizen–Govt Platform
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-3 leading-relaxed text-left">
+                Real-time communication, not just a one-way government noticeboard. Dual portal support for seamless escalation flow.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
+              <div className="bg-base-200 border border-base-300 p-5 rounded-2xl">
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm mb-3 text-blue-600 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-blue-600 shrink-0" /> Citizens Can:
+                </h4>
+                <ul className="space-y-2 text-xs text-slate-500 dark:text-slate-400 font-semibold font-medium">
+                  <li className="flex items-center gap-1.5">✓ Post local civic issues</li>
+                  <li className="flex items-center gap-1.5">✓ Save & share govt schemes</li>
+                  <li className="flex items-center gap-1.5">✓ Receive location specific alerts</li>
+                  <li className="flex items-center gap-1.5">✓ Tag departments on problems</li>
+                  <li className="flex items-center gap-1.5">✓ Comment & vote on issues</li>
+                </ul>
+              </div>
+
+              <div className="bg-base-200 border border-base-300 p-5 rounded-2xl">
+                <h4 className="font-extrabold text-slate-950 dark:text-white text-sm mb-3 text-emerald-500 flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4 text-emerald-500 shrink-0" /> Government Can:
+                </h4>
+                <ul className="space-y-2 text-xs text-slate-500 dark:text-slate-400 font-semibold font-medium">
+                  <li className="flex items-center gap-1.5">✓ Broadcast schemes by pincode</li>
+                  <li className="flex items-center gap-1.5">✓ Send real-time local alerts</li>
+                  <li className="flex items-center gap-1.5">✓ Receive tagged complaints</li>
+                  <li className="flex items-center gap-1.5">✓ Mark civic issues as Resolved</li>
+                  <li className="flex items-center gap-1.5">✓ Track engagement & metrics</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Scheme Alignment Cards */}
+          <div className="text-center mb-10">
+            <h3 className="font-extrabold text-xl sm:text-2xl text-slate-950 dark:text-white">Supported National Missions</h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-semibold">India funded programmes looking for digital solutions like Govlyx</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Building2 className="w-4 h-4 text-blue-500 shrink-0" /> Smart Cities Mission</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Smart Cities require civic engagement tech for real-time local info and issue resolution. Govlyx integrates directly into this funded mission's tech stack.
+              </p>
+            </div>
+
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Cpu className="w-4 h-4 text-blue-500 shrink-0" /> Digital India Program</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Providing a two-way channel between every government office and citizen. Leverage standard translation APIs for vernacular support.
+              </p>
+            </div>
+
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Building className="w-4 h-4 text-blue-500 shrink-0" /> Gram Panchayat GPDP</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Act as a digital noticeboard for rural panchayats to broadcast job cards, water schemes, and budget allocations directly to villagers.
+              </p>
+            </div>
+
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Rocket className="w-4 h-4 text-blue-500 shrink-0" /> Startup India Recognition</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                DPIIT startup recognition unlocks fast-tracked patents, tax exemptions, and access to government tenders without traditional restrictions.
+              </p>
+            </div>
+
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Lightbulb className="w-4 h-4 text-blue-500 shrink-0" /> Atal Innovation Mission</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Funded by NITI Aayog, supporting student innovators addressing core Indian citizen problems with grants up to Rs 10 lakh.
+              </p>
+            </div>
+
+            <div className="bg-base-200 p-5 rounded-2xl border border-base-300">
+              <h4 className="font-black text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5"><Radio className="w-4 h-4 text-blue-500 shrink-0" /> BharatNet & PM-WANI</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Bringing connection to rural areas. Govlyx can scale to be the default civic utility promoted at rural public internet access points.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* ─── WHY GOVLYX COMPARISON TABLE ─── */}
+      <section className="py-20 px-4 sm:px-6 lg:px-24 bg-base-100 border-t border-base-300 transition-colors">
+        <div className="max-w-[1400px] mx-auto">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-[#1D4ED8] dark:text-blue-400 text-xs font-black tracking-widest uppercase bg-blue-50 dark:bg-blue-950/30 px-3.5 py-1.5 rounded-full">
+              Comparisons
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-4 tracking-tight leading-tight">
+              Why Govlyx When Other Apps Exist?
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-semibold">
+              No other app combines all these civic-tech features in one place
+            </p>
+          </div>
+          {/* Table Container */}
+          <div className="overflow-x-auto border border-base-300 rounded-3xl bg-base-200 shadow-soft">
+            <table className="w-full border-collapse text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-base-300 bg-base-300/30">
+                  <th className="p-4 sm:p-5 font-black text-slate-900 dark:text-white">Feature</th>
+                  <th className="p-4 sm:p-5 font-black text-[#1D4ED8] dark:text-blue-400 text-center">Govlyx</th>
+                  <th className="p-4 sm:p-5 font-black text-slate-400 dark:text-slate-500 text-center">WhatsApp</th>
+                  <th className="p-4 sm:p-5 font-black text-slate-400 dark:text-slate-500 text-center">Facebook</th>
+                  <th className="p-4 sm:p-5 font-black text-slate-400 dark:text-slate-500 text-center">MyGov</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Hyperlocal (Pincode) Feed</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Identity Protection (Anonymity)</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Direct Government Broadcasts</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><AlertTriangle className="w-5 h-5 text-amber-500 mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Automatic Issue Escalation</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Secure Anonymous 1-vs-1 Chat</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                </tr>
+                <tr className="hover:bg-slate-50/50 dark:hover:bg-[#151c30]/50 transition-colors">
+                  <td className="p-4 sm:p-5 font-bold text-slate-800 dark:text-slate-200">Zero National Noise / Spam</td>
+                  <td className="p-4 sm:p-5 text-center"><CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><XCircle className="w-5 h-5 text-rose-500 mx-auto" /></td>
+                  <td className="p-4 sm:p-5 text-center"><AlertTriangle className="w-5 h-5 text-amber-500 mx-auto" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+
       {/* ─── Communities Section ─────────────────────────────────────────────── */}
-      <section id="communities" className="py-16 sm:py-24 px-4 sm:px-6 bg-[#F8FAFC] dark:bg-[#0B0F1A] border-t border-slate-200/50 dark:border-slate-800/40 transition-colors">
+      <section id="communities" className="py-16 sm:py-24 px-4 sm:px-6 bg-base-100 border-t border-base-300 transition-colors">
         <div className="max-w-[1400px] mx-auto">
           
           <div className="mb-12 sm:mb-16 text-center max-w-2xl mx-auto px-2">
@@ -570,7 +1091,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             {/* Card 1 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-base-200 border border-base-300 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center flex-shrink-0 text-orange-500 dark:text-orange-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -592,10 +1113,10 @@ export default function LandingPage() {
                   <Users className="w-3.5 h-3.5" /> 14,203 members
                 </p>
                 <div className="flex gap-2">
-                  <button className="flex-1 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1D4ED8] dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                  <button onClick={() => navigate("/login")} className="flex-1 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                     <Eye className="w-3.5 h-3.5" /> View
                   </button>
-                  <button className="flex-1 py-1.5 text-xs font-semibold text-orange-500 hover:text-orange-600 hover:bg-orange-50/30 border border-orange-200 dark:border-orange-900/40 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                  <button onClick={() => navigate("/login")} className="flex-1 py-1.5 text-xs font-semibold text-orange-500 hover:text-orange-600 hover:bg-orange-50/30 border border-orange-200 dark:border-orange-900/40 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                     <SettingsIcon className="w-3.5 h-3.5" /> Manage
                   </button>
                 </div>
@@ -603,7 +1124,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-base-200 border border-base-300 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-[#eff4ff] dark:bg-[#1D4ED8]/10 flex items-center justify-center flex-shrink-0 text-[#1D4ED8] dark:text-[#60a5fa] shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -622,14 +1143,14 @@ export default function LandingPage() {
                 <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-2">
                   <Users className="w-3.5 h-3.5" /> 5,892 members
                 </p>
-                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                <button onClick={() => navigate("/login")} className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                   View Community <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-white dark:bg-[#121829] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
+            <div className="bg-base-200 border border-base-300 rounded-xl p-5 shadow-sm hover:shadow-lg dark:hover:border-[#1D4ED8]/45 transition-all duration-350 flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center flex-shrink-0 text-purple-500 dark:text-purple-400 shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -650,7 +1171,7 @@ export default function LandingPage() {
                 <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mb-2">
                   <Zap className="w-3.5 h-3.5 text-yellow-500" /> Ephemeral chats
                 </p>
-                <button className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
+                <button onClick={() => navigate("/login")} className="w-full py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-white hover:bg-[#1D4ED8] border border-slate-200 dark:border-slate-800 rounded-lg transition-all flex justify-center items-center gap-1 cursor-pointer">
                   Start Chatting <MessageCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -661,20 +1182,19 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="bg-white dark:bg-[#0A0F1D] border-t border-slate-200 dark:border-slate-800/80 py-10 sm:py-12 px-4 sm:px-6 transition-colors duration-300">
+      <footer className="bg-base-100 border-t border-base-300 py-10 sm:py-12 px-4 sm:px-6 transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           
           <LandingLogo showText size={26} />
           
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-500 dark:text-slate-400 font-semibold">
-            <a href="#features" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Platform</a>
-            <a href="https://github.com/govlyx/govlyx" target="_blank" rel="noopener noreferrer" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">GitHub</a>
-            <a href="https://github.com/govlyx/govlyx#readme" target="_blank" rel="noopener noreferrer" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Docs</a>
-            <a href="#" className="hover:text-[#1D4ED8] dark:hover:text-blue-400 transition-colors">Privacy Policy</a>
+            <a href="#features" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
+            <button onClick={() => navigate("/upcoming-updates")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Upcoming Updates</button>
+            <a href="#" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Privacy Policy</a>
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-            © 2026 Govlyx · Civic-Tech Transparency Infrastructure
+            © 2026 Govlyx
           </p>
         </div>
       </footer>

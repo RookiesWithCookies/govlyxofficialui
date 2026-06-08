@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { clearAuthTokens, getAuthToken, isDepartmentUser } from "../utils/auth";
 import { ModalProvider } from "../context/ModalContext";
@@ -24,6 +24,7 @@ import Register from "../pages/Register";
 import LandingPage from "../pages/LandingPage";
 import { AcceptInvitePage } from "../pages/Communities";
 import VerifyEmail from "../pages/VerifyEmail";
+import UpcomingUpdates from "../pages/UpcomingUpdates";
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
 const PageWrapper = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -121,6 +122,62 @@ const DashboardRedirect = () => {
   return <Home />;
 };
 
+// Custom mouse cursor follow effect
+const CustomCursor = () => {
+  const [position, setPosition] = useState({ x: -100, y: -100 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+      if (!isVisible) setIsVisible(true);
+    };
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "BUTTON" ||
+        target.tagName === "A" ||
+        target.closest("button") ||
+        target.closest("a") ||
+        window.getComputedStyle(target).cursor === "pointer"
+      ) {
+        setIsHovered(true);
+      } else {
+        setIsHovered(false);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setIsVisible(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseover", handleMouseOver);
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseover", handleMouseOver);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [isVisible]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      className="fixed pointer-events-none z-[9999] w-2 h-2 -ml-1 -mt-1 rounded-full bg-[#2563eb] shadow-[0_0_10px_4px_rgba(37,99,235,0.4),_0_0_4px_1px_rgba(37,99,235,0.65)] transition-transform duration-150 ease-out"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        transform: `scale(${isHovered ? 1.6 : 1})`,
+      }}
+    />
+  );
+};
+
 // ── Router ────────────────────────────────────────────────────────────────────
 const AppRouter = () => {
   const location = useLocation();
@@ -135,6 +192,7 @@ const AppRouter = () => {
 
   return (
     <ModalProvider>
+      <CustomCursor />
       <AnimatePresence mode="wait">
         <Routes location={location} key={getTransitionKey(location.pathname)}>
 
@@ -142,6 +200,14 @@ const AppRouter = () => {
         <Route
           path="/"
           element={<PageWrapper><LandingPage /></PageWrapper>}
+        />
+        <Route
+          path="/upcoming-updates"
+          element={<PageWrapper><UpcomingUpdates /></PageWrapper>}
+        />
+        <Route
+          path="/docs"
+          element={<Navigate to="/upcoming-updates" replace />}
         />
 
         {/* ── Public auth routes ── */}

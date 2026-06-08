@@ -4,7 +4,8 @@ import AuthLayout from "../components/auth/AuthLayout";
 import AuthHeader from "../components/auth/AuthHeader";
 import AuthInput from "../components/auth/AuthInput";
 import { loginUser, resendVerification } from "../api/authService";
-import { Info, Eye, EyeOff } from "lucide-react";
+import { Info, Eye, EyeOff, ArrowLeft, Sun, Moon } from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
 import { queryClient } from "../api/queryClient";
 import { persistAuthToken } from "../utils/auth";
 import { showToast } from "../utils/toast";
@@ -16,7 +17,8 @@ const getAuthResponseMessage = (response: { message?: string; error?: string }) 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
+  const { theme, toggleTheme } = useTheme();
+  const queryParams = new URLSearchParams(location.search);
   const isExpired = queryParams.get("error") === "expired";
   const [showExpiredMsg, setShowExpiredMsg] = useState(isExpired);
   const [showPassword, setShowPassword] = useState(false);
@@ -95,16 +97,26 @@ const Login = () => {
 
   return (
     <AuthLayout>
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-xs font-bold text-base-content/60 hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Landing Page
+        </button>
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/60 transition-colors cursor-pointer border-none"
+          aria-label="Toggle theme"
+        >
+          {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        </button>
+      </div>
       <AuthHeader
         title="Welcome back"
         subtitle="Access your Govlyx portal"
       />
 
-      {/* Spam Folder Warning Note */}
-      <div className="mb-4 rounded-xl bg-red-500/5 border border-red-500/20 px-4 py-3 text-xs flex items-start gap-3 animate-subtle-blink">
-        <Info size={16} className="shrink-0 mt-0.5 glow-red-text" />
-        <span className="glow-red-text">If you do not see the verification email in your inbox, please check your <strong>Spam</strong> or <strong>Junk</strong> folder.</span>
-      </div>
 
             {/* Session Expired Message */}
       {showExpiredMsg && !error && (

@@ -4,13 +4,15 @@ import AuthLayout from "../components/auth/AuthLayout";
 import AuthHeader from "../components/auth/AuthHeader";
 import AuthInput from "../components/auth/AuthInput";
 import { registerCitizen } from "../api/authService";
-import { Mail, Eye, EyeOff, Info } from "lucide-react";
+import { Mail, Eye, EyeOff, Info, ArrowLeft, Sun, Moon } from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
 import { parseError } from "../utils/error-handler";
 
 type RegisterType = "citizen" | "department";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [type] = useState<RegisterType>("citizen");
   const [form, setForm] = useState({
@@ -86,6 +88,21 @@ const Register = () => {
 
   return (
     <AuthLayout>
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-xs font-bold text-base-content/60 hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Landing Page
+        </button>
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/60 transition-colors cursor-pointer border-none"
+          aria-label="Toggle theme"
+        >
+          {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        </button>
+      </div>
       <AuthHeader
         title={type === "citizen" ? "Join Govlyx" : "Onboard Department"}
         subtitle={type === "citizen" ? "Join Govlyx anonymously" : "Register a verified government body"}

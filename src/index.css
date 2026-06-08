@@ -233,3 +233,16 @@ html.scrollable-page #root {
   background-image: radial-gradient(circle, var(--color-grid) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* Hide default mouse cursor globally to prioritize custom site cursor */
+*,
+html,
+body,
+a,
+button,
+input,
+select,
+textarea,
+[role="button"] {
+  cursor: none !important;
+}
