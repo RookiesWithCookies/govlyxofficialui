@@ -212,6 +212,16 @@ function MediaUploadZone({
     }
   };
 
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
   const removeFile = (i: number) => onChange(files.filter((_, idx) => idx !== i));
 
   return (
@@ -248,21 +258,44 @@ function MediaUploadZone({
       </div>
 
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {files.map((f, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-base-300/60 border border-base-300 rounded-full text-xs text-base-content/60 max-w-[160px]"
-            >
-              <span className="truncate">{f.name}</span>
-              <button
-                className="text-base-content/30 hover:text-red-400 flex-shrink-0"
-                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-              >
-                <X size={10} />
-              </button>
-            </div>
-          ))}
+        <div className="grid grid-cols-4 gap-2.5 mt-1">
+          {files.map((f, i) => {
+            const isImage = f.type.startsWith("image/");
+            const isVideo = f.type.startsWith("video/");
+
+            return (
+              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-base-content/10 bg-base-200/50 group/preview shadow-sm">
+                {isImage && previews[i] && (
+                  <img src={previews[i]} alt="Preview" className="w-full h-full object-cover" />
+                )}
+                {isVideo && previews[i] && (
+                  <>
+                    <video src={previews[i]} className="w-full h-full object-cover" muted playsInline />
+                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
+                        <FileVideo size={12} />
+                      </div>
+                    </div>
+                  </>
+                )}
+                {!isImage && !isVideo && (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-1.5 text-center">
+                    <Paperclip size={18} className="opacity-50 mb-1" />
+                    <span className="text-[9px] font-semibold opacity-70 truncate w-full px-1">{f.name}</span>
+                  </div>
+                )}
+
+                {/* Remove Overlay Button */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-md cursor-pointer z-10"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -274,7 +307,7 @@ function StatusBanner({ status, message }: { status: "error" | "success" | "netw
   const map = {
     error: { bg: "bg-red-500/10 border-red-500/30 text-red-400", icon: <X size={14} /> },
     success: { bg: "bg-green-500/10 border-green-500/30 text-green-400", icon: <CheckCircle2 size={14} /> },
-    network: { bg: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400", icon: <WifiOff size={14} /> },
+    network: { bg: "bg-yellow-500/10 border-yellow-500/30 text-[#1D4EED]", icon: <WifiOff size={14} /> },
   };
   const s = map[status];
   return (

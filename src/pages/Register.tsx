@@ -131,10 +131,6 @@ const Register = () => {
           <p className="text-sm opacity-80 px-2 leading-relaxed whitespace-pre-line">
             {success}
           </p>
-          <div className="rounded-xl bg-red-500/5 border border-red-500/20 px-4 py-3 text-xs flex items-start gap-3 text-left w-full animate-subtle-blink">
-            <Info size={16} className="shrink-0 mt-0.5 glow-red-text" />
-            <span className="glow-red-text">If the message is not in your inbox, please make sure to check your <strong>Spam</strong> folder.</span>
-          </div>
           <button
             onClick={() => navigate("/login")}
             className="btn bg-[#1D4ED8] hover:bg-[#1D4ED8]/90 text-white border-none rounded-xl h-11 px-6 font-bold flex items-center gap-2 mt-4 shadow-lg shadow-[#1D4ED8]/20 w-full"

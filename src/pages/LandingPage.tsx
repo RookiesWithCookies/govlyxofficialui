@@ -144,6 +144,17 @@ export default function LandingPage() {
   const [targetUrl, setTargetUrl] = useState("https://govlyx.com");
   const [destinationOpen, setDestinationOpen] = useState(false);
 
+  const letters = React.useMemo(() => Array.from("Neighbourhood & Govt"), []);
+  const scatterOffsets = React.useMemo(() => {
+    return letters.map(() => ({
+      x: (Math.random() - 0.5) * 80, // random offset x between -40 and 40
+      y: (Math.random() - 0.5) * 80, // random offset y between -40 and 40
+      rotate: (Math.random() - 0.5) * 120, // random rotation
+      scale: 0.6 + Math.random() * 0.8, // scale between 0.6 and 1.4
+    }));
+  }, [letters]);
+  const [titleHovered, setTitleHovered] = useState(false);
+
   // ─── Interactive Phone Mockup Post States ──────────────────────────────────
   const [posts, setPosts] = useState([
     {
@@ -351,13 +362,40 @@ export default function LandingPage() {
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-3 lg:mb-4">
               Connecting Every Indian to Their <br className="hidden sm:block" />
-              <motion.span 
-                whileHover={{ scale: 1.04, y: -2 }}
-                transition={{ type: "spring", stiffness: 400, damping: 12 }}
-                className="text-[#1D4ED8] dark:text-[#1D4ED8] hover:text-red-600 dark:hover:text-red-400 transition-colors inline-block cursor-default origin-left select-none"
+              <span
+                onMouseEnter={() => setTitleHovered(true)}
+                onMouseLeave={() => setTitleHovered(false)}
+                className="inline-flex flex-wrap cursor-default select-none text-[#ff5f5f]"
               >
-                Neighbourhood & Govt
-              </motion.span>
+                {letters.map((char, idx) => (
+                  <motion.span
+                    key={idx}
+                    animate={titleHovered ? {
+                      x: scatterOffsets[idx].x,
+                      y: scatterOffsets[idx].y,
+                      rotate: scatterOffsets[idx].rotate,
+                      scale: scatterOffsets[idx].scale,
+                    } : {
+                      x: 0,
+                      y: 0,
+                      rotate: 0,
+                      scale: 1,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 150,
+                      damping: 15,
+                    }}
+                    style={{
+                      display: "inline-block",
+                      whiteSpace: char === " " ? "pre" : "normal"
+                    }}
+                    className={`transition-colors duration-300 ${titleHovered ? "text-[#1D4EED] dark:text-[#1D4EED] drop-shadow-[0_0_8px_rgba(29,78,237,0.6)]" : "text-[#ff5f5f]"}`}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </span>
             </h1>
             
             <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed mb-4 lg:mb-5 max-w-lg mx-auto lg:mx-0 font-medium">

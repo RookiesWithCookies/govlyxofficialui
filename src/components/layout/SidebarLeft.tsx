@@ -175,7 +175,7 @@ const SidebarLeft = () => {
           ) : communities && communities.length > 0 ? (
             <div className="max-h-60 overflow-y-auto pr-1">
               <ul className="space-y-1 text-sm">
-                {communities.map((c) => (
+                {communities.slice(0, 4).map((c) => (
                   <li key={c.id}>
                     <NavLink
                       to={`/communities/${c.slug || c.id}`}
@@ -188,6 +188,16 @@ const SidebarLeft = () => {
                     </NavLink>
                   </li>
                 ))}
+                {communities.length > 4 && (
+                  <li>
+                    <NavLink
+                      to="/communities"
+                      className="block truncate rounded-lg px-3 py-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold hover:bg-base-300 transition duration-150"
+                    >
+                      View More
+                    </NavLink>
+                  </li>
+                )}
               </ul>
             </div>
           ) : (

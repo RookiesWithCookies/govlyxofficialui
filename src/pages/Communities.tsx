@@ -2023,13 +2023,13 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
                 <div className="space-y-2">
                   {(["PUBLIC", "PRIVATE", "SECRET"] as const).map(p => (
                     <button key={p} type="button" onClick={() => setForm(f => ({ ...f, privacy: p }))}
-                      className={`w-full flex items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer ${form.privacy === p ? "border-blue-700 bg-blue-700/5 shadow-sm scale-[1.01]" : "border-base-content/5 hover:border-base-content/10"}`}>
-                      <span className="text-xl opacity-80">{PRIV_ICON[p]}</span>
+                      className={`w-full flex items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer ${form.privacy === p ? "border-red-500 bg-red-500/10 shadow-sm scale-[1.01]" : "border-base-content/5 hover:border-base-content/10"}`}>
+                      <span className={`text-xl opacity-80 ${form.privacy === p ? "text-red-500" : ""}`}>{PRIV_ICON[p]}</span>
                       <div className="flex-1">
-                        <p className={`text-[11px] font-black uppercase tracking-tight ${form.privacy === p ? "text-blue-700" : "text-base-content/95"}`}>{p}</p>
+                        <p className={`text-[11px] font-black uppercase tracking-tight ${form.privacy === p ? "text-red-500" : "text-base-content/95"}`}>{p}</p>
                         <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">{PRIV_DESC[p]}</p>
                       </div>
-                      {form.privacy === p && <span className="text-blue-700 text-xs shadow-sm"><Check size={14} /></span>}
+                      {form.privacy === p && <span className="text-red-500 text-xs shadow-sm"><Check size={14} /></span>}
                     </button>
                   ))}
                 </div>
@@ -2051,7 +2051,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
                       <p className="text-[11px] font-black uppercase tracking-tight text-base-content/90 truncate">{label}</p>
                       <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">{desc}</p>
                     </div>
-                    <input type="checkbox" className="toggle toggle-primary toggle-sm scale-90"
+                    <input type="checkbox" className="toggle toggle-error toggle-sm scale-90"
                       checked={form[key as keyof CreateForm] as boolean}
                       onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} />
                   </label>
@@ -2063,7 +2063,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
         <div className="shrink-0 px-4 py-3 border-t border-base-content/5 bg-white/5 flex gap-3">
           {step === 2 && (
             <button
-              className="btn btn-sm btn-ghost rounded-xl text-[11px] font-black uppercase tracking-widest flex-1 text-base-content cursor-pointer"
+              className="btn btn-sm btn-ghost rounded-xl text-[11px] font-black uppercase tracking-widest flex-none px-4 text-base-content cursor-pointer"
               onClick={() => setStep(1)}
               disabled={busy}
             >
@@ -2085,7 +2085,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
                 disabled={busy}
                 onClick={submit}
               >
-                {busy ? "Creating…" : <><Rocket size={16} /> Create Community</>}
+                {busy ? "Creating…" : <><Rocket size={16} className="shrink-0" /> Create Community</>}
               </button>
             )
           }
@@ -2436,14 +2436,70 @@ function DetailPanel({
 
                 <div className="rounded-xl border border-base-300 bg-base-200 p-5">
                   <h3 className="font-semibold mb-3 text-lg">Media &amp; Data</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="aspect-square rounded-xl bg-base-300/50 flex flex-col items-center justify-center overflow-hidden border border-base-300 text-base-content hover:bg-base-300 transition-colors cursor-pointer">
-                        <ImageIcon size={24} className="mb-2 opacity-30" />
-                        <span className="text-xs opacity-40 font-semibold uppercase tracking-wider">Image {i}</span>
+                  {(() => {
+                    const mediaList: Array<{ url: string; type: "image" | "video"; postId: number }> = [];
+                    posts.forEach(p => {
+                      const urls = new Set<string>();
+                      if (p.mediaUrls && Array.isArray(p.mediaUrls)) {
+                        p.mediaUrls.forEach(u => { if (u) urls.add(u); });
+                      }
+                      if (p.imageUrl) {
+                        urls.add(p.imageUrl);
+                      }
+                      urls.forEach(url => {
+                        const isVideo = /\.(mp4|webm|ogg|mov|m4v)$/i.test(url) || url.includes("/video");
+                        mediaList.push({ url, type: isVideo ? "video" : "image", postId: p.id });
+                      });
+                    });
+
+                    if (mediaList.length > 0) {
+                      return (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {mediaList.slice(0, 6).map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => navigate(`/post/${item.postId}`)}
+                              className="aspect-square rounded-xl bg-base-300/50 flex items-center justify-center overflow-hidden border border-base-300 text-base-content hover:scale-[1.02] transition-all cursor-pointer relative group/media"
+                            >
+                              {item.type === "video" ? (
+                                <>
+                                  <video
+                                    src={item.url}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                    loop
+                                    onMouseOver={e => e.currentTarget.play().catch(() => {})}
+                                    onMouseOut={e => e.currentTarget.pause()}
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover/media:bg-black/40 transition-colors">
+                                    <span className="text-white text-[9px] bg-black/60 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">Video</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <img
+                                  src={item.url}
+                                  alt="Uploaded content"
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover/media:scale-105"
+                                  onError={e => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="text-center py-8 opacity-55 border-2 border-dashed border-base-300 rounded-xl space-y-1.5 bg-base-100/50">
+                        <ImageIcon size={32} className="mx-auto opacity-30" />
+                        <p className="text-xs font-bold uppercase tracking-wider">No media uploaded yet</p>
+                        <p className="text-[10px] opacity-70">Images and videos shared in community posts will appear here.</p>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 <CommunitySidebar />
@@ -3371,7 +3427,17 @@ const Community = () => {
       )}
 
       {selected && !adminTarget && (
-        <DetailPanel key={selected.id} community={selected} onClose={() => { setSelected(null); navigate("/communities"); }} onMembershipChange={syncMembership} />
+        <DetailPanel
+          key={selected.id}
+          community={{
+            ...selected,
+            isMember: selected.isMember || myCommunities.some(x => x.id === selected.id && x.isMember),
+            isOwner: selected.isOwner || myCommunities.some(x => x.id === selected.id && x.isOwner),
+            hasPendingRequest: selected.hasPendingRequest && !myCommunities.some(x => x.id === selected.id && x.isMember)
+          }}
+          onClose={() => { setSelected(null); navigate("/communities"); }}
+          onMembershipChange={syncMembership}
+        />
       )}
 
       {adminTarget && (

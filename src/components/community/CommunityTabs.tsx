@@ -12,7 +12,7 @@ const CommunityTabs = ({ active, onChange }: CommunityTabsProps) => {
           onClick={() => onChange(tab as "posts" | "about")}
           className={`shrink-0 px-4 py-2 text-sm font-medium capitalize ${
             active === tab
-              ? "border-b-2 border-blue-700 text-blue-700"
+              ? "border-b-2 border-red-500 text-red-500"
               : "opacity-70 hover:opacity-100"
           }`}
         >

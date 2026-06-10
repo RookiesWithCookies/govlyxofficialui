@@ -432,29 +432,33 @@ function ZoomViewer({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.25 }}
-            style={{
-              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-              transformOrigin: "center center",
-              transition: dragging ? "none" : "transform 0.18s ease",
-            }}
             className="max-h-[80vh] max-w-[90vw] flex items-center justify-center"
           >
-            {isVideo(current) ? (
-              <video
-                src={current}
-                controls
-                autoPlay
-                className="max-h-[80vh] max-w-[90vw] rounded-xl shadow-2xl"
-                style={{ pointerEvents: zoom > 1 ? "none" : "auto" }}
-              />
-            ) : (
-              <img
-                src={current}
-                alt={`Media ${index + 1}`}
-                draggable={false}
-                className="max-h-[80vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
-              />
-            )}
+            <div
+              style={{
+                transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                transformOrigin: "center center",
+                transition: dragging ? "none" : "transform 0.18s ease",
+              }}
+              className="flex items-center justify-center w-full h-full"
+            >
+              {isVideo(current) ? (
+                <video
+                  src={current}
+                  controls
+                  autoPlay
+                  className="max-h-[80vh] max-w-[90vw] rounded-xl shadow-2xl"
+                  style={{ pointerEvents: zoom > 1 ? "none" : "auto" }}
+                />
+              ) : (
+                <img
+                  src={current}
+                  alt={`Media ${index + 1}`}
+                  draggable={false}
+                  className="max-h-[80vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+                />
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
 
@@ -1838,7 +1842,7 @@ export default function PostCard({
       >
         <div className="p-5 sm:p-6 flex flex-col gap-4 flex-1 relative">
           {/* Translation toggle — Desktop: absolute top-right, single button */}
-          <div className="hidden sm:flex absolute top-5 right-5 z-20">
+          <div className={`hidden sm:flex absolute ${postHasCommunity && !hideCommunityStrip ? "top-[92px]" : "top-[28px]"} right-5 z-20`}>
             {hasTranslation ? (
               <button
                 onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
