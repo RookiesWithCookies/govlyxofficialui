@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Inbox, CheckCheck, Bell, Settings, ExternalLink, Trash2 } from "lucide-react";
+import { Inbox, CheckCheck, Settings, ExternalLink, Trash2 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useNotifications, useNotificationActions } from "../hooks/useNotification";
 import NotificationItem from "../components/layout/NotificationItem";
@@ -60,9 +60,6 @@ const NotificationsPage: React.FC = () => {
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#1D4ED8]/10 rounded-lg text-[#1D4ED8]">
-            <Bell size={24} />
-          </div>
           <h1 className="text-2xl font-bold">Notifications</h1>
         </div>
         
@@ -71,7 +68,7 @@ const NotificationsPage: React.FC = () => {
             <button
               onClick={() => markAllAsRead.mutate()}
               disabled={markAllAsRead.isPending}
-              className="btn btn-ghost btn-sm text-[#1D4ED8] hover:bg-[#1D4ED8]/10 gap-2 px-2 sm:px-3"
+              className="btn btn-ghost btn-sm text-emerald-500 hover:bg-emerald-500/10 gap-2 px-2 sm:px-3"
             >
               {markAllAsRead.isPending ? (
                 <span className="loading loading-spinner loading-xs"></span>

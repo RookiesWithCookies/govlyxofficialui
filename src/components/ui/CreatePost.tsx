@@ -9,6 +9,12 @@ import {
   Loader2,
   CheckCircle2,
   WifiOff,
+  Bold,
+  Italic,
+  Code,
+  Smile,
+  Hash,
+  AtSign,
 } from "lucide-react";
 import { MdLocationOn } from "react-icons/md";
 import { RiAttachment2 } from "react-icons/ri";
@@ -426,6 +432,7 @@ function PostForm({
   onPostCreated?: (post: any) => void;
 }) {
   const [content, setContent] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [targetPincode, setTargetPincode] = useState("");
   const [isReportingIssue, setIsReportingIssue] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -637,6 +644,53 @@ function PostForm({
     textareaRef.current?.focus();
   };
 
+  const applyFormatting = (formatType: "bold" | "italic" | "mono") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+
+    if (!selectedText) return;
+
+    let formatted = "";
+    if (formatType === "bold") {
+      formatted = selectedText.split('').map(char => {
+        const code = char.charCodeAt(0);
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d400); // Bold A-Z
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d41a); // Bold a-z
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce); // Bold 0-9
+        return char;
+      }).join('');
+    } else if (formatType === "italic") {
+      formatted = selectedText.split('').map(char => {
+        const code = char.charCodeAt(0);
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d434); // Italic A-Z
+        if (code === 104) return 'ℎ'; // Special case for h
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d44e); // Italic a-z
+        return char;
+      }).join('');
+    } else if (formatType === "mono") {
+      formatted = selectedText.split('').map(char => {
+        const code = char.charCodeAt(0);
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d670); // Monospace A-Z
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d68a); // Monospace a-z
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7f6); // Monospace 0-9
+        return char;
+      }).join('');
+    }
+
+    const newContent = content.substring(0, start) + formatted + content.substring(end);
+    setContent(newContent);
+
+    // Refocus and restore selection
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start, start + formatted.length);
+    }, 50);
+  };
+
   const fetchSuggestions = async (q: string) => {
     if (q.length < 2) { setSuggestions([]); return; }
     console.log("[Mentions] Fetching for:", q, "isReporting:", isReportingIssue);
@@ -822,6 +876,118 @@ function PostForm({
             }
           }}
         />
+
+        {/* Rich formatting toolbar */}
+        <div className={`flex items-center gap-1.5 px-3 pt-3 pb-2 bg-base-200/40 border rounded-xl mt-2 mb-2 select-none flex-wrap ${isReportingIssue ? "border-green-500/40" : "border-base-content/20"}`}>
+          <button 
+            type="button"
+            onClick={() => applyFormatting("bold")}
+            title="Bold"
+            className="btn btn-ghost btn-xs btn-square hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 text-base-content/70 cursor-pointer transition-colors duration-150 font-black"
+          >
+            <Bold size={13} className="stroke-[2.5]" />
+          </button>
+          <button 
+            type="button"
+            onClick={() => applyFormatting("italic")}
+            title="Italic"
+            className="btn btn-ghost btn-xs btn-square hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 text-base-content/70 cursor-pointer transition-colors duration-150 italic font-black"
+          >
+            <Italic size={13} className="stroke-[2.5]" />
+          </button>
+          <button 
+            type="button"
+            onClick={() => applyFormatting("mono")}
+            title="Monospace"
+            className="btn btn-ghost btn-xs btn-square hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 text-base-content/70 cursor-pointer transition-colors duration-150 font-bold"
+          >
+            <Code size={13} className="stroke-[2.5]" />
+          </button>
+          
+          <div className="w-[1px] h-4 bg-base-content/10 mx-1" />
+
+          <button 
+            type="button"
+            onClick={() => {
+              const textarea = textareaRef.current;
+              if (!textarea) return;
+              const start = textarea.selectionStart;
+              const newContent = content.substring(0, start) + "#" + content.substring(start);
+              setContent(newContent);
+              setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + 1, start + 1);
+              }, 50);
+            }}
+            title="Add Hashtag"
+            className="btn btn-ghost btn-xs btn-square hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 text-base-content/70 cursor-pointer transition-colors duration-150"
+          >
+            <Hash size={13} className="stroke-[2.5]" />
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              const textarea = textareaRef.current;
+              if (!textarea) return;
+              const start = textarea.selectionStart;
+              const newContent = content.substring(0, start) + "@" + content.substring(start);
+              setContent(newContent);
+              handleContentChange(newContent);
+              setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + 1, start + 1);
+              }, 50);
+            }}
+            title="Mention User"
+            className="btn btn-ghost btn-xs btn-square hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 text-base-content/70 cursor-pointer transition-colors duration-150"
+          >
+            <AtSign size={13} className="stroke-[2.5]" />
+          </button>
+
+          <div className="relative">
+            <button 
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              title="Insert Emoji"
+              className={`btn btn-ghost btn-xs btn-square text-base-content/70 hover:text-red-500 hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:bg-red-400/10 cursor-pointer transition-colors duration-150 ${showEmojiPicker ? "text-red-500! bg-red-500/10 dark:text-red-400! dark:bg-red-400/10" : ""}`}
+            >
+              <Smile size={13} className="stroke-[2.5]" />
+            </button>
+            {/* Quick Emojis Dropdown - Box with grid layout to prevent horizontal/vertical overflow */}
+            {showEmojiPicker && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+                <div className="absolute left-0 bottom-full mb-2 bg-base-100 border border-base-300 shadow-2xl rounded-2xl p-2.5 z-50 w-44">
+                  <div className="grid grid-cols-5 gap-1.5 justify-items-center">
+                    {["😊", "👍", "🔥", "🙌", "💡", "⚠️", "📌", "📢", "👏", "❤️"].map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          const textarea = textareaRef.current;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const newContent = content.substring(0, start) + emoji + content.substring(end);
+                          setContent(newContent);
+                          setShowEmojiPicker(false);
+                          setTimeout(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+                          }, 50);
+                        }}
+                        className="transition-colors duration-150 text-lg p-1 rounded-lg hover:bg-red-500/15 dark:hover:bg-red-400/20 cursor-pointer w-7 h-7 flex items-center justify-center"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Suggestion Dropdown */}
         <AnimatePresence>

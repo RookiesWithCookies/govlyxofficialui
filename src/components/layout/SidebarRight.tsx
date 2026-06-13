@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Newspaper, RefreshCw, Lightbulb } from "lucide-react";
 import { motion } from "framer-motion";
-import govlyxLogo from "../../assets/govlyx.svg";
+import GovlyxLogo from "../ui/GovlyxLogo";
 
 const FALLBACK_QUOTES = [
   { q: "If you see a pothole, name it. It makes it harder for the city to ignore it when it has a name.", a: "Civic Duty Tip" },
@@ -307,13 +307,13 @@ const SidebarRight = () => {
             {/* Glow effect */}
             <div className="absolute inset-0 scale-125 rounded-full bg-[#1D4ED8]/10 blur-xl filter" />
 
-            <motion.img
-              src={govlyxLogo}
-              alt="Govlyx Logo"
+            <motion.div
               className="z-10 h-28 w-28 drop-shadow-2xl opacity-80"
               whileHover={{ scale: 1.1, rotateY: 180 }}
               transition={{ duration: 0.8 }}
-            />
+            >
+              <GovlyxLogo size={112} />
+            </motion.div>
           </motion.div>
           <p className="mt-2 text-center text-[10px] font-black tracking-[0.4em] opacity-40 uppercase notranslate">
             Govlyx

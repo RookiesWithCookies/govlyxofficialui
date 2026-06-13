@@ -289,6 +289,7 @@ function ZoomViewer({
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const modalVideoRef = useRef<HTMLVideoElement>(null);
 
   const isVideo = (url: string) => /\.(mp4|webm|ogg|mov|avi|mkv)$/i.test(url);
 
@@ -435,13 +436,32 @@ function ZoomViewer({
               className="flex items-center justify-center w-full h-full"
             >
               {isVideo(current) ? (
-                <video
-                  src={current}
-                  controls
-                  autoPlay
-                  className="max-h-[80vh] max-w-[90vw] rounded-xl shadow-2xl"
-                  style={{ pointerEvents: zoom > 1 ? "none" : "auto" }}
-                />
+                <div className="relative max-h-[80vh] max-w-[90vw] rounded-xl overflow-hidden shadow-2xl flex items-center justify-center">
+                  <video
+                    ref={modalVideoRef}
+                    src={current}
+                    controls
+                    autoPlay
+                    className="max-h-[80vh] max-w-[90vw]"
+                    style={{ pointerEvents: zoom > 1 ? "none" : "auto" }}
+                  />
+                  {zoom <= 1 && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const video = modalVideoRef.current;
+                        if (video) {
+                          if (video.paused) {
+                            video.play();
+                          } else {
+                            video.pause();
+                          }
+                        }
+                      }}
+                      className="absolute inset-x-0 top-0 bottom-[55px] cursor-pointer z-10"
+                    />
+                  )}
+                </div>
               ) : (
                 <img
                   src={current}

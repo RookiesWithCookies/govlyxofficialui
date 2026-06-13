@@ -193,7 +193,7 @@ const Navbar = () => {
             </button>
 
             <NavLink to="/profile" className="avatar placeholder">
-              <div className="w-8 rounded-full overflow-hidden bg-base-200 border border-base-300">
+              <div className="w-8 rounded-full overflow-hidden bg-base-200 border-2 border-red-500 dark:border-red-400">
                 <img src={resolveMediaUrl(user?.profileImage, "social-posts") || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(username)}`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
             </NavLink>

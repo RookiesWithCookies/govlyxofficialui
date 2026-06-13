@@ -343,14 +343,13 @@ export default function ImageEditorModal({
                 Drag to align photo • Tap stickers to modify
               </p>
             </div>
-
-            {/* Mode Selector Tabs */}
+             {/* Mode Selector Tabs */}
             <div className="flex border-b border-base-300">
               <button
                 onClick={() => setActiveTab("crop")}
                 className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all ${
                   activeTab === "crop"
-                    ? "border-primary text-primary bg-primary/5"
+                    ? "border-red-500 text-red-500 dark:border-red-400 dark:text-red-400 bg-red-500/5 dark:bg-red-400/5"
                     : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/50"
                 }`}
               >
@@ -360,7 +359,7 @@ export default function ImageEditorModal({
                 onClick={() => setActiveTab("filter")}
                 className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all ${
                   activeTab === "filter"
-                    ? "border-primary text-primary bg-primary/5"
+                    ? "border-red-500 text-red-500 dark:border-red-400 dark:text-red-400 bg-red-500/5 dark:bg-red-400/5"
                     : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/50"
                 }`}
               >
@@ -370,7 +369,7 @@ export default function ImageEditorModal({
                 onClick={() => setActiveTab("stickers")}
                 className={`flex-1 py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all ${
                   activeTab === "stickers"
-                    ? "border-primary text-primary bg-primary/5"
+                    ? "border-red-500 text-red-500 dark:border-red-400 dark:text-red-400 bg-red-500/5 dark:bg-red-400/5"
                     : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/50"
                 }`}
               >

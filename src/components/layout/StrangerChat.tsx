@@ -9,6 +9,8 @@ import { sendMedia } from "../../api/chatApi.service";
 import { API_BASE_URL } from "../../api/axiosConfig";
 import type { ChatMessageDto, ChatStatus, MessageType } from "../../types/Chat.types";
 import { OPENMOJI_STICKERS } from "../../utils/stickers";
+import { useCurrentUser } from "../../hooks/useUser";
+
 
 // ── Icons & Config ──────────────────────────────────────────────────────────
 
@@ -478,10 +480,56 @@ function PrivateMediaViewer({
   );
 }
 
+function WatermarkOverlay({ username }: { username: string }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-20 opacity-[0.03] dark:opacity-[0.02]">
+      <div 
+        className="w-[150%] h-[150%] -left-[25%] -top-[25%] absolute flex flex-col justify-around rotate-[-25deg]"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '40px',
+        }}
+      >
+        {Array.from({ length: 15 }).map((_, i) => {
+          const isEven = i % 2 === 0;
+          return (
+            <div 
+              key={i} 
+              className="whitespace-nowrap font-black uppercase text-[14px] tracking-[0.2em] flex gap-20"
+              style={{
+                animation: `watermark-scroll-${isEven ? 'left' : 'right'} ${30 + (i % 5) * 5}s linear infinite`,
+                transform: `translateX(${isEven ? '0' : '-30'}%)`,
+              }}
+            >
+              {Array.from({ length: 10 }).map((_, j) => (
+                <span key={j}>{username}</span>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      <style>{`
+        @keyframes watermark-scroll-left {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes watermark-scroll-right {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function StrangerChat({ onClose, standalone }: { onClose?: () => void; standalone?: boolean }) {
+  const { data: currentUser } = useCurrentUser();
+  const usernameWatermark = currentUser?.actualUsername || currentUser?.username || "Govlyx User";
   const chat = useChat();
+
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -677,6 +725,9 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#1D4ED8]/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 blur-[120px] pointer-events-none" />
 
+      {chat.status === "CONNECTED" && <WatermarkOverlay username={usernameWatermark} />}
+
+
       {/* ── Header Area (Persistent & Sticky) ── */}
       {!standalone && (
         <div className="shrink-0 z-20 pt-[env(safe-area-inset-top,0px)]">
@@ -779,7 +830,7 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
                 <div className="flex items-end gap-2 w-full px-1 md:px-0">
                   {/* WhatsApp style chat bar */}
                   <div className="flex-1 min-w-0 flex items-end bg-base-100 rounded-2xl min-h-[38px] shadow-sm border border-base-content/10 px-0.5 py-0.5 relative">
-                    <button onClick={() => { setShowStickerMenu(!showStickerMenu); setShowAttachMenu(false); }} className={`btn btn-ghost btn-circle btn-xs shrink-0 mb-[1px] ml-0.5 transition-colors ${showStickerMenu ? "text-[#1D4ED8]" : "text-base-content/50 hover:text-base-content"}`}>
+                    <button onClick={() => { setShowStickerMenu(!showStickerMenu); setShowAttachMenu(false); }} className={`btn btn-ghost btn-circle btn-xs shrink-0 mb-[1px] ml-0.5 transition-colors ${showStickerMenu ? "text-red-500 dark:text-red-400" : "text-base-content/50 hover:text-base-content"}`}>
                       <FiSmile size={18} />
                     </button>
 
@@ -809,22 +860,26 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
                     />
 
                     <div className="relative group/attach flex items-end shrink-0 mb-[1px] right-0.5">
-                      <button onClick={() => { setShowAttachMenu(!showAttachMenu); setShowStickerMenu(false); }} className={`btn btn-ghost btn-circle btn-xs transition-transform duration-300 ${showAttachMenu ? "rotate-45 text-[#1D4ED8]" : "text-base-content/50 hover:text-base-content"}`}>
+                      <button onClick={() => { setShowAttachMenu(!showAttachMenu); setShowStickerMenu(false); }} className={`btn btn-ghost btn-circle btn-xs transition-transform duration-300 ${showAttachMenu ? "rotate-45 text-red-500 dark:text-red-400" : "text-base-content/50 hover:text-base-content"}`}>
                         <Plus size={18} />
                       </button>
                       <AnimatePresence>
-                        {showAttachMenu && (
-                          <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="absolute bottom-full right-0 mb-4 flex flex-col gap-1 min-w-[200px] p-2 rounded-2xl bg-base-200 border border-base-content/10 shadow-2xl z-50 origin-bottom-right">
-                            <button onClick={() => handleFileSelect("IMAGE")} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-base-300 text-base-content transition-colors">
-                              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500"><ImageIcon size={18} /></div>
-                              <span className="text-sm font-semibold">Photo</span>
-                            </button>
-                            <button onClick={() => handleFileSelect("VIDEO")} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-base-300 text-base-content transition-colors">
-                              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500"><Video size={18} /></div>
-                              <span className="text-sm font-semibold">Video</span>
-                            </button>
-                          </motion.div>
-                        )}
+                         {showAttachMenu && (
+                           <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="absolute bottom-full right-0 mb-4 flex flex-col gap-1.5 min-w-[200px] p-2.5 rounded-2xl bg-base-200/95 backdrop-blur-xl border border-base-content/10 shadow-2xl z-50 origin-bottom-right">
+                             <button onClick={() => handleFileSelect("IMAGE")} className="group flex items-center gap-3.5 px-4 py-3 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left">
+                               <div className="p-2.5 rounded-xl bg-emerald-500/15 dark:bg-emerald-400/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 group-hover:bg-emerald-500/25 dark:group-hover:bg-emerald-400/35 transition-all duration-200">
+                                 <ImageIcon size={18} className="stroke-[2.5]" />
+                               </div>
+                               <span className="text-sm font-bold tracking-wide transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Photo</span>
+                             </button>
+                             <button onClick={() => handleFileSelect("VIDEO")} className="group flex items-center gap-3.5 px-4 py-3 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left">
+                               <div className="p-2.5 rounded-xl bg-rose-500/15 dark:bg-rose-400/20 text-rose-600 dark:text-rose-400 group-hover:scale-105 group-hover:bg-rose-500/25 dark:group-hover:bg-rose-400/35 transition-all duration-200">
+                                 <Video size={18} className="stroke-[2.5]" />
+                               </div>
+                               <span className="text-sm font-bold tracking-wide transition-colors group-hover:text-rose-600 dark:group-hover:text-rose-400">Video</span>
+                             </button>
+                           </motion.div>
+                         )}
                       </AnimatePresence>
                     </div>
                   </div>
@@ -1408,13 +1463,13 @@ function Bubble({
     
     if (msg.isWiped) {
       return (
-        <div className="relative w-64 h-16 rounded-2xl bg-base-300/40 border border-base-content/5 flex items-center gap-3 px-4 select-none pointer-events-none opacity-60">
-          <div className="w-8 h-8 rounded-full bg-base-content/5 flex items-center justify-center text-base-content/40">
-            <EyeOff size={14} />
+        <div className="relative w-48 sm:w-56 h-14 rounded-xl bg-base-300/40 border border-base-content/5 flex items-center gap-2.5 px-3 select-none pointer-events-none opacity-60">
+          <div className="w-7 h-7 rounded-full bg-base-content/5 flex items-center justify-center text-base-content/40 shrink-0">
+            <EyeOff size={12} />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-base-content/80">Private Media</span>
-            <span className="text-[9px] text-base-content/40 font-bold uppercase tracking-wider">Opened and vanished</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] font-bold text-base-content/85 leading-tight truncate">Private Media</span>
+            <span className="text-[8px] text-base-content/40 font-bold uppercase tracking-wider leading-none mt-0.5">Opened and vanished</span>
           </div>
         </div>
       );
@@ -1424,15 +1479,15 @@ function Bubble({
       return (
         <div 
           onClick={(e) => { e.stopPropagation(); onUnlockPrivateMedia(msg); }} 
-          className="relative w-64 aspect-video rounded-[20px] bg-[#1D4ED8]/10 backdrop-blur-3xl flex flex-col items-center justify-center gap-3 cursor-pointer group/vo border border-[#1D4ED8]/20 hover:bg-[#1D4ED8]/20 transition-all duration-300"
+          className="relative w-48 sm:w-56 py-4 px-3 rounded-[16px] bg-red-500/10 dark:bg-red-400/10 flex flex-col items-center justify-center gap-2 cursor-pointer group/vo border border-red-400/40 dark:border-red-400/30 hover:bg-red-500/15 dark:hover:bg-red-400/15 transition-all duration-300"
         >
-          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-[#1D4ED8] shadow-lg transition-transform group-hover/vo:scale-110">
-            <EyeOff size={24} />
+          <div className="w-10 h-10 rounded-full bg-red-400/10 dark:bg-red-400/20 flex items-center justify-center text-red-400 dark:text-red-400 shadow-sm transition-transform group-hover/vo:scale-110">
+            <EyeOff size={20} className="stroke-[2.5]" />
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-black text-[#1D4ED8] uppercase tracking-[0.3em]">Unlock Private Media</p>
+            <p className="text-[9px] sm:text-[10px] font-black text-red-400 dark:text-red-400 uppercase tracking-[0.2em] leading-tight">Unlock Private Media</p>
             {msg.viewTimer && (
-              <p className="text-[8px] text-[#1D4ED8]/60 font-bold uppercase tracking-widest mt-0.5">{msg.viewTimer}s self-destruct</p>
+              <p className="text-[7px] sm:text-[8px] text-red-400/70 dark:text-red-400/70 font-bold uppercase tracking-widest mt-0.5">{msg.viewTimer}s self-destruct</p>
             )}
           </div>
         </div>

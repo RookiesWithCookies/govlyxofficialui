@@ -251,7 +251,7 @@ const SidebarLeft = () => {
       <div className="rounded-xl bg-base-200 p-4">
         <div className="flex items-center gap-3">
           <div className="avatar placeholder">
-            <div className="w-10 rounded-full overflow-hidden bg-base-200 border border-base-300">
+            <div className="w-10 rounded-full overflow-hidden bg-base-200 border-2 border-red-500 dark:border-red-400">
               <img src={resolveMediaUrl(user?.profileImage, "social-posts") || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(displayName)}`} alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </div>
@@ -417,7 +417,7 @@ const SidebarLeft = () => {
                   <li>
                     <NavLink
                       to="/communities"
-                      className="block truncate rounded-lg px-3 py-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold hover:bg-base-300 transition duration-150"
+                      className="block truncate rounded-lg px-3 py-1.5 text-xs text-blue-600 font-semibold transition-all duration-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-400/10 hover:translate-x-1 hover:shadow-sm"
                     >
                       View More
                     </NavLink>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { useTheme } from "../hooks/useTheme";
 import { useLanguage, SUPPORTED_LANGUAGES, type LangCode } from "../context/LanguageContext";
+import GovlyxLogo from "../components/ui/GovlyxLogo";
 import { 
   ArrowRight, 
   ChevronDown, 
@@ -73,67 +74,6 @@ const isLoggedIn = (): boolean => {
   }
 };
 
-// ─── Logo Sub-component ──────────────────────────────────────────────────────
-interface LogoProps {
-  className?: string;
-  size?: number;
-  showText?: boolean;
-}
-
-const LandingLogo: React.FC<LogoProps> = ({ className = "", size = 36, showText = false }) => {
-  return (
-    <div className={`flex items-center gap-3 select-none ${className}`}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 512 540"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="transition-transform hover:scale-105 duration-300 shrink-0"
-      >
-        <path
-          fill="#1D4ED8"
-          d="M256 32L96 112v120c0 112 64 208 160 248c96-40 160-136 160-248V112L256 32z"
-        />
-        <g fill="#FFFFFF" transform="translate(0, -6)">
-          <path d="M256 150c-40 0-72 32-72 72v20h144v-20c0-40-32-72-72-72z"/>
-          <rect x="220" y="242" width="72" height="16"/>
-          <rect x="204" y="220" width="12" height="40"/>
-          <rect x="296" y="220" width="12" height="40"/>
-        </g>
-        <g fill="#FFFFFF" transform="translate(0, -6)">
-          <circle cx="170" cy="210" r="6"/>
-          <circle cx="196" cy="230" r="4"/>
-          <circle cx="342" cy="210" r="6"/>
-          <circle cx="318" cy="230" r="4"/>
-          <circle cx="256" cy="190" r="5"/>
-        </g>
-        <path fill="#FFFFFF" d="M150 300h212l-8 16H158z"/>
-        <g fill="#FFFFFF">
-          <rect x="248" y="300" width="16" height="120"/>
-          <rect x="198" y="300" width="16" height="80"/>
-          <rect x="298" y="300" width="16" height="80"/>
-        </g>
-        <g fill="#FFFFFF">
-          <circle cx="256" cy="440" r="18"/>
-          <circle cx="206" cy="380" r="20"/>
-          <circle cx="306" cy="380" r="20"/>
-        </g>
-        <g>
-          <rect x="252" y="118" width="8" height="32" fill="#FFFFFF"/>
-          <path d="M260 118h45v22l-45-8z" fill="#FFFFFF"/>
-          <path d="M260 118l35 16l-35-6z" fill="#FFFFFF" opacity="0.4"/>
-        </g>
-      </svg>
-      {showText && (
-        <span className="font-bold text-xl sm:text-2xl tracking-tight text-slate-900 dark:text-white transition-colors duration-300 notranslate">
-          Govlyx
-        </span>
-      )}
-    </div>
-  );
-};
-
 // ─── Destinations Config ─────────────────────────────────────────────────────
 const DESTINATIONS = [
   { name: "Main Platform (govlyx.com)", url: "https://govlyx.com" },
@@ -149,14 +89,6 @@ export default function LandingPage() {
   const [destinationOpen, setDestinationOpen] = useState(false);
 
   const letters = React.useMemo(() => Array.from("Neighbourhood & Govt"), []);
-  const scatterOffsets = React.useMemo(() => {
-    return letters.map(() => ({
-      x: (Math.random() - 0.5) * 80, // random offset x between -40 and 40
-      y: (Math.random() - 0.5) * 80, // random offset y between -40 and 40
-      rotate: (Math.random() - 0.5) * 120, // random rotation
-      scale: 0.6 + Math.random() * 0.8, // scale between 0.6 and 1.4
-    }));
-  }, [letters]);
   const [titleHovered, setTitleHovered] = useState(false);
 
   // ─── Interactive Phone Mockup Post States ──────────────────────────────────
@@ -265,22 +197,22 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 z-[100] bg-base-100/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 h-[72px] transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <a href="#" className="flex items-center">
-            <LandingLogo showText size={34} />
+            <GovlyxLogo showText size={44} markScale={0.9} textClassName="text-2xl sm:text-3xl" />
           </a>
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
-            <button onClick={() => navigate("/upcoming-updates")} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Updates</button>
+            <a href="#features" className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
+            <button onClick={() => navigate("/upcoming-updates")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Updates</button>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Language Dropdown */}
-            <div className="dropdown dropdown-end notranslate">
+            <div className="dropdown dropdown-end notranslate hidden md:block">
               <div tabIndex={0} role="button" className="flex items-center gap-1.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer">
-                <Globe className="w-5 h-5" />
-                <span className="text-xs uppercase font-black tracking-wider hidden sm:inline">{language}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                <Globe className="w-6 h-6" />
+                <span className="text-sm uppercase font-black tracking-wider hidden sm:inline">{language}</span>
+                <ChevronDown className="w-4 h-4 opacity-60" />
               </div>
               <ul tabIndex={0} className="dropdown-content menu p-1.5 shadow-2xl bg-base-100 border border-base-300 rounded-2xl w-44 z-[120] mt-1 gap-0.5 max-h-60 overflow-y-auto flex-nowrap">
                 {SUPPORTED_LANGUAGES.map((l) => (
@@ -303,27 +235,57 @@ export default function LandingPage() {
 
             <button 
               onClick={toggleTheme} 
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60"
+              className="hidden md:inline-flex text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60"
               aria-label="Toggle Theme"
             >
-              {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              {theme === "light" ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
             </button>
             
             <button 
               onClick={handleEnterPlatform}
-              className="bg-[#1D4ED8] hover:bg-[#1e40af] dark:bg-[#1D4ED8] dark:hover:bg-[#1e40af] text-white font-semibold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg shadow-md shadow-[#1D4ED8]/10 transition-all cursor-pointer"
+              className="liquid-button text-white font-semibold text-sm sm:text-base px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg transition-all cursor-pointer"
             >
-              Enter
+              <span className="description">Enter</span>
+              <span className="ocean" aria-hidden="true">
+                <svg viewBox="0 0 320 64" preserveAspectRatio="none">
+                  <path d="M0 46C26 10 58 12 82 43C111 80 147 -1 180 26C212 52 216 60 251 42C279 28 294 8 320 24" />
+                </svg>
+              </span>
             </button>
 
             {/* Mobile Menu Toggle */}
-            <button 
+            <motion.button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              whileTap={{ scale: 0.9, rotate: isMobileMenuOpen ? -12 : 12 }}
               className="md:hidden text-slate-500 dark:text-slate-400 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60"
               aria-label="Toggle Menu"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              <AnimatePresence mode="wait" initial={false}>
+                {isMobileMenuOpen ? (
+                  <motion.span
+                    key="close"
+                    initial={{ opacity: 0, rotate: -90, scale: 0.75 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 90, scale: 0.75 }}
+                    transition={{ duration: 0.18 }}
+                    className="block"
+                  >
+                    <X className="w-7 h-7" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="menu"
+                    initial={{ opacity: 0, rotate: 90, scale: 0.75 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: -90, scale: 0.75 }}
+                    transition={{ duration: 0.18 }}
+                    className="block"
+                  >
+                    <Menu className="w-7 h-7" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           </div>
         </div>
       </nav>
@@ -432,36 +394,43 @@ export default function LandingPage() {
               <span
                 onMouseEnter={() => setTitleHovered(true)}
                 onMouseLeave={() => setTitleHovered(false)}
-                className="inline-flex flex-wrap cursor-default select-none text-[#ff5f5f]"
+                className="relative inline-flex flex-wrap cursor-default select-none text-[#ff5f5f] pb-1"
               >
                 {letters.map((char, idx) => (
                   <motion.span
                     key={idx}
                     animate={titleHovered ? {
-                      x: scatterOffsets[idx].x,
-                      y: scatterOffsets[idx].y,
-                      rotate: scatterOffsets[idx].rotate,
-                      scale: scatterOffsets[idx].scale,
+                      y: idx % 2 === 0 ? -6 : -3,
+                      color: "#1D4ED8",
+                      textShadow: "0 12px 24px rgba(29, 78, 216, 0.28)",
                     } : {
-                      x: 0,
                       y: 0,
-                      rotate: 0,
-                      scale: 1,
+                      color: "#ff5f5f",
+                      textShadow: "0 0 0 rgba(29, 78, 216, 0)",
                     }}
                     transition={{
                       type: "spring",
-                      stiffness: 150,
-                      damping: 15,
+                      stiffness: 420,
+                      damping: 24,
+                      mass: 0.55,
+                      delay: titleHovered ? idx * 0.018 : (letters.length - idx) * 0.006,
                     }}
                     style={{
                       display: "inline-block",
                       whiteSpace: char === " " ? "pre" : "normal"
                     }}
-                    className={`transition-colors duration-300 ${titleHovered ? "text-[#1D4EED] dark:text-[#1D4EED] drop-shadow-[0_0_8px_rgba(29,78,237,0.6)]" : "text-[#ff5f5f]"}`}
+                    className="will-change-transform"
                   >
                     {char}
                   </motion.span>
                 ))}
+                <motion.span
+                  aria-hidden="true"
+                  initial={false}
+                  animate={titleHovered ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute bottom-0 left-0 h-1 w-full origin-left rounded-full bg-[#1D4ED8]"
+                />
               </span>
             </h1>
             
@@ -527,12 +496,60 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </div>
+
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-3 notranslate">
+                  <div className="dropdown dropdown-top w-full">
+                    <div tabIndex={0} role="button" className="w-full bg-base-200 border border-base-300 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Globe className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                        <span className="truncate">
+                          {SUPPORTED_LANGUAGES.find(l => l.code === language)?.nativeLabel || language}
+                        </span>
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                    </div>
+                    <ul tabIndex={0} className="dropdown-content menu left-0 p-1.5 shadow-2xl bg-base-100 border border-base-300 rounded-2xl w-full z-[120] mb-1.5 gap-0.5 max-h-44 overflow-y-auto flex-nowrap">
+                      {SUPPORTED_LANGUAGES.map((l) => (
+                        <li key={l.code}>
+                          <button
+                            onClick={() => setLanguage(l.code as LangCode)}
+                            className={`flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl ${
+                              language === l.code
+                                ? "bg-[#1D4ED8] text-white"
+                                : "hover:bg-base-200 text-base-content/85"
+                            }`}
+                          >
+                            <span>{l.nativeLabel}</span>
+                            {language === l.code && <Check className="w-3.5 h-3.5" />}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="bg-base-200 border border-base-300 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    aria-label="Toggle Theme"
+                  >
+                    {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+                    <span>{theme === "light" ? "Dark" : "Light"}</span>
+                  </button>
+                </div>
  
                 <button 
                   onClick={handleEnterPlatform}
-                  className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm shadow-md shadow-[#1D4ED8]/20 transition-all flex justify-center items-center gap-1.5 cursor-pointer"
+                  className="liquid-button w-full text-white font-semibold rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm transition-all cursor-pointer"
                 >
-                  Enter Platform <ArrowRight className="w-4 h-4" />
+                  <span className="description flex justify-center items-center gap-1.5">
+                    Enter Platform <ArrowRight className="w-4 h-4" />
+                  </span>
+                  <span className="ocean" aria-hidden="true">
+                    <svg viewBox="0 0 320 64" preserveAspectRatio="none">
+                      <path d="M0 46C26 10 58 12 82 43C111 80 147 -1 180 26C212 52 216 60 251 42C279 28 294 8 320 24" />
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
@@ -562,7 +579,7 @@ export default function LandingPage() {
               <div className="bg-white dark:bg-[#121829] px-4 pt-3.5 pb-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 z-10 shrink-0 transition-colors">
                 <div className="flex items-center gap-2">
                   <Menu className="w-4.5 h-4.5 text-slate-700 dark:text-slate-300" />
-                  <LandingLogo size={24} />
+                  <GovlyxLogo size={24} />
                 </div>
                 <div className="flex items-center gap-3">
                   <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -1290,7 +1307,7 @@ export default function LandingPage() {
       <footer className="bg-base-100 border-t border-base-300 py-10 sm:py-12 px-4 sm:px-6 transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
           
-          <LandingLogo showText size={26} />
+          <GovlyxLogo showText size={38} textClassName="text-2xl sm:text-2xl" />
           
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-500 dark:text-slate-400 font-semibold">
             <a href="#features" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
