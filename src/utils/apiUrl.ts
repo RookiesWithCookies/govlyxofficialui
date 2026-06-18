@@ -19,7 +19,7 @@
 
 const FALLBACK_URL = "";
 const rawUrl = import.meta.env.VITE_API_URL || FALLBACK_URL;
-const BASE = (rawUrl.includes("jan-sahayak-ai-2.onrender.com") && !import.meta.env.DEV)
+const BASE = ((rawUrl.includes("jan-sahayak-ai-2.onrender.com") || rawUrl.includes("jan-sahayak-ai-84vh.onrender.com")) && !import.meta.env.DEV)
   ? ""
   : rawUrl.replace(/\/$/, "");
 
