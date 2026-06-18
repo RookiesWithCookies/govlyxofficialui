@@ -218,6 +218,7 @@ const SidebarLeft = () => {
         { label: "Official Broadcasts", icon: Megaphone, to: "/department/dashboard?tab=broadcasts" },
         { label: "Analytics", icon: BarChart2, to: "/department/dashboard?tab=analytics" },
         { label: "Notifications", icon: Bell, to: "/notifications" },
+        { label: "Profile", icon: User, to: "/profile" },
         { label: "Settings", icon: Settings, to: "/settings" }
       ]
     : isAdmin

@@ -46,5 +46,22 @@ export const communityService = {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
+  },
+
+  getChatMessages: async (id: number, cursor?: string | null, limit: number = 20) => {
+    const response = await axiosInstance.get(`/api/communities/${id}/chat/messages`, {
+      params: { cursor, limit },
+    });
+    return response.data;
+  },
+
+  updateChatSettings: async (id: number, settings: { isGroupChatEnabled: boolean; chatRetentionDays: number }) => {
+    const response = await axiosInstance.put(`/api/communities/${id}/chat/settings`, settings);
+    return response.data;
+  },
+
+  reportChatMessage: async (id: number, messageId: string, payload: { category: string; description: string }) => {
+    const response = await axiosInstance.post(`/api/communities/${id}/chat/messages/${messageId}/report`, payload);
+    return response.data;
   }
 };

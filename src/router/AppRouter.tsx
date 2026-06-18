@@ -69,6 +69,8 @@ const useTokenExpiryWatcher = () => {
     // Disable expiry checking if already on public routes
     if (
       location.pathname === "/" ||
+      location.pathname === "/upcoming-updates" ||
+      location.pathname === "/docs" ||
       location.pathname === "/login" ||
       location.pathname === "/register" ||
       location.pathname === "/verify-email" ||

@@ -17,6 +17,8 @@ import {
 import CommunityCard from "../components/community/CommunityCard";
 import CommunityHeader from "../components/community/CommunityHeader";
 import CommunityTabs from "../components/community/CommunityTabs";
+import CommunityChat from "../components/community/CommunityChat";
+import { communityChatSocket } from "../api/communityChatSocket.service";
 import CommunitySidebar from "../components/community/CommunitySidebar";
 import CreatePost from "../components/ui/CreatePost";
 import PostCard from "../components/post/PostCard";
@@ -2130,7 +2132,7 @@ function DetailPanel({
 
   const [c, setC] = useState(() => normalise(community));
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [tab, setTab] = useState<"posts" | "about">("posts");
+  const [tab, setTab] = useState<"posts" | "chat" | "about">("posts");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
@@ -2154,6 +2156,33 @@ function DetailPanel({
     } catch { return null; }
   })();
 
+  const sharePostToChat = async (postId: number, postContent: string) => {
+    if (!c.isMember) {
+      showToast.error("You must be a member to share to chat");
+      return;
+    }
+    const sendPayload = () => {
+      communityChatSocket.sendMessage(c.id, {
+        content: `Shared a post: "${postContent.substring(0, 60)}${postContent.length > 60 ? "..." : ""}"`,
+        sharedPostId: postId
+      });
+      showToast.success("Post shared to community chat!");
+    };
+
+    if (communityChatSocket.isConnected) {
+      sendPayload();
+    } else {
+      communityChatSocket.connect({
+        onMessage: () => {},
+        onTyping: () => {},
+        onError: () => {},
+        onConnected: () => {
+          sendPayload();
+        }
+      });
+      communityChatSocket.joinCommunity(c.id);
+    }
+  };
 
   useEffect(() => { setC(normalise(community)); }, [community]);
 
@@ -2410,12 +2439,24 @@ function DetailPanel({
                       });
 
                       return (
-                        <PostCard
-                          key={post.id}
-                          post={cardPost}
-                          currentUser={currentUser || undefined}
-                          hideCommunityStrip={true}
-                        />
+                        <div key={post.id} className="flex flex-col">
+                          <PostCard
+                            post={cardPost}
+                            currentUser={currentUser || undefined}
+                            hideCommunityStrip={true}
+                          />
+                          {(c.isMember || c.isOwner) && (
+                            <div className="flex justify-end px-2 -mt-2 mb-3">
+                              <button
+                                onClick={() => sharePostToChat(post.id, post.content)}
+                                className="btn btn-ghost btn-xs text-xs font-semibold text-[#1D4ED8] hover:bg-blue-50/50 flex items-center gap-1.5"
+                              >
+                                <MessageSquare size={12} />
+                                <span>Share to Chat</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
 
@@ -2425,6 +2466,17 @@ function DetailPanel({
                   </>
                 )}
               </div>
+            )}
+
+            {tab === "chat" && (
+              c.isMember || c.isOwner ? (
+                <CommunityChat communityId={c.id} isAdmin={c.isOwner || false} />
+              ) : (
+                <div className="text-center py-12 bg-base-200 rounded-2xl border border-base-300 opacity-50 space-y-2">
+                  <div className="flex justify-center mb-2"><Lock size={40} /></div>
+                  <p className="text-sm text-base-content">Join this community to view and participate in the group chat.</p>
+                </div>
+              )
             )}
 
             {tab === "about" && (

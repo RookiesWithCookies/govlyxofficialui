@@ -24,6 +24,7 @@ import type { AnyPost, CurrentUser } from "../components/post/PostCard";
 import { useCurrentUser } from "../hooks/useUser";
 import { toPostCardPost, resolveMediaUrl } from "../utils/postUtils";
 import { apiUrl } from "../utils/apiUrl";
+import { getUserRole } from "../utils/auth";
 
 // ─── auth helpers ─────────────────────────────────────────────────────────────
 function authHeaders(): HeadersInit {
@@ -275,6 +276,7 @@ const Profile = () => {
   const [loadingActivity, setLoadingActivity] = useState(false);
 
   const { data: user } = useCurrentUser();
+  const isDept = getUserRole() === "ROLE_DEPARTMENT";
 
   const updatePostState = useCallback((postId: number, variant: string, updater: Partial<AnyPost> | ((p: AnyPost) => Partial<AnyPost>)) => {
     const updateListItem = (prev: AnyPost[]) =>
@@ -356,20 +358,32 @@ const Profile = () => {
   useEffect(() => {
     if (!user?.id) return;
 
+    const isDeptUser = getUserRole() === "ROLE_DEPARTMENT";
+
     setLoadingPosts(true);
     apiFetch("/api/posts/my-posts?limit=500")
       .then((b) => {
-        const posts: AnyPost[] = (b?.data?.data ?? []).map(mapIssuePost);
+        const posts: AnyPost[] = (b?.data?.data ?? []).map((p: any) =>
+          isDeptUser
+            ? toPostCardPost({ ...p, variant: "government", isGovernmentBroadcast: true })
+            : mapIssuePost(p)
+        );
         setAllPosts(posts);
         setIssueCount(posts.length);
       })
       .catch((err) => {
-        console.error("Failed to fetch user issue posts:", err);
+        console.error("Failed to fetch user posts:", err);
         setIssueCount(0);
       })
       .finally(() => {
         setLoadingPosts(false);
       });
+
+    if (isDeptUser) {
+      setSocialCount(0);
+      setCommunityCount(0);
+      return;
+    }
 
     apiFetch("/api/social-posts/my-posts?limit=500")
       .then((b) => {
@@ -711,54 +725,36 @@ const Profile = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <StatCard value={allCountsLoaded ? issueCount : "..."} label="Issues" />
-        <StatCard value={allCountsLoaded ? socialCount : "..."} label="S-Posts" />
-        <StatCard value={allCountsLoaded ? communityCount : "..."} label="Groups" />
-      </div>
+      {!isDept && (
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <StatCard value={allCountsLoaded ? issueCount : "..."} label="Issues" />
+          <StatCard value={allCountsLoaded ? socialCount : "..."} label="S-Posts" />
+          <StatCard value={allCountsLoaded ? communityCount : "..."} label="Groups" />
+        </div>
+      )}
 
-      {/* Tabs */}
-      <ProfileTabs 
-        active={tab} 
-        onChange={setTab} 
-        issueCount={allCountsLoaded ? issueCount : null} 
-        socialCount={allCountsLoaded ? socialCount : null} 
-      />
-
-      {/* Issues tab */}
-      {tab === "posts" && (
+      {isDept ? (
         <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {(["all", "active", "resolved"] as PostFilter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setPostFilter(f)}
-                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition ${postFilter === f
-                    ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
-                    : "border-base-300 hover:border-blue-400"
-                  }`}
-              >
-                {f === "all" && <List size={11} />}
-                {f === "active" && <Clock size={11} />}
-                {f === "resolved" && <CheckCircle size={11} />}
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 border-b border-base-300 pb-2">
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-base-content/85">Broadcasts</h2>
+            <span className="bg-[#1D4ED8]/10 text-[#1D4ED8] border border-[#1D4ED8]/25 text-xs font-black rounded-full px-2.5 py-0.5">
+              {issueCount !== null ? issueCount : "..."}
+            </span>
           </div>
 
-          {(loadingPosts || loadingFilteredPosts) ? (
+          {loadingPosts ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <PostSkeleton key={`sk-issues-${i}`} />
+                <PostSkeleton key={`sk-broadcasts-${i}`} />
               ))}
             </div>
-          ) : displayedPosts.length === 0 ? (
+          ) : allPosts.length === 0 ? (
             <EmptyState
-              title="No issues yet"
-              description="Issue posts you create will appear here."
+              title="No broadcasts yet"
+              description="Official broadcasts you publish will appear here."
             />
           ) : (
-            displayedPosts.map((p) => (
+            allPosts.map((p) => (
               <PostCard 
                 key={p.id} 
                 post={p} 
@@ -772,96 +768,155 @@ const Profile = () => {
             ))
           )}
         </div>
-      )}
+      ) : (
+        <>
+          {/* Tabs */}
+          <ProfileTabs 
+            active={tab} 
+            onChange={setTab} 
+            issueCount={allCountsLoaded ? issueCount : null} 
+            socialCount={allCountsLoaded ? socialCount : null} 
+          />
 
-      {/* Social Posts tab */}
-      {tab === "social" && (
-        <div className="space-y-4">
-          {loadingSocial ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <PostSkeleton key={`sk-social-${i}`} />
-              ))}
+          {/* Issues tab */}
+          {tab === "posts" && (
+            <div className="space-y-3">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {(["all", "active", "resolved"] as PostFilter[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setPostFilter(f)}
+                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition ${postFilter === f
+                        ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                        : "border-base-300 hover:border-blue-400"
+                      }`}
+                  >
+                    {f === "all" && <List size={11} />}
+                    {f === "active" && <Clock size={11} />}
+                    {f === "resolved" && <CheckCircle size={11} />}
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {(loadingPosts || loadingFilteredPosts) ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <PostSkeleton key={`sk-issues-${i}`} />
+                  ))}
+                </div>
+              ) : displayedPosts.length === 0 ? (
+                <EmptyState
+                  title="No issues yet"
+                  description="Issue posts you create will appear here."
+                />
+              ) : (
+                displayedPosts.map((p) => (
+                  <PostCard 
+                    key={p.id} 
+                    post={p} 
+                    currentUser={currentUser} 
+                    onDelete={(id) => handleDelete('posts', id)} 
+                    onResolve={handleResolve}
+                    onLike={(id, liked) => handleLike(id, p.variant, liked)}
+                    onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
+                    onSave={(id, saved) => handleSave(id, p.variant, saved)}
+                  />
+                ))
+              )}
             </div>
-          ) : socialPosts.length === 0 ? (
-            <EmptyState
-              title="No social posts yet"
-              description="Social posts you publish will appear here."
-            />
-          ) : (
-            socialPosts.map((p) => (
-              <PostCard 
-                key={p.id} 
-                post={p} 
-                currentUser={currentUser} 
-                onDelete={(id) => handleDelete('social-posts', id)} 
-                onLike={(id, liked) => handleLike(id, p.variant, liked)}
-                onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
-                onSave={(id, saved) => handleSave(id, p.variant, saved)}
-              />
-            ))
           )}
-        </div>
-      )}
 
-      {/* Activity tab — saved posts rendered as PostCards */}
-      {tab === "activity" && (
-        <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {(["all", "liked", "saved", "commented"] as ActivityFilter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setActivityFilter(f)}
-                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition ${activityFilter === f
-                    ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
-                    : "border-base-300 hover:border-blue-400"
-                  }`}
-              >
-                {f === "all" && <Clock size={11} />}
-                {f === "liked" && <Heart size={11} />}
-                {f === "saved" && <Bookmark size={11} />}
-                {f === "commented" && <MessageSquare size={11} />}
-                {f === "liked" ? "Like/Dislike" : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {loadingActivity ? (
+          {/* Social Posts tab */}
+          {tab === "social" && (
             <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <PostSkeleton key={`sk-activity-${i}`} />
-              ))}
+              {loadingSocial ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <PostSkeleton key={`sk-social-${i}`} />
+                  ))}
+                </div>
+              ) : socialPosts.length === 0 ? (
+                <EmptyState
+                  title="No social posts yet"
+                  description="Social posts you publish will appear here."
+                />
+              ) : (
+                socialPosts.map((p) => (
+                  <PostCard 
+                    key={p.id} 
+                    post={p} 
+                    currentUser={currentUser} 
+                    onDelete={(id) => handleDelete('social-posts', id)} 
+                    onLike={(id, liked) => handleLike(id, p.variant, liked)}
+                    onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
+                    onSave={(id, saved) => handleSave(id, p.variant, saved)}
+                  />
+                ))
+              )}
             </div>
-          ) : displayedActivity.length === 0 ? (
-            <EmptyState
-              title={
-                activityFilter === "all" ? "No activity yet" :
-                activityFilter === "liked" ? "No liked/disliked posts yet" :
-                activityFilter === "saved" ? "No saved posts yet" :
-                "No commented posts yet"
-              }
-              description={
-                activityFilter === "all" ? "Posts you interact with will appear here." :
-                activityFilter === "liked" ? "Posts you like or dislike will appear here." :
-                activityFilter === "saved" ? "Posts you save will appear here." :
-                "Posts you comment on will appear here."
-              }
-            />
-          ) : (
-            displayedActivity.map((post: AnyPost) => (
-              <PostCard
-                key={`${post.id}-${post.variant}`}
-                post={post}
-                currentUser={currentUser}
-                hideDelete={true}
-                onResolve={handleResolve}
-                onLike={(id, liked) => handleLike(id, post.variant, liked)}
-                onDislike={(id, disliked) => handleDislike(id, post.variant, disliked)}
-                onSave={(id, saved) => handleSave(id, post.variant, saved)}
-              />
-            ))
           )}
-        </div>
+
+          {/* Activity tab — saved posts rendered as PostCards */}
+          {tab === "activity" && (
+            <div className="space-y-3">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {(["all", "liked", "saved", "commented"] as ActivityFilter[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setActivityFilter(f)}
+                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition ${activityFilter === f
+                        ? "bg-[#1D4ED8] text-white border-[#1D4ED8]"
+                        : "border-base-300 hover:border-blue-400"
+                      }`}
+                  >
+                    {f === "all" && <Clock size={11} />}
+                    {f === "liked" && <Heart size={11} />}
+                    {f === "saved" && <Bookmark size={11} />}
+                    {f === "commented" && <MessageSquare size={11} />}
+                    {f === "liked" ? "Like/Dislike" : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {loadingActivity ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <PostSkeleton key={`sk-activity-${i}`} />
+                  ))}
+                </div>
+              ) : displayedActivity.length === 0 ? (
+                <EmptyState
+                  title={
+                    activityFilter === "all" ? "No activity yet" :
+                    activityFilter === "liked" ? "No liked/disliked posts yet" :
+                    activityFilter === "saved" ? "No saved posts yet" :
+                    "No commented posts yet"
+                  }
+                  description={
+                    activityFilter === "all" ? "Posts you interact with will appear here." :
+                    activityFilter === "liked" ? "Posts you like or dislike will appear here." :
+                    activityFilter === "saved" ? "Posts you save will appear here." :
+                    "Posts you comment on will appear here."
+                  }
+                />
+              ) : (
+                displayedActivity.map((post: AnyPost) => (
+                  <PostCard
+                    key={`${post.id}-${post.variant}`}
+                    post={post}
+                    currentUser={currentUser}
+                    hideDelete={true}
+                    onResolve={handleResolve}
+                    onLike={(id, liked) => handleLike(id, post.variant, liked)}
+                    onDislike={(id, disliked) => handleDislike(id, post.variant, disliked)}
+                    onSave={(id, saved) => handleSave(id, post.variant, saved)}
+                  />
+                ))
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Profile Details Modal */}

@@ -29,10 +29,7 @@ const GovlyxLogo = ({
           xmlns="http://www.w3.org/2000/svg"
           className="transition-transform duration-300 hover:scale-105"
         >
-          <path
-            fill="#1D4ED8"
-            d="M256 32L96 112v120c0 112 64 208 160 248c96-40 160-136 160-248V112L256 32z"
-          />
+          <circle cx="256" cy="270" r="230" fill="#1D4ED8" />
           <g fill="#FFFFFF" transform="translate(0, -6)">
             <path d="M256 150c-40 0-72 32-72 72v20h144v-20c0-40-32-72-72-72z" />
             <rect x="220" y="242" width="72" height="16" />

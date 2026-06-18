@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Languages, Bot, MessageSquarePlus, Zap, Landmark, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Sparkles, Languages, Bot, MessageSquarePlus, Zap, Landmark, Sun, Moon, Image } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
+import GovlyxLogo from "../components/ui/GovlyxLogo";
 
 export default function UpcomingUpdates() {
   const navigate = useNavigate();
@@ -27,6 +28,12 @@ export default function UpcomingUpdates() {
       status: "In Development"
     },
     {
+      icon: <Image className="w-6 h-6 text-[#1D4ED8]" />,
+      title: "Media Uploads in Community Chats",
+      description: "Share images, videos, and documents directly within community chats to provide visual context and report issues with proof in real-time.",
+      status: "In Progress"
+    },
+    {
       icon: <Landmark className="w-6 h-6 text-[#1D4ED8]" />,
       title: "Official PG-Portal Sync",
       description: "Direct API pipelines to standard grievance management systems (CPGRAMS) to route highly-voted citizen issues directly to designated state officers.",
@@ -47,7 +54,7 @@ export default function UpcomingUpdates() {
         <div className="max-w-[1200px] mx-auto px-4 h-full flex items-center justify-between">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Landing Page
           </button>
@@ -86,7 +93,7 @@ export default function UpcomingUpdates() {
             {updates.map((item, index) => (
               <div 
                 key={index}
-                className="bg-white/80 dark:bg-[#121829]/60 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all flex gap-5 items-start"
+                className="bg-white/80 dark:bg-[#121829]/60 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all flex gap-5 items-start animate-fade-in"
               >
                 <div className="p-3 bg-[#1D4ED8]/10 dark:bg-[#60A5FA]/10 rounded-xl shrink-0">
                   {React.cloneElement(item.icon, { className: "w-6 h-6 text-[#1D4ED8] dark:text-[#60A5FA]" })}
@@ -116,51 +123,7 @@ export default function UpcomingUpdates() {
         {/* Footer */}
         <footer className="bg-base-100 border-t border-slate-200 dark:border-slate-800/80 py-10 sm:py-12 px-4 sm:px-6 transition-colors duration-300">
           <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-            <div className="flex items-center gap-3">
-              <svg
-                width={26}
-                height={26}
-                viewBox="0 0 512 540"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
-              >
-                <path
-                  fill="#1D4ED8"
-                  d="M256 32L96 112v120c0 112 64 208 160 248c96-40 160-136 160-248V112L256 32z"
-                />
-                <g fill="#FFFFFF" transform="translate(0, -6)">
-                  <path d="M256 150c-40 0-72 32-72 72v20h144v-20c0-40-32-72-72-72z"/>
-                  <rect x="220" y="242" width="72" height="16"/>
-                  <rect x="204" y="220" width="12" height="40"/>
-                  <rect x="296" y="220" width="12" height="40"/>
-                </g>
-                <g fill="#FFFFFF" transform="translate(0, -6)">
-                  <circle cx="170" cy="210" r="6"/>
-                  <circle cx="196" cy="230" r="4"/>
-                  <circle cx="342" cy="210" r="6"/>
-                  <circle cx="318" cy="230" r="4"/>
-                  <circle cx="256" cy="190" r="5"/>
-                </g>
-                <path fill="#FFFFFF" d="M150 300h212l-8 16H158z"/>
-                <g fill="#FFFFFF">
-                  <rect x="248" y="300" width="16" height="120"/>
-                  <rect x="198" y="300" width="16" height="80"/>
-                  <rect x="298" y="300" width="16" height="80"/>
-                </g>
-                <g fill="#FFFFFF">
-                  <circle cx="256" cy="440" r="18"/>
-                  <circle cx="206" cy="380" r="20"/>
-                  <circle cx="306" cy="380" r="20"/>
-                </g>
-                <g>
-                  <rect x="252" y="118" width="8" height="32" fill="#FFFFFF"/>
-                  <path d="M260 118h45v22l-45-8z" fill="#FFFFFF"/>
-                  <path d="M260 118l35 16l-35-6z" fill="#FFFFFF" opacity="0.4"/>
-                </g>
-              </svg>
-              <span className="font-extrabold text-slate-900 dark:text-white text-lg notranslate">Govlyx</span>
-            </div>
+            <GovlyxLogo showText size={26} textClassName="text-lg font-extrabold" />
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-500 dark:text-slate-400 font-semibold">
               <button onClick={() => navigate("/")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Home</button>
               <button onClick={() => navigate("/upcoming-updates")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold text-red-500 dark:text-red-400">Upcoming Updates</button>
