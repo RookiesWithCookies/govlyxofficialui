@@ -15,12 +15,10 @@ import {
   Settings,
   Clock,
   X,
-  PinOff,
   ChevronDown,
   ExternalLink,
   MessageSquare,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface CommunityChatProps {
   communityId: number;
@@ -96,10 +94,10 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
     isFetchingMore,
     hasMore,
     error,
-    setError,
     sendMessage,
     sendTyping,
     loadMoreMessages,
+    fetchInitialMessages,
   } = useCommunityChat(communityId, userProfile || null);
 
   const [inputText, setInputText] = useState("");
@@ -122,8 +120,8 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        if (communityService.getChatSettings) {
-          const res = await communityService.getChatSettings(communityId);
+        if ((communityService as any).getChatSettings) {
+          const res = await (communityService as any).getChatSettings(communityId);
           if (res?.data) {
             setChatSettings(res.data);
           }
@@ -221,7 +219,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
   // ── 5. Admin Settings Actions ──
   const handleSaveSettings = async () => {
     try {
-      await communityService.updateChatSettings(communityId, chatSettings);
+      await (communityService as any).updateChatSettings(communityId, chatSettings);
       showToast.success("Chat settings updated successfully");
       setIsSettingsOpen(false);
     } catch (err) {

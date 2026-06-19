@@ -196,7 +196,7 @@ export function useCommunityChat(communityId: number, currentUser: UserProfile |
     // Send payload
     communityChatSocket.sendMessage(communityId, {
       content,
-      replyToId,
+      replyToId: replyToId ? String(replyToId) : undefined,
       sharedPostId,
       clientSideId,
     });
@@ -223,5 +223,6 @@ export function useCommunityChat(communityId: number, currentUser: UserProfile |
     sendMessage,
     sendTyping,
     loadMoreMessages,
+    fetchInitialMessages,
   };
 }
