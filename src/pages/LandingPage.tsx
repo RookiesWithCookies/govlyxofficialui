@@ -73,7 +73,9 @@ const isLoggedIn = (): boolean => {
 // ─── Destinations Config ─────────────────────────────────────────────────────
 const DESTINATIONS = [
   { name: "Main Platform (govlyx.com)", url: "https://govlyx.com" },
-  { name: "Upcoming Updates", url: "/upcoming-updates" }
+  { name: "Upcoming Updates", url: "/upcoming-updates" },
+  { name: "Privacy Policy", url: "/privacy-policy" },
+  { name: "Review", url: "/review" }
 ];
 
 export default function LandingPage() {
@@ -200,6 +202,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
             <button onClick={() => navigate("/upcoming-updates")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Updates</button>
+            <button onClick={() => navigate("/review")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Review</button>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -311,6 +314,15 @@ export default function LandingPage() {
                 className="w-full text-left block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors bg-transparent border-none cursor-pointer"
               >
                 Updates
+              </button>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/review");
+                }}
+                className="w-full text-left block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors bg-transparent border-none cursor-pointer"
+              >
+                Review
               </button>
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
@@ -1206,7 +1218,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-500 dark:text-slate-400 font-semibold">
             <a href="#features" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
             <button onClick={() => navigate("/upcoming-updates")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Upcoming Updates</button>
-            <a href="#" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Privacy Policy</a>
+            <button onClick={() => navigate("/privacy-policy")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Privacy Policy</button>
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">

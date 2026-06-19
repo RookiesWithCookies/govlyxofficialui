@@ -27,6 +27,9 @@ import LandingPage from "../pages/LandingPage";
 import { AcceptInvitePage } from "../pages/Communities";
 import VerifyEmail from "../pages/VerifyEmail";
 import UpcomingUpdates from "../pages/UpcomingUpdates";
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+import ReviewPage from "../pages/ReviewPage";
+
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
 const PageWrapper = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -70,6 +73,8 @@ const useTokenExpiryWatcher = () => {
     if (
       location.pathname === "/" ||
       location.pathname === "/upcoming-updates" ||
+      location.pathname === "/privacy-policy" ||
+      location.pathname === "/review" ||
       location.pathname === "/docs" ||
       location.pathname === "/login" ||
       location.pathname === "/register" ||
@@ -145,6 +150,14 @@ const AppRouter = () => {
         <Route
           path="/upcoming-updates"
           element={<PageWrapper><UpcomingUpdates /></PageWrapper>}
+        />
+        <Route
+          path="/privacy-policy"
+          element={<PageWrapper><PrivacyPolicy /></PageWrapper>}
+        />
+        <Route
+          path="/review"
+          element={<PageWrapper><ReviewPage /></PageWrapper>}
         />
         <Route
           path="/docs"
