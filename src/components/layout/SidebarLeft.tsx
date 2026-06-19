@@ -418,7 +418,7 @@ const SidebarLeft = () => {
                   <li>
                     <NavLink
                       to="/communities"
-                      className="block truncate rounded-lg px-3 py-1.5 text-xs text-blue-600 font-semibold transition-all duration-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-400/10 hover:translate-x-1 hover:shadow-sm"
+                      className="block truncate rounded-lg px-3 py-1.5 text-xs text-blue-600 font-semibold transition-all duration-300 hover:text-red-500 dark:hover:text-red-400"
                     >
                       View More
                     </NavLink>

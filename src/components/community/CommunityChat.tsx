@@ -88,6 +88,7 @@ const ExpiryTimer = React.memo(({ expiresAt }: { expiresAt: string }) => {
 
 export default function CommunityChat({ communityId, isAdmin }: CommunityChatProps) {
   const { data: userProfile } = useCurrentUser();
+  const usernameWatermark = userProfile?.actualUsername || userProfile?.username || "Govlyx User";
   const {
     messages,
     typingUsers,
@@ -321,8 +322,9 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
       <div
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scroll-smooth"
+        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scroll-smooth relative"
       >
+        {userProfile && <WatermarkOverlay username={usernameWatermark} />}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full space-y-3">
             <span className="loading loading-spinner loading-md text-primary"></span>
@@ -733,6 +735,55 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function WatermarkOverlay({ 
+  username, 
+  className = "opacity-[0.03] dark:opacity-[0.02] text-base-content" 
+}: { 
+  username: string; 
+  className?: string; 
+}) {
+  return (
+    <div className={`absolute inset-0 pointer-events-none select-none overflow-hidden z-[5] ${className}`}>
+      <div 
+        className="w-[150%] h-[150%] -left-[25%] -top-[25%] absolute flex flex-col justify-around rotate-[-25deg]"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '40px',
+        }}
+      >
+        {Array.from({ length: 15 }).map((_, i) => {
+          const isEven = i % 2 === 0;
+          return (
+            <div 
+              key={i} 
+              className="whitespace-nowrap font-black uppercase text-[14px] tracking-[0.2em] flex gap-20"
+              style={{
+                animation: `watermark-scroll-${isEven ? 'left' : 'right'} ${30 + (i % 5) * 5}s linear infinite`,
+                transform: `translateX(${isEven ? '0' : '-30'}%)`,
+              }}
+            >
+              {Array.from({ length: 10 }).map((_, j) => (
+                <span key={j}>{username}</span>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      <style>{`
+        @keyframes watermark-scroll-left {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes watermark-scroll-right {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 }

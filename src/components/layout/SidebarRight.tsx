@@ -99,21 +99,21 @@ const QuoteWidgetCard = () => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-2.5 rounded-2xl border border-[#1D4ED8]/10 bg-gradient-to-br from-[#1D4ED8]/5 via-[#1D4ED8]/10 to-transparent shadow-sm relative overflow-hidden group/quote"
+      className="p-2.5 rounded-2xl border border-blue-500/10 dark:border-blue-400/20 bg-gradient-to-br from-blue-500/5 via-blue-500/10 dark:from-blue-400/5 dark:via-blue-400/10 to-transparent shadow-sm relative overflow-hidden group/quote"
     >
-      <div className="absolute top-[-30%] right-[-20%] w-24 h-24 bg-[#1D4ED8]/5 rounded-full blur-xl pointer-events-none" />
+      <div className="absolute top-[-30%] right-[-20%] w-24 h-24 bg-blue-500/5 dark:bg-blue-400/5 rounded-full blur-xl pointer-events-none" />
       <div className="relative z-10 flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-lg bg-[#1D4ED8]/10 flex items-center justify-center text-[#1D4ED8]">
+            <div className="w-6 h-6 rounded-lg bg-blue-600/10 dark:bg-blue-400/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Lightbulb size={12} />
             </div>
-            <span className="text-[9px] font-black text-[#1D4ED8] uppercase tracking-[0.15em]">Quote of the Hour</span>
+            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.15em]">Quote of the Hour</span>
           </div>
           <button
             onClick={fetchQuote}
             disabled={loading}
-            className="p-1 rounded hover:bg-base-200 text-base-content/50 hover:text-[#1D4ED8] transition-colors disabled:opacity-50"
+            className="p-1 rounded hover:bg-base-200 text-base-content/50 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
             title="Get new quote"
           >
             <RefreshCw size={11} className={loading ? "animate-spin" : ""} />

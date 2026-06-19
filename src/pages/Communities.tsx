@@ -1618,15 +1618,15 @@ function AdminPanel({
                   {(["PUBLIC", "PRIVATE", "SECRET"] as const).map(p => (
                     <button key={p} type="button"
                       onClick={() => setSettingsForm(f => ({ ...f, privacy: p }))}
-                      className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${settingsForm.privacy === p ? "border-blue-600 bg-blue-500/10" : "border-base-300 hover:border-base-400"}`}>
-                      <span className="text-xl">{PRIV_ICON[p]}</span>
+                      className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${settingsForm.privacy === p ? "border-red-500 bg-red-500/10" : "border-base-300 hover:border-base-400"}`}>
+                      <span className={`text-xl ${settingsForm.privacy === p ? "text-red-500" : ""}`}>{PRIV_ICON[p]}</span>
                       <div className="flex-1">
-                        <p className={`text-sm font-semibold ${settingsForm.privacy === p ? "text-blue-600 dark:text-blue-400" : "text-base-content"}`}>
+                        <p className={`text-sm font-semibold ${settingsForm.privacy === p ? "text-red-500 dark:text-red-400" : "text-base-content"}`}>
                           {p.charAt(0) + p.slice(1).toLowerCase()}
                         </p>
                         <p className="text-xs opacity-80 text-base-content">{PRIV_DESC[p]}</p>
                       </div>
-                      {settingsForm.privacy === p && <span className="text-blue-600 dark:text-blue-400"><Check size={16} /></span>}
+                      {settingsForm.privacy === p && <span className="text-red-500 dark:text-red-400"><Check size={16} /></span>}
                     </button>
                   ))}
                 </div>
@@ -1643,7 +1643,7 @@ function AdminPanel({
                       <p className="text-sm font-medium">{label}</p>
                       <p className="text-xs opacity-80">{desc}</p>
                     </div>
-                    <input type="checkbox" className="toggle border-[#1D4ED8] bg-[#1D4ED8] checked:bg-[#1D4ED8] toggle-sm"
+                    <input type="checkbox" className="toggle toggle-error toggle-sm [--tglbg:white] checked:[--tglbg:white]"
                       checked={settingsForm[key as keyof typeof settingsForm] as boolean}
                       onChange={e => setSettingsForm(f => ({ ...f, [key]: e.target.checked }))} />
                   </label>
