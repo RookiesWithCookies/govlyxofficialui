@@ -28,12 +28,26 @@ export function useCommunityChat(communityId: number, currentUser: UserProfile |
     setError(null);
     try {
       const response = await communityService.getChatMessages(communityId, null, 25);
-      // Expected structure: ApiResponse<CommunityMessage[]> or direct list
-      const list: CommunityMessage[] = response?.data || response || [];
+      // Expected structure: ApiResponse<CommunityMessage[]> or direct list or paginated payload
+      const paged = response?.data ?? response;
+      const list: CommunityMessage[] = Array.isArray(paged)
+        ? paged
+        : (Array.isArray(paged?.data)
+          ? paged.data
+          : (Array.isArray(paged?.content)
+            ? paged.content
+            : []));
+      
+      const hasMoreFlag = typeof paged?.hasMore === "boolean"
+        ? paged.hasMore
+        : (typeof response?.hasMore === "boolean"
+          ? response.hasMore
+          : list.length >= 25);
+
       // If descending (newest first), reverse it so older is at the top, newer is at bottom
       const sorted = [...list].reverse();
       setMessages(sorted);
-      setHasMore(list.length >= 25);
+      setHasMore(hasMoreFlag);
     } catch (err: any) {
       console.error("Failed to load initial chat history:", err);
       setError("Failed to load chat history.");
@@ -50,16 +64,27 @@ export function useCommunityChat(communityId: number, currentUser: UserProfile |
       // The cursor is the oldest message ID we have (first item in messages array)
       const cursorId = messages[0].id ? String(messages[0].id) : null;
       const response = await communityService.getChatMessages(communityId, cursorId, 25);
-      const list: CommunityMessage[] = response?.data || response || [];
+      const paged = response?.data ?? response;
+      const list: CommunityMessage[] = Array.isArray(paged)
+        ? paged
+        : (Array.isArray(paged?.data)
+          ? paged.data
+          : (Array.isArray(paged?.content)
+            ? paged.content
+            : []));
+
+      const hasMoreFlag = typeof paged?.hasMore === "boolean"
+        ? paged.hasMore
+        : (typeof response?.hasMore === "boolean"
+          ? response.hasMore
+          : list.length >= 25);
 
       if (list.length === 0) {
         hasMore && setHasMore(false);
       } else {
         const sorted = [...list].reverse();
         setMessages((prev) => [...sorted, ...prev]);
-        if (list.length < 25) {
-          setHasMore(false);
-        }
+        setHasMore(hasMoreFlag);
       }
     } catch (err) {
       console.error("Failed to load older messages:", err);

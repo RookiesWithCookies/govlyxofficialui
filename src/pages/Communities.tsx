@@ -2231,7 +2231,7 @@ function DetailPanel({
         ? `/api/communities/${c.id}/posts/top?${p}`
         : `/api/communities/${c.id}/posts?${p}`;
 
-      const res = await fetch(endpoint, { headers: hdrs() });
+      const res = await fetch(apiUrl(endpoint), { headers: hdrs() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       const paged: any = data?.data ?? data;
