@@ -41,7 +41,7 @@ import { showToast } from "../../utils/toast";
 import { parseError } from "../../utils/error-handler";
 import { useTheme } from "../../hooks/useTheme";
 
-const POST_ACTION_ACTIVE_CLASS = "text-[#1d4ed8] bg-[#1d4ed8]/10 border-[#1d4ed8]/30";
+const POST_ACTION_ACTIVE_CLASS = "text-[#1d4ed8] bg-[#1d4ed8]/10 border-[#1d4ed8]/30 dark:border-white";
 const POST_ACTION_HOVER_GLOW = "rgba(29,78,216,0.65)";
 
 const POST_ACTION_ICONS = {

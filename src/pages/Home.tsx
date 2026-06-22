@@ -6,7 +6,7 @@ import PostCard from "../components/post/PostCard";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { AnyPost } from "../components/post/PostCard";
 import EmptyState from "../components/ui/EmptyState";
-import PostSkeleton from "../components/post/PostSkeleton";
+import LoadingAnimation from "../components/ui/LoadingAnimation";
 import axiosInstance from "../api/axiosConfig";
 import axios from "axios";
 import { parseError } from "../utils/error-handler";
@@ -413,9 +413,9 @@ const Home = () => {
       {/* Single Column Feed Layout */}
       <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
         {initialLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <PostSkeleton key={`sk-${i}`} />
-          ))
+          <div className="relative min-h-[360px] rounded-3xl">
+            <LoadingAnimation overlay label="Loading posts" />
+          </div>
         ) : posts.length === 0 && !loading && !error ? (
           <div className="w-full">
             <EmptyState title="Nothing here yet" description="Be the first to post, or try a different tab." />
@@ -473,9 +473,7 @@ const Home = () => {
         )}
 
         {!initialLoading && loading && (
-          Array.from({ length: 2 }).map((_, i) => (
-            <PostSkeleton key={`more-sk-${i}`} />
-          ))
+          <LoadingAnimation label="Loading more posts" />
         )}
 
         {!initialLoading && hasMore && !loading && !error && (

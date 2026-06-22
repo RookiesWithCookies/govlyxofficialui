@@ -22,7 +22,7 @@ import { communityChatSocket } from "../api/communityChatSocket.service";
 import CommunitySidebar from "../components/community/CommunitySidebar";
 import CreatePost from "../components/ui/CreatePost";
 import PostCard from "../components/post/PostCard";
-import PostSkeleton from "../components/post/PostSkeleton";
+import LoadingAnimation from "../components/ui/LoadingAnimation";
 import ImageEditorModal from "../components/modals/ImageEditorModal";
 import type { CurrentUser as CardUser } from "../components/post/PostCard";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -2425,7 +2425,11 @@ function DetailPanel({
                       ← Back to Community
                     </button>
 
-                    {loadingSinglePost && <PostSkeleton />}
+                    {loadingSinglePost && (
+                      <div className="relative min-h-[360px] rounded-3xl">
+                        <LoadingAnimation overlay label="Loading post" />
+                      </div>
+                    )}
 
                     {singlePostError && (
                       <div className="text-center py-12 opacity-50 space-y-2">
@@ -2487,10 +2491,8 @@ function DetailPanel({
                     </div>
 
                     {loading && posts.length === 0 && (
-                      <div className="space-y-4 pt-2">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <PostSkeleton key={`sk-comm-${i}`} />
-                        ))}
+                      <div className="relative min-h-[360px] rounded-3xl">
+                        <LoadingAnimation overlay label="Loading posts" />
                       </div>
                     )}
                     {!loading && posts.length === 0 && (
@@ -2772,13 +2774,8 @@ function RecommendedCarousel({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-base-300 bg-base-200/50 p-6 flex flex-col items-center justify-center min-h-[220px] animate-pulse">
-        <div className="h-4 bg-base-300 rounded w-1/3 mb-6" />
-        <div className="flex gap-4 w-full justify-center items-center">
-          <div className="w-1/4 h-32 bg-base-300 rounded-2xl opacity-50" />
-          <div className="w-1/3 h-40 bg-base-300 rounded-2xl" />
-          <div className="w-1/4 h-32 bg-base-300 rounded-2xl opacity-50" />
-        </div>
+      <div className="relative min-h-[260px] rounded-2xl border border-base-300 bg-base-200/20">
+        <LoadingAnimation overlay label="Loading communities" />
       </div>
     );
   }
@@ -3364,6 +3361,7 @@ const Community = () => {
   const isSearching = committed.length > 0;
   const ownedList = myCommunities.filter(c => c.isOwner);
   const joinedOnly = myCommunities.filter(c => !c.isOwner);
+  const isCommunityPageLoading = !isSearching && (myCommunitiesLoading || (view === "default" && recommendedLoading));
 
   return (
     <div className="space-y-4 overflow-hidden">
@@ -3451,10 +3449,10 @@ const Community = () => {
         </div>
       )}
 
-      {!isSearching && view === "default" && (
+      {!isSearching && view === "default" && !isCommunityPageLoading && (
         <RecommendedCarousel
           recommended={recommended}
-          loading={recommendedLoading}
+          loading={false}
           onSelect={openCommunity}
           onJoin={handleCarouselJoin}
           joiningId={joiningId}
@@ -3470,13 +3468,8 @@ const Community = () => {
             <button className="btn btn-ghost btn-xs opacity-50" onClick={() => { setQuery(""); setCommitted(""); setSearchResults([]); }}>Clear</button>
           </div>
           {searchLoading && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-xl border border-base-300 bg-base-200 p-4 animate-pulse space-y-3">
-                  <div className="h-4 bg-base-300 rounded w-2/3" /><div className="h-3 bg-base-300 rounded w-full" />
-                  <div className="h-3 bg-base-300 rounded w-1/3" /><div className="h-9 bg-base-300 rounded-lg w-full mt-2" />
-                </div>
-              ))}
+            <div className="relative min-h-[320px] rounded-3xl">
+              <LoadingAnimation overlay label="Loading communities" />
             </div>
           )}
           {!searchLoading && searchResults.length === 0 && committed && (
@@ -3511,24 +3504,19 @@ const Community = () => {
 
       {!isSearching && (
         <>
-          {myCommunitiesLoading && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-xl border border-base-300 bg-base-200 p-4 animate-pulse space-y-3">
-                  <div className="h-4 bg-base-300 rounded w-2/3" /><div className="h-3 bg-base-300 rounded w-full" />
-                  <div className="h-3 bg-base-300 rounded w-1/3" /><div className="h-9 bg-base-300 rounded-lg w-full mt-2" />
-                </div>
-              ))}
+          {isCommunityPageLoading && (
+            <div className="relative min-h-[420px] rounded-3xl">
+              <LoadingAnimation overlay label="Loading communities" />
             </div>
           )}
-          {!myCommunitiesLoading && myCommunities.length === 0 && (
+          {!isCommunityPageLoading && myCommunities.length === 0 && (
             <div className="text-center py-14 opacity-60 space-y-3">
               <p className="font-semibold">You haven't joined any communities yet</p>
               <p className="text-sm max-w-xs mx-auto">Search above or create your own community.</p>
             </div>
           )}
 
-          {!myCommunitiesLoading && myCommunities.length > 0 && (
+          {!isCommunityPageLoading && myCommunities.length > 0 && (
             <div className="space-y-5">
               {(view === "default" || view === "owned") && ownedList.length > 0 && (
                 <div className="space-y-3">
