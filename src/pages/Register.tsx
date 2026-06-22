@@ -21,6 +21,7 @@ const Register = () => {
     password: "",
     confirmPassword: "",
     pincode: "",
+    isAdult: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -30,12 +31,12 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let { name, value } = e.target;
+    let { name, value, type, checked } = e.target;
     if (name === "pincode") {
       // Only allow digits and cap at 6 digits
       value = value.replace(/\D/g, "").slice(0, 6);
     }
-    setForm({ ...form, [name]: value });
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
   const handleRegister = async () => {
@@ -65,6 +66,11 @@ const Register = () => {
       return;
     }
 
+    if (!form.isAdult) {
+      setError("You must be 18 or older to register");
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -72,6 +78,7 @@ const Register = () => {
         password: form.password,
         pincode: form.pincode,
         username: "anonymous", // Satisfies backend validation requirement; ignored by citizen registration logic
+        isAdult: form.isAdult,
       };
 
       const response = await registerCitizen(payload);
@@ -245,6 +252,20 @@ const Register = () => {
               value={form.pincode}
               onChange={handleChange}
             />
+
+            <div className="flex items-start gap-2.5 my-3">
+              <input
+                type="checkbox"
+                id="isAdult"
+                name="isAdult"
+                checked={form.isAdult}
+                onChange={handleChange}
+                className="checkbox checkbox-primary checkbox-sm mt-0.5 rounded-md cursor-pointer focus:ring-1 focus:ring-primary"
+              />
+              <label htmlFor="isAdult" className="text-xs opacity-80 cursor-pointer select-none leading-relaxed">
+                I confirm that I am 18 years of age or older and agree to the platform's terms.
+              </label>
+            </div>
 
             <button
               type="submit"

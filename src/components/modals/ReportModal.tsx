@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flag, X, CheckCircle2, ShieldAlert, Clock } from "lucide-react";
 import axiosInstance from "../../api/axiosConfig";
@@ -124,10 +125,10 @@ const ReportModal = ({ isOpen, onClose, targetType, targetId }: ReportModalProps
     }, 300);
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -292,7 +293,8 @@ const ReportModal = ({ isOpen, onClose, targetType, targetId }: ReportModalProps
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

@@ -18,9 +18,7 @@ export default function PrivacyPolicy() {
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Go Back
           </button>
           
-          <div className="flex items-center gap-3">
-            <GovlyxLogo showText size={44} textClassName="text-xl sm:text-2xl font-extrabold" />
-            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
+          <div className="flex items-center gap-1.5">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-xl bg-slate-105 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
@@ -28,6 +26,8 @@ export default function PrivacyPolicy() {
             >
               {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
+            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
+            <GovlyxLogo showText size={44} textClassName="hidden sm:block text-xl sm:text-2xl font-extrabold" />
           </div>
         </div>
       </nav>
@@ -53,141 +53,140 @@ export default function PrivacyPolicy() {
           </div>
 
           {/* Privacy Document Body */}
-          <div className="bg-base-100/60 dark:bg-base-100/40 border border-slate-200 dark:border-slate-850 p-6 sm:p-10 rounded-3xl backdrop-blur-xl shadow-xl space-y-8 text-slate-650 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
+          <div className="bg-base-100/60 dark:bg-base-100/40 border border-black/10 dark:border-white/10 p-5 sm:p-10 rounded-3xl backdrop-blur-xl shadow-[0_8px_0_0_rgba(0,0,0,0.06),_0_20px_25px_-5px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_0_0_rgba(255,255,255,0.02),_0_20px_25px_-5px_rgba(0,0,0,0.2)] space-y-8 text-slate-650 dark:text-slate-300 text-xs sm:text-sm md:text-base leading-relaxed">
             <p className="font-semibold text-slate-900 dark:text-white">
               Welcome to Govlyx. This platform is here to help you connect with your neighborhood and local government. By using Govlyx, you agree to how we collect and use your data as described below.
             </p>
 
-            <div className="p-4 bg-red-500/10 border border-red-550/20 rounded-2xl text-xs sm:text-sm text-red-600 dark:text-red-400 font-bold flex items-center gap-2">
+            <div className="p-4 bg-red-500/10 border border-red-500/10 dark:border-red-500/20 rounded-2xl text-[11px] sm:text-xs md:text-sm text-red-650 dark:text-red-400 font-bold flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 shrink-0 text-red-500" />
               <span><strong>18+ Warning:</strong> You must be at least 18 years old to access and use Govlyx. Registration and access to all platform services are restricted to adult users only.</span>
             </div>
 
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+            <div className="p-4 bg-blue-500/10 border border-blue-500/10 dark:border-blue-500/20 rounded-2xl text-[11px] sm:text-xs md:text-sm text-slate-650 dark:text-slate-400 font-medium">
               Govlyx acts as an Intermediary under Indian IT laws. We follow the official rules to keep the platform safe and secure for all citizens.
             </div>
 
-            <hr className="border-slate-200 dark:border-slate-800" />
-
+            <hr className="border-slate-200/60 dark:border-slate-800/60" />
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 1. Location & Pincode
               </h2>
               <p>
-                Govlyx uses your <strong>6-digit pincode</strong> and address details to show you updates in your area.
+                We use your pincode to show local updates.
               </p>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>No Live Tracking:</strong> We do <strong>not</strong> track your real-time GPS location. We only use the area information you voluntarily share.
+                  <strong>No GPS Tracking:</strong> We do not track your real-time location.
                 </li>
                 <li>
-                  <strong>Local Updates Only:</strong> While we show public announcements for your pincode, we cannot guarantee their accuracy. Govlyx is not an emergency response service.
+                  <strong>Information Only:</strong> Govlyx is not an emergency service. We cannot guarantee notice accuracy.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Scale className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 2. Anonymous Chat & Law Enforcement (CRITICAL)
               </h2>
               <p>
-                Govlyx includes a 1-on-1 Anonymous chat. <strong>Anonymous means the other user cannot see your identity, NOT that you are hidden from the law.</strong>
+                Anonymous chat hides your name from other users, not from the law.
               </p>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>Record Keeping:</strong> We keep secure, encrypted system logs linking your anonymous chat identifier to your actual account profile, IP address, and device info.
+                  <strong>Logs Saved:</strong> We save encrypted logs linking your chat to your account profile, IP, and device.
                 </li>
                 <li>
-                  <strong>Zero Tolerance for Abuse:</strong> We do not allow illegal activities, cyber threats, hate speech, or sharing of prohibited/harmful materials.
+                  <strong>Zero Abuse:</strong> No illegal chats, hate speech, or harassment allowed.
                 </li>
                 <li>
-                  <strong>Law Enforcement Access:</strong> If we receive a valid legal order or request from police or government investigators under Indian law, <strong>we will unmask your identity and share chat logs directly with authorities.</strong>
+                  <strong>Legal Action:</strong> We will share your chat logs and identity with the police if legally ordered.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 3. Communities & What You Share
               </h2>
               <p>
-                You can join public, private, or secret groups.
+                You can post in public and private groups.
               </p>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>Your Responsibility:</strong> We do not write or edit your posts. You are legally responsible for whatever content you share.
+                  <strong>You are Responsible:</strong> You are legally responsible for what you post. We do not edit your posts.
                 </li>
                 <li>
-                  <strong>Content Removal:</strong> In line with IT rules, if we receive a court or government order reporting illegal content, we will remove it within 36 hours.
+                  <strong>Content Removal:</strong> If reported or ordered by the government, we will remove illegal posts within 36 hours.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 4. Government Communication
               </h2>
               <p>
-                We connect citizens with government departments.
+                We help you report issues to local departments.
               </p>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>Anonymous Stats:</strong> We may share general stats (like how many people report water issues in a pincode) with verified government bodies.
+                  <strong>Shared Stats:</strong> We share basic statistics (like total complaints in a pincode) with local bodies.
                 </li>
                 <li>
-                  <strong>Public Records:</strong> If you write directly to a government department or post in public forums, those details will be visible to them. We cannot control how government departments act on your reports.
+                  <strong>Public Reports:</strong> Direct messages or public reports will be visible to the government. We cannot force them to act.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Image className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 5. Uploading Photos & Media
               </h2>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>Metadata Removal:</strong> We try to strip hidden location data (metadata) from photos you upload to protect your privacy, but we advise checking your device's camera privacy settings.
+                  <strong>Privacy:</strong> We try to clean location data from uploaded photos. Please check your camera settings too.
                 </li>
                 <li>
-                  <strong>Banned Media:</strong> Uploading copyrighted, fake, or illegal pictures/videos will get your account banned, and we may preserve the files for law enforcement.
+                  <strong>Banned Files:</strong> Uploading fake, illegal, or copyrighted media will ban your account.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Trash2 className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 6. Deleting Your Data
               </h2>
               <p>
-                We process all details in compliance with the Digital Personal Data Protection (DPDP) Act, 2023.
+                We process data in compliance with the Digital Personal Data Protection (DPDP) Act.
               </p>
-              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-sm">
+              <ul className="list-disc pl-6 space-y-1.5 text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm">
                 <li>
-                  <strong>Account Deletion:</strong> You can delete your account anytime through the Settings menu. Your active profile data will be deleted within 30 days.
+                  <strong>Easy Deletion:</strong> Delete your account in Settings. Profile data is cleared in 30 days.
                 </li>
                 <li>
-                  <strong>Legal Exception:</strong> If your account has been flagged for criminal abuse, reported for serious violations, or is under investigation by police, we are legally required to keep your data even if you delete your profile.
+                  <strong>Police Exception:</strong> If your account is flagged for abuse or police investigation, we must keep your data by law.
                 </li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Mail className="w-5 h-5 text-blue-550 dark:text-blue-400 shrink-0" /> 7. Grievance Support Desk
               </h2>
               <p>
-                If you have any questions, concerns, or want to report illegal content, please contact our Grievance Support Desk:
+                If you have questions or want to report illegal content, please contact us:
               </p>
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl text-xs sm:text-sm font-semibold space-y-2 mt-2">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl text-[11px] sm:text-xs md:text-sm font-semibold space-y-2 mt-2">
                 <p><span className="opacity-60 text-slate-500 dark:text-slate-405">Email:</span> <a href="mailto:govlyxsupport@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">govlyxsupport@gmail.com</a></p>
-                <p><span className="opacity-60 text-slate-505 dark:text-slate-405">Response Time:</span> Acknowledged within 24 hours</p>
-                <p><span className="opacity-60 text-slate-505 dark:text-slate-405">Resolution Time:</span> Resolved within 15 days</p>
+                <p><span className="opacity-60 text-slate-505 dark:text-slate-405">Response:</span> Acknowledged within 24 hours</p>
+                <p><span className="opacity-60 text-slate-505 dark:text-slate-405">Resolution:</span> Resolved within 15 days</p>
               </div>
             </section>
 
-            <hr className="border-slate-200 dark:border-slate-800" />
+            <hr className="border-slate-200/60 dark:border-slate-800/60" />
 
-            <p className="text-xs text-slate-500 text-center font-bold italic">
+            <p className="text-[11px] sm:text-xs text-slate-500 text-center font-bold italic">
               By creating an account, you confirm you are 18 years of age or older and agree to this Privacy Policy under the laws of the Republic of India.
             </p>
           </div>
@@ -201,7 +200,7 @@ export default function PrivacyPolicy() {
               <button onClick={() => navigate("/review")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Review</button>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-              © 2026 Govlyx
+              © 2026&nbsp;<span className="notranslate" translate="no">Govlyx</span>
             </p>
           </div>
         </footer>

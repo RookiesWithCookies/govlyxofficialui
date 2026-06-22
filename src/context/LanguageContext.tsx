@@ -27,7 +27,23 @@ export type LangCode = typeof SUPPORTED_LANGUAGES[number]["code"];
 
 const STORAGE_KEY = "govlyx_ui_language";
 
+const STORAGE_PREFIX = "govlyx_tr:";
 const translationCache = new Map<string, string>();
+
+// Initialize cache from localStorage
+try {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(STORAGE_PREFIX)) {
+      const val = localStorage.getItem(key);
+      if (val) {
+        translationCache.set(key.slice(STORAGE_PREFIX.length), val);
+      }
+    }
+  }
+} catch (e) {
+  console.error("Failed to load translation cache from localStorage", e);
+}
 
 // ─── Translate helper (Google unofficial endpoint) ────────────────────────────
 async function googleTranslateBatch(
@@ -55,6 +71,11 @@ async function googleTranslateBatch(
       const restored = (translated || protectedText).replace(/GOVLYXTOKEN/gi, "Govlyx");
       
       translationCache.set(cacheKey, restored);
+      try {
+        localStorage.setItem(STORAGE_PREFIX + cacheKey, restored);
+      } catch (e) {
+        console.warn("Failed to save translation cache item to localStorage", e);
+      }
       return restored;
     } catch (err) {
       console.error("Single translation failed for text:", text, err);
@@ -119,7 +140,7 @@ function isValidPlaceholderElement(el: Element): boolean {
   return true;
 }
 
-async function applyPageTranslation(lang: string) {
+async function applyPageTranslation(lang: string, onShowLoader?: (show: boolean) => void) {
   if (lang === currentPageLang) return;
 
   // First: revert to originals if switching
@@ -187,55 +208,67 @@ async function applyPageTranslation(lang: string) {
     });
   }
 
-  // Buffer translations
-  const translationsToApply: { type: "text" | "placeholder"; node: Text | Element; text: string }[] = [];
-
-  // Batch translate in groups of 20 to avoid very long URLs
-  const BATCH = 20;
-  for (let i = 0; i < items.length; i += BATCH) {
-    if (currentPageLang !== lang) return; // aborted, discard buffer
-    const batch = items.slice(i, i + BATCH);
-    const texts = batch.map((item) => item.original);
-    try {
-      const translated = await googleTranslateBatch(texts, lang);
-      for (let j = 0; j < batch.length; j++) {
-        translationsToApply.push({
-          type: batch[j].type,
-          node: batch[j].node,
-          text: translated[j],
-        });
-      }
-    } catch (err) {
-      console.error("Batch translation failed:", err);
-      // Fallback: use original values for this batch
-      for (let j = 0; j < batch.length; j++) {
-        translationsToApply.push({
-          type: batch[j].type,
-          node: batch[j].node,
-          text: batch[j].original,
-        });
-      }
-    }
+  const needsFetch = items.some(item => !translationCache.has(`${lang}:${item.original}`));
+  if (needsFetch && onShowLoader) {
+    onShowLoader(true);
   }
 
-  // Apply all translation updates atomically at the end
-  if (currentPageLang === lang && translationsToApply.length > 0) {
-    for (const item of translationsToApply) {
-      if (item.type === "text") {
-        const textNode = item.node as Text;
-        if (textNode.isConnected) {
-          textNode.textContent = item.text;
+  try {
+    // Buffer translations
+    const translationsToApply: { type: "text" | "placeholder"; node: Text | Element; text: string }[] = [];
+
+    // Batch translate in groups of 20 to avoid very long URLs
+    const BATCH = 20;
+    for (let i = 0; i < items.length; i += BATCH) {
+      if (currentPageLang !== lang) return; // aborted, discard buffer
+      const batch = items.slice(i, i + BATCH);
+      const texts = batch.map((item) => item.original);
+      try {
+        const translated = await googleTranslateBatch(texts, lang);
+        for (let j = 0; j < batch.length; j++) {
+          translationsToApply.push({
+            type: batch[j].type,
+            node: batch[j].node,
+            text: translated[j],
+          });
         }
-      } else {
-        const el = item.node as Element;
-        if (el.isConnected) {
-          el.setAttribute("placeholder", item.text);
+      } catch (err) {
+        console.error("Batch translation failed:", err);
+        // Fallback: use original values for this batch
+        for (let j = 0; j < batch.length; j++) {
+          translationsToApply.push({
+            type: batch[j].type,
+            node: batch[j].node,
+            text: batch[j].original,
+          });
         }
       }
+    }
+
+    // Apply all translation updates atomically at the end
+    if (currentPageLang === lang && translationsToApply.length > 0) {
+      for (const item of translationsToApply) {
+        if (item.type === "text") {
+          const textNode = item.node as Text;
+          if (textNode.isConnected) {
+            textNode.textContent = item.text;
+          }
+        } else {
+          const el = item.node as Element;
+          if (el.isConnected) {
+            el.setAttribute("placeholder", item.text);
+          }
+        }
+      }
+    }
+  } finally {
+    if (needsFetch && onShowLoader) {
+      onShowLoader(false);
     }
   }
 }
 
+// ─── Revert Page Translation ──────────────────────────────────────────────────
 function revertPageTranslation() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node: Node | null;
@@ -426,14 +459,26 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const { data: userProfile } = useCurrentUser();
+  const hasSyncedRef = useRef(false);
+  const lastUserIdRef = useRef<any>(null);
 
   useEffect(() => {
-    if (userProfile?.interfaceLanguage) {
+    if (!userProfile) return;
+
+    // Reset sync flag if user changes (login/logout/switch)
+    const currentUserId = (userProfile as any).id;
+    if (lastUserIdRef.current !== currentUserId) {
+      hasSyncedRef.current = false;
+      lastUserIdRef.current = currentUserId;
+    }
+
+    if (!hasSyncedRef.current && userProfile.interfaceLanguage) {
       const userLang = userProfile.interfaceLanguage as LangCode;
       if (userLang !== language) {
         setLanguageState(userLang);
         localStorage.setItem(STORAGE_KEY, userLang);
       }
+      hasSyncedRef.current = true;
     }
   }, [userProfile, language]);
 
@@ -450,10 +495,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     // Small debounce so rapid changes don't fire multiple translations
     debounceRef.current = setTimeout(async () => {
-      setIsTranslating(true);
       stopObserver();
-      await applyPageTranslation(language);
-      setIsTranslating(false);
+      await applyPageTranslation(language, setIsTranslating);
       startObserver(language);
     }, 300);
 

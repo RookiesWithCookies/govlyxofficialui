@@ -99,6 +99,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
     isFetchingMore,
     hasMore,
     error,
+    setError,
     sendMessage,
     sendTyping,
     loadMoreMessages,
@@ -109,6 +110,10 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
   const [replyMessage, setReplyMessage] = useState<any | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [chatSettings, setChatSettings] = useState({
+    isGroupChatEnabled: true,
+    chatRetentionDays: 30,
+  });
+  const [tempSettings, setTempSettings] = useState({
     isGroupChatEnabled: true,
     chatRetentionDays: 30,
   });
@@ -222,11 +227,36 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
   };
 
   // ── 5. Admin Settings Actions ──
+  const handleOpenSettings = () => {
+    setTempSettings(chatSettings);
+    setIsSettingsOpen(true);
+  };
+
   const handleSaveSettings = async () => {
+    const payload: any = {};
+    let hasChanges = false;
+
+    if (tempSettings.isGroupChatEnabled !== chatSettings.isGroupChatEnabled) {
+      payload.isGroupChatEnabled = tempSettings.isGroupChatEnabled;
+      hasChanges = true;
+    }
+    if (tempSettings.chatRetentionDays !== chatSettings.chatRetentionDays) {
+      payload.chatRetentionDays = tempSettings.chatRetentionDays;
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      setIsSettingsOpen(false);
+      return;
+    }
+
     try {
-      await (communityService as any).updateChatSettings(communityId, chatSettings);
+      await (communityService as any).updateChatSettings(communityId, payload);
+      setChatSettings(tempSettings);
       showToast.success("Chat settings updated successfully");
       setIsSettingsOpen(false);
+      setError(null);
+      fetchInitialMessages();
     } catch (err) {
       console.error(err);
       showToast.error("Failed to update chat settings");
@@ -296,7 +326,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
 
         {isAdmin && (
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={handleOpenSettings}
             className="btn btn-ghost btn-circle btn-sm text-base-content/85 hover:text-primary transition-colors"
           >
             <Settings size={18} />
@@ -682,27 +712,46 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
             </div>
 
             <div className="space-y-4 py-2">
-              <div className="flex justify-between items-center bg-base-200 p-3.5 rounded-xl">
-                <div>
-                  <span className="text-sm font-semibold block">Enable Group Chat</span>
-                  <span className="text-[10px] opacity-60">Allow members to send messages</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={chatSettings.isGroupChatEnabled}
-                  onChange={(e) =>
-                    setChatSettings((prev) => ({ ...prev, isGroupChatEnabled: e.target.checked }))
-                  }
-                  className="toggle toggle-primary"
-                />
+              <div className="space-y-2">
+                <span className="text-xs font-semibold opacity-75">Chat Permission</span>
+                
+                {/* Option 1: Allow members to chat */}
+                <label className="flex items-center justify-between bg-base-200 p-3 rounded-xl cursor-pointer hover:bg-base-300/40 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold">Allow members to chat</span>
+                    <span className="text-[10px] opacity-60">Everyone in the community can send messages</span>
+                  </div>
+                  <input
+                    type="radio"
+                    name="chatPermission"
+                    checked={tempSettings.isGroupChatEnabled === true}
+                    onChange={() => setTempSettings((prev) => ({ ...prev, isGroupChatEnabled: true }))}
+                    className="radio radio-primary"
+                  />
+                </label>
+
+                {/* Option 2: Only admin can send messages */}
+                <label className="flex items-center justify-between bg-base-200 p-3 rounded-xl cursor-pointer hover:bg-base-300/40 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold">Only admin can send messages</span>
+                    <span className="text-[10px] opacity-60">Members can only read announcements and updates</span>
+                  </div>
+                  <input
+                    type="radio"
+                    name="chatPermission"
+                    checked={tempSettings.isGroupChatEnabled === false}
+                    onChange={() => setTempSettings((prev) => ({ ...prev, isGroupChatEnabled: false }))}
+                    className="radio radio-primary"
+                  />
+                </label>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold opacity-75">Message Retention Period</label>
                 <select
-                  value={chatSettings.chatRetentionDays}
+                  value={tempSettings.chatRetentionDays}
                   onChange={(e) =>
-                    setChatSettings((prev) => ({ ...prev, chatRetentionDays: Number(e.target.value) }))
+                    setTempSettings((prev) => ({ ...prev, chatRetentionDays: Number(e.target.value) }))
                   }
                   className="select select-bordered select-sm w-full rounded-xl"
                 >
@@ -729,7 +778,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
 
       {/* ── Report Message Modal ── */}
       {reportModalMessage && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60">
           <div className="bg-base-100 rounded-2xl max-w-md w-full p-6 space-y-4 border border-base-300 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-warning flex items-center gap-2">

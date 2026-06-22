@@ -55,6 +55,11 @@ export const communityService = {
     return response.data;
   },
 
+  getChatSettings: async (id: number) => {
+    const response = await axiosInstance.get(`/api/communities/${id}/chat/settings`);
+    return response.data;
+  },
+
   updateChatSettings: async (id: number, settings: { isGroupChatEnabled: boolean; chatRetentionDays: number }) => {
     const response = await axiosInstance.put(`/api/communities/${id}/chat/settings`, settings);
     return response.data;

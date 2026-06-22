@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   BadgeCheck,
   CheckCircle2,
@@ -27,6 +28,7 @@ import {
   Send,
   BookMarked,
   ThumbsDown,
+  EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CommentSection from "./CommentSection";
@@ -245,6 +247,7 @@ type PostCardProps = {
   hideCommunityStrip?: boolean;
   hideDelete?: boolean;
   onShareToCommunity?: (postId: number, content: string) => void;
+  onNotInterested?: (postId: number) => void;
 };
 
 const postTranslationCache = new Map<string, string>();
@@ -587,6 +590,12 @@ function ModernMediaCarousel({
   useEffect(() => {
     if (!isCurrentVideo) setIsPlaying(false);
   }, [activeIndex, isCurrentVideo]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted, activeIndex]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1016,7 +1025,7 @@ function ResolveModal({
 }) {
   const [msg, setMsg] = useState("");
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -1086,7 +1095,8 @@ function ResolveModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
@@ -1102,7 +1112,7 @@ function ReopenModal({
 }) {
   const [reason, setReason] = useState("");
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -1172,7 +1182,8 @@ function ReopenModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
@@ -1228,14 +1239,14 @@ function ShareModal({
     onClose();
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
            exit={{ opacity: 0 }}
-           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
            onClick={onClose}
         >
           <motion.div
@@ -1332,7 +1343,8 @@ function ShareModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
@@ -1630,6 +1642,7 @@ export default function PostCard({
   hideCommunityStrip,
   hideDelete,
   onShareToCommunity,
+  onNotInterested,
 }: PostCardProps) {
   const queryClient = useQueryClient();
   const { data: currentUserProfile } = useCurrentUser();
@@ -1650,6 +1663,7 @@ export default function PostCard({
   const [reopening, setReopening] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmNotInterestedOpen, setConfirmNotInterestedOpen] = useState(false);
   const [isJoined, setIsJoined] = useState((post as any).isMember ?? false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -2393,19 +2407,37 @@ export default function PostCard({
                 showDelete={(post as any).canDelete !== undefined ? !!(post as any).canDelete : (currentUser && post.username === currentUser.username)}
                 hideDelete={hideDelete}
                 rightAction={
-                  currentUser && post.username !== currentUser.username ? (
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReportOpen(true);
-                      }}
-                      whileHover={{ scale: 1.12, y: -1 }}
-                      whileTap={{ scale: 0.94 }}
-                      className="group/report relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 backdrop-blur-md"
-                      title="Report content"
-                    >
-                      <Flag size={16} className="relative z-10 transition-transform duration-300 group-hover/report:rotate-6" />
-                    </motion.button>
+                  (currentUser && post.username !== currentUser.username) || onNotInterested ? (
+                    <div className="flex items-center gap-1.5">
+                      {onNotInterested && (
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmNotInterestedOpen(true);
+                          }}
+                          whileHover={{ scale: 1.12, y: -1 }}
+                          whileTap={{ scale: 0.94 }}
+                          className="group/not-interested relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
+                          title="Not Interested"
+                        >
+                          <EyeOff size={16} className="relative z-10 transition-transform duration-300" />
+                        </motion.button>
+                      )}
+                      {currentUser && post.username !== currentUser.username && (
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReportOpen(true);
+                          }}
+                          whileHover={{ scale: 1.12, y: -1 }}
+                          whileTap={{ scale: 0.94 }}
+                          className="group/report relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-600 hover:shadow-lg hover:shadow-red-500/10 backdrop-blur-md"
+                          title="Report content"
+                        >
+                          <Flag size={16} className="relative z-10 transition-transform duration-300 group-hover/report:rotate-6" />
+                        </motion.button>
+                      )}
+                    </div>
                   ) : undefined
                 }
               />
@@ -2683,6 +2715,23 @@ export default function PostCard({
         title="Delete Post"
         message="Are you sure you want to delete this post? This action cannot be undone."
         isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={confirmNotInterestedOpen}
+        onClose={() => setConfirmNotInterestedOpen(false)}
+        onConfirm={() => {
+          setConfirmNotInterestedOpen(false);
+          if (onNotInterested) {
+            onNotInterested(post.id);
+          }
+        }}
+        title="Not Interested"
+        message="Are you sure you want to mark this post as 'Not Interested'? This post will be hidden from your feed."
+        confirmLabel="Not Interested"
+        cancelLabel="Interested"
+        isCancelSuccess={true}
+        isDanger={true}
       />
 
       <ReportModal

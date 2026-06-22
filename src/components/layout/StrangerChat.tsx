@@ -1,7 +1,6 @@
 // src/components/layout/StrangerChat.tsx
 import { useEffect, useRef, useState, useCallback, useMemo, type KeyboardEvent } from "react";
 import { Dices, Zap, Search, AlertTriangle, Plus, Image as ImageIcon, Video, X, Eye, EyeOff, Send, Trash2, LogOut, ChevronLeft, ChevronRight, Copy, Check, MoreVertical, Smile } from "lucide-react";
-import { FaRocketchat } from "react-icons/fa";
 import { showToast } from "../../utils/toast";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useChat } from "../../hooks/useChat";
@@ -10,6 +9,7 @@ import { API_BASE_URL } from "../../api/axiosConfig";
 import type { ChatMessageDto, ChatStatus, MessageType } from "../../types/Chat.types";
 import { OPENMOJI_STICKERS } from "../../utils/stickers";
 import { useCurrentUser } from "../../hooks/useUser";
+import { useTheme } from "../../hooks/useTheme";
 
 
 // ── Icons & Config ──────────────────────────────────────────────────────────
@@ -36,6 +36,9 @@ const DOT_CLASS: Record<ChatStatus, string> = {
   PARTNER_LEFT: "bg-error",
   ERROR: "bg-error",
 };
+
+const QUICK_CHAT_LIGHT_ICON = "/icons/quick_chat_light_theme.gif";
+const QUICK_CHAT_DARK_ICON = "/icons/quick_chat_dark_theme.gif";
 
 const STATUS_LABEL: Record<ChatStatus, string> = {
   IDLE: "Ready",
@@ -536,6 +539,7 @@ function WatermarkOverlay({
 
 export default function StrangerChat({ onClose, standalone }: { onClose?: () => void; standalone?: boolean }) {
   const { data: currentUser } = useCurrentUser();
+  const { theme } = useTheme();
   const usernameWatermark = currentUser?.actualUsername || currentUser?.username || "Govlyx User";
   const chat = useChat();
 
@@ -781,7 +785,7 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
         <AnimatePresence mode="wait">
           {chat.status === "IDLE" && (
             <motion.div key="idle" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="flex-1 min-h-0">
-              <IdleScreen onStart={chat.startSearch} />
+              <IdleScreen onStart={chat.startSearch} theme={theme} />
             </motion.div>
           )}
           {chat.status === "SEARCHING" && (
@@ -1102,11 +1106,18 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function IdleScreen({ onStart }: { onStart: () => void }) {
+function IdleScreen({ onStart, theme }: { onStart: () => void; theme: string }) {
   return (
     <div className="h-full flex flex-col items-center justify-center p-6 md:p-8 text-center bg-transparent">
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center justify-center text-[#1D4ED8] dark:text-white mb-6 md:mb-8 relative shrink-0">
-        <FaRocketchat size={64} className="text-[#1D4ED8] dark:text-white" />
+        <img
+          src={theme === "dark" ? QUICK_CHAT_DARK_ICON : QUICK_CHAT_LIGHT_ICON}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          onContextMenu={(event) => event.preventDefault()}
+          className="h-20 w-20 md:h-24 md:w-24 rounded-xl object-contain"
+        />
       </motion.div>
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
         <h3 className="text-2xl md:text-4xl font-black text-base-content tracking-tighter mb-4">Connect with Neighbors.</h3>

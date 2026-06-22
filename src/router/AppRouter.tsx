@@ -29,6 +29,7 @@ import VerifyEmail from "../pages/VerifyEmail";
 import UpcomingUpdates from "../pages/UpcomingUpdates";
 import PrivacyPolicy from "../pages/PrivacyPolicy";
 import ReviewPage from "../pages/ReviewPage";
+import SearchResultsPage from "../pages/SearchResultsPage";
 
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
@@ -214,6 +215,7 @@ const AppRouter = () => {
           <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
           <Route path="/notifications" element={<PageWrapper><NotificationsPage /></PageWrapper>} />
           <Route path="/post/:id" element={<PageWrapper><PostDetail /></PageWrapper>} />
+          <Route path="/search" element={<PageWrapper><SearchResultsPage /></PageWrapper>} />
           <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
           <Route path="/admin/dashboard" 
             element={

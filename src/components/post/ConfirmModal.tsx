@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   isDanger?: boolean;
   isLoading?: boolean;
+  isCancelSuccess?: boolean;
 }
 
 export default function ConfirmModal({
@@ -23,6 +24,7 @@ export default function ConfirmModal({
   cancelLabel = "Cancel",
   isDanger = true,
   isLoading = false,
+  isCancelSuccess = false,
 }: ConfirmModalProps) {
   return (
     <AnimatePresence>
@@ -42,6 +44,15 @@ export default function ConfirmModal({
             className="w-full max-w-sm rounded-[2rem] border border-base-300 bg-base-100 p-6 shadow-2xl text-center relative flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="absolute top-5 right-5 text-base-content/40 hover:text-base-content transition-colors duration-200 cursor-pointer"
+              title="Close modal"
+            >
+              <X size={18} />
+            </button>
+
             {/* Warning Circle */}
             <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
               isDanger ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary"
@@ -60,7 +71,11 @@ export default function ConfirmModal({
               <button
                 disabled={isLoading}
                 onClick={onClose}
-                className="flex-1 h-11 rounded-xl font-bold text-xs uppercase tracking-wider text-base-content/75 hover:bg-base-200 border-none bg-transparent transition-all duration-200 cursor-pointer"
+                className={
+                  isCancelSuccess
+                    ? "flex-1 h-11 rounded-xl font-extrabold text-xs uppercase tracking-wider text-white transition-all duration-200 flex items-center justify-center gap-2 border-none bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 cursor-pointer"
+                    : "flex-1 h-11 rounded-xl font-bold text-xs uppercase tracking-wider text-base-content/75 hover:bg-base-200 border-none bg-transparent transition-all duration-200 cursor-pointer"
+                }
               >
                 {cancelLabel}
               </button>

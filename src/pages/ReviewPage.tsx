@@ -163,9 +163,7 @@ export default function ReviewPage() {
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Go Back
           </button>
           
-          <div className="flex items-center gap-3">
-            <GovlyxLogo showText size={44} textClassName="text-xl sm:text-2xl font-extrabold" />
-            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
+          <div className="flex items-center gap-1.5">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-xl bg-slate-105 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer"
@@ -173,6 +171,8 @@ export default function ReviewPage() {
             >
               {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
+            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
+            <GovlyxLogo showText size={44} textClassName="hidden sm:block text-xl sm:text-2xl font-extrabold" />
           </div>
         </div>
       </nav>
@@ -180,13 +180,10 @@ export default function ReviewPage() {
       {/* Scrollable Container Wrapper */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-between z-10">
         {/* Content Area */}
-        <main className="w-full mx-auto max-w-[1200px] px-6 py-10">
+        <main className="w-full mx-auto max-w-[1300px] px-6 py-10">
           
           {/* Header */}
           <div className="text-left mb-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <Cpu className="w-3.5 h-3.5" /> Platform Governance
-            </div>
             <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               Review Govlyx
             </h1>
@@ -263,12 +260,12 @@ export default function ReviewPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                   {/* Form Section */}
-                <div className="lg:col-span-7 bg-base-100/60 dark:bg-base-100/40 border border-black/10 dark:border-white/15 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl space-y-6">
+                <div className="lg:col-span-6 bg-base-100/60 dark:bg-base-100/40 border border-black/10 dark:border-white/15 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl space-y-6">
                   <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
                     
                     {/* Category Selection */}
                     <div className="space-y-3">
-                      <label className="text-xs font-black uppercase tracking-wider text-slate-400">
+                      <label className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">
                         1. Select Category
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -281,21 +278,21 @@ export default function ReviewPage() {
                               key={cat}
                               type="button"
                               onClick={() => setCategory(cat)}
-                              className={`p-4 rounded-2xl text-left border cursor-pointer transition-all relative overflow-hidden group backdrop-blur-sm ${
+                              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl text-left border cursor-pointer transition-all relative overflow-hidden group backdrop-blur-sm ${
                                 isSelected
                                   ? `bg-base-100 dark:bg-base-100 ${details.borderSelected} ring-2 ring-blue-600/30 shadow-md ${details.glow}`
                                   : "bg-base-100/35 dark:bg-base-100/15 border-slate-200/80 dark:border-slate-800/80 hover:bg-base-100/80 dark:hover:bg-base-100/30 hover:border-slate-300 dark:hover:border-slate-750"
                               }`}
                             >
-                              <div className="flex gap-3.5 items-start">
-                                <div className={`p-2.5 rounded-xl transition-all ${
+                              <div className="flex gap-2.5 sm:gap-3.5 items-start">
+                                <div className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${
                                   isSelected ? `${details.bgLight} ${details.text}` : "bg-slate-200/40 dark:bg-slate-800/30 text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-200"
                                 }`}>
-                                  <IconComp className="w-5 h-5 shrink-0" />
+                                  <IconComp className="w-4 h-4 sm:w-5 h-5 shrink-0" />
                                 </div>
                                 <div>
-                                  <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-0.5">{details.label}</h4>
-                                  <p className="text-xs text-slate-450 dark:text-slate-400 leading-normal">{details.desc}</p>
+                                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mb-0.5">{details.label}</h4>
+                                  <p className="text-[10px] sm:text-xs text-slate-450 dark:text-slate-400 leading-normal">{details.desc}</p>
                                 </div>
                               </div>
                             </button>
@@ -304,12 +301,12 @@ export default function ReviewPage() {
                       </div>
                     </div>
 
-                    {/* Rating Selector */}
-                    <div className="space-y-3 p-6 bg-base-100/45 dark:bg-base-100/20 border border-slate-200/80 dark:border-slate-800/85 rounded-2xl backdrop-blur-sm">
-                      <label className="text-xs font-black uppercase tracking-wider text-slate-400 block">
+                     {/* Rating Selector */}
+                    <div className="space-y-3 p-4 sm:p-6 bg-base-100/45 dark:bg-base-100/20 border border-slate-200/80 dark:border-slate-800/85 rounded-xl sm:rounded-2xl backdrop-blur-sm">
+                      <label className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
                         2. Overall Rating
                       </label>
-                      <div className="flex items-center gap-3 py-2">
+                      <div className="flex flex-wrap items-center gap-3 py-2">
                         <div className="flex gap-1.5">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
@@ -321,7 +318,7 @@ export default function ReviewPage() {
                               className="p-1 cursor-pointer hover:scale-110 active:scale-95 transition-transform bg-transparent border-none"
                             >
                               <Star
-                                className={`w-8 h-8 transition-colors ${
+                                className={`w-6 h-6 sm:w-8 sm:h-8 transition-colors ${
                                   star <= (hoverRating || rating)
                                     ? "fill-amber-400 text-amber-400"
                                     : "text-slate-300 dark:text-slate-700"
@@ -373,7 +370,7 @@ export default function ReviewPage() {
 
                     {/* Message Field */}
                     <div className="space-y-3">
-                      <label htmlFor="message" className="text-xs font-black uppercase tracking-wider text-slate-400 block">
+                      <label htmlFor="message" className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 block">
                         3. Review & Feedback (Optional)
                       </label>
                       <div className="relative">
@@ -383,7 +380,7 @@ export default function ReviewPage() {
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
                           placeholder="What did you love? Any features you'd like to suggest? Let us know..."
-                          className="w-full bg-base-100/50 dark:bg-base-100/20 border border-black/15 dark:border-white/15 rounded-2xl p-4 text-sm focus:outline-none focus:border-[#1D4ED8] text-slate-805 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-750 transition-colors"
+                          className="w-full bg-base-100/50 dark:bg-base-100/20 border border-black/15 dark:border-white/15 rounded-2xl p-4 text-xs sm:text-sm focus:outline-none focus:border-[#1D4ED8] text-slate-805 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-750 transition-colors"
                           maxLength={1000}
                         />
                         <div className="absolute bottom-4 right-4 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
@@ -419,21 +416,21 @@ export default function ReviewPage() {
                   </form>
                 </div>
 
-                {/* Right Live Ticket/Interactive Preview */}
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="bg-base-100/60 dark:bg-base-100/40 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden shadow-xl">
+                {/* Right Live Review/Interactive Preview */}
+                <div className="lg:col-span-6 space-y-6">
+                  <div className="bg-base-100/60 dark:bg-base-100/40 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl px-3 sm:px-4 py-6 backdrop-blur-xl relative overflow-hidden shadow-xl">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
                     
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
                       <div className="flex items-center gap-2">
                         <Terminal className="w-4 h-4 text-blue-505 dark:text-blue-400" />
-                        <span className="text-xs font-black tracking-widest uppercase text-slate-500 dark:text-slate-400">Live Ticket Preview</span>
+                        <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase text-slate-700 dark:text-slate-200">Live Review Preview</span>
                       </div>
                       <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
 
-                     {/* Simulated Ticket Card with 3D Float Effect & White Shadow */}
+                     {/* Simulated Review Card with 3D Float Effect & White Shadow */}
                     <motion.div 
                       animate={{
                         y: [0, -6, 0],
@@ -451,29 +448,29 @@ export default function ReviewPage() {
                       className="border border-black/10 dark:border-white/15 rounded-2xl bg-base-100 dark:bg-[#0a0e1a] p-5 relative overflow-hidden shadow-[-15px_20px_35px_rgba(0,0,0,0.35),_0_0_15px_rgba(255,255,255,0.07)] dark:shadow-[-15px_20px_35px_rgba(0,0,0,0.55),_0_0_15px_rgba(255,255,255,0.04)] transition-all duration-300"
                     >
                       <div className="space-y-4 pt-2" style={{ transform: "translateZ(20px)" }}>
-                        {/* Ticket category badge */}
+                        {/* Review category badge */}
                         <div className="flex justify-between items-start">
                           <div>
-                            <span className="text-[10px] font-bold text-slate-550/80 dark:text-white/50 block uppercase">Ticket Type</span>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-gradient-to-r ${currentCat.color} text-white mt-1 shadow-sm`}>
-                              <currentCat.icon className="w-3 h-3" />
+                            <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase tracking-wider">Review Type</span>
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r ${currentCat.color} text-white mt-1.5 shadow-sm`}>
+                              <currentCat.icon className="w-2.5 h-2.5" />
                               {currentCat.label}
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="text-[10px] font-bold text-slate-550/80 dark:text-white/50 block uppercase">Ticket ID</span>
-                            <span className="font-mono text-xs font-black text-slate-600 dark:text-slate-350 mt-1 block">#GLX-5532</span>
+                            <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase tracking-wider">Review ID</span>
+                            <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-100 mt-1.5 block">#GLX-5532</span>
                           </div>
                         </div>
 
                         {/* Stars */}
                         <div>
-                          <span className="text-[10px] font-bold text-slate-550/80 dark:text-white/50 block uppercase mb-1">Assigned Rating</span>
-                          <div className="flex gap-0.5">
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase tracking-wider mb-1.5">Assigned Rating</span>
+                          <div className="flex gap-1">
                             {Array.from({ length: 5 }).map((_, idx) => (
                               <Star 
                                 key={idx} 
-                                className={`w-4 h-4 ${idx < rating ? "fill-amber-400 text-amber-400" : "text-slate-200 dark:text-slate-800"}`} 
+                                className={`w-5 h-5 ${idx < rating ? "fill-amber-400 text-amber-400" : "text-slate-300 dark:text-slate-800"}`} 
                               />
                             ))}
                           </div>
@@ -481,8 +478,8 @@ export default function ReviewPage() {
 
                         {/* Message */}
                         <div>
-                          <span className="text-[10px] font-bold text-slate-550/80 dark:text-white/50 block uppercase mb-1">Citizen Statement</span>
-                          <div className="p-3 bg-base-100/50 dark:bg-base-100/20 border border-slate-205 dark:border-white/10 rounded-xl min-h-[70px] text-xs text-slate-600 dark:text-slate-300 italic whitespace-pre-wrap leading-relaxed">
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase tracking-wider mb-1.5">Citizen Statement</span>
+                          <div className="p-3.5 bg-base-100/55 dark:bg-base-100/25 border border-slate-200 dark:border-white/15 rounded-xl min-h-[80px] max-h-[180px] overflow-y-auto text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium italic whitespace-pre-wrap leading-relaxed break-words scrollbar-thin">
                             {message ? `"${message}"` : '"No details provided. Overall rating submitted."'}
                           </div>
                         </div>
@@ -493,14 +490,14 @@ export default function ReviewPage() {
                         {/* Metadata fields */}
                         <div className="grid grid-cols-2 gap-3 pt-2">
                           <div>
-                            <span className="text-[9px] font-bold text-slate-550/80 dark:text-white/50 block uppercase">Version</span>
-                            <span className="font-mono text-[10px] font-bold text-slate-600 dark:text-slate-350">{appVersion}</span>
+                            <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase tracking-wider">Version</span>
+                            <span className="font-mono text-xs font-bold text-slate-805 dark:text-slate-100">{appVersion}</span>
                           </div>
                           <div>
-                            <span className="text-[9px] font-bold text-slate-550/80 dark:text-white/50 block uppercase flex items-center gap-1">
-                              <Smartphone className="w-2.5 h-2.5 text-blue-550 dark:text-blue-400" /> Platform Agent
+                            <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-750 dark:text-slate-200 block uppercase flex items-center gap-1 tracking-wider">
+                              <Smartphone className="w-2.5 h-2.5 text-blue-550 dark:text-blue-450" /> Platform Agent
                             </span>
-                            <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate block mt-0.5" title={deviceInfo}>Web Browser</span>
+                            <span className="font-mono text-xs text-slate-700 dark:text-slate-200 truncate block mt-0.5" title={deviceInfo}>Web Browser</span>
                           </div>
                         </div>
                       </div>
@@ -508,11 +505,11 @@ export default function ReviewPage() {
 
                     {/* DTO specs box */}
                     <div className="mt-4 p-4 rounded-2xl bg-base-100/40 dark:bg-base-100/20 border border-slate-200 dark:border-white/10 space-y-2">
-                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-350">
                         <ShieldCheck className="w-4 h-4 text-blue-550 dark:text-blue-400" />
                         <span className="text-xs font-black uppercase tracking-wider">Payload Integrity</span>
                       </div>
-                      <p className="text-[11px] text-slate-450 dark:text-slate-500 leading-normal">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal font-medium">
                         All submissions pack a verified DTO scheme that carries device context and platform versions to guarantee accurate diagnostics.
                       </p>
                     </div>
@@ -535,7 +532,7 @@ export default function ReviewPage() {
               <button onClick={() => navigate("/review")} className="text-red-600 dark:text-red-400 bg-transparent border-none p-0 cursor-pointer font-semibold">Review</button>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-              © 2026 Govlyx
+              © 2026&nbsp;<span className="notranslate" translate="no">Govlyx</span>
             </p>
           </div>
         </footer>

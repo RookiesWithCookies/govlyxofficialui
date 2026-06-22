@@ -268,16 +268,16 @@ function MediaUploadZone({
   // Dynamic colors that work perfectly in both light & dark themes
   const accentBorder = accent === "green" 
     ? "border-green-500/20 dark:border-green-500/30" 
-    : "border-primary/20 dark:border-primary/30";
+    : "border-[#1D4ED8]/50 dark:border-[#1D4ED8]/60";
   const accentBg = accent === "green" 
     ? "bg-green-500/[0.02] dark:bg-green-500/[0.04]" 
-    : "bg-primary/[0.02] dark:bg-primary/[0.04]";
+    : "bg-[#1D4ED8]/[0.01] dark:bg-[#1D4ED8]/[0.02]";
   const accentText = accent === "green" 
     ? "text-green-600 dark:text-green-400" 
-    : "text-primary dark:text-blue-400";
+    : "text-[#1D4ED8] dark:text-blue-400";
   const accentHover = accent === "green" 
     ? "hover:border-green-500/40 hover:bg-green-500/[0.05] dark:hover:border-green-500/50" 
-    : "hover:border-primary/40 hover:bg-primary/[0.05] dark:hover:border-[#1D4ED8]/40";
+    : "hover:border-[#1D4ED8]/70 hover:bg-[#1D4ED8]/[0.05] dark:hover:border-[#1D4ED8]/80";
 
   const handleFiles = async (incoming: FileList | null) => {
     if (!incoming) return;
@@ -688,30 +688,105 @@ function PostForm({
 
     if (!selectedText) return;
 
-    let formatted = "";
-    if (formatType === "bold") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d400); // Bold A-Z
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d41a); // Bold a-z
-        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce); // Bold 0-9
+    interface DecodedChar {
+      char: string;
+      bold: boolean;
+      italic: boolean;
+      mono: boolean;
+    }
+
+    const decodeChar = (codePoint: number): DecodedChar => {
+      // Bold Italic
+      if (codePoint >= 0x1d468 && codePoint <= 0x1d481) return { char: String.fromCharCode(codePoint - 0x1d468 + 65), bold: true, italic: true, mono: false };
+      if (codePoint >= 0x1d482 && codePoint <= 0x1d49b) return { char: String.fromCharCode(codePoint - 0x1d482 + 97), bold: true, italic: true, mono: false };
+
+      // Bold
+      if (codePoint >= 0x1d400 && codePoint <= 0x1d419) return { char: String.fromCharCode(codePoint - 0x1d400 + 65), bold: true, italic: false, mono: false };
+      if (codePoint >= 0x1d41a && codePoint <= 0x1d433) return { char: String.fromCharCode(codePoint - 0x1d41a + 97), bold: true, italic: false, mono: false };
+      if (codePoint >= 0x1d7ce && codePoint <= 0x1d7d7) return { char: String.fromCharCode(codePoint - 0x1d7ce + 48), bold: true, italic: false, mono: false };
+
+      // Italic
+      if (codePoint >= 0x1d434 && codePoint <= 0x1d44d) return { char: String.fromCharCode(codePoint - 0x1d434 + 65), bold: false, italic: true, mono: false };
+      if (codePoint >= 0x1d44e && codePoint <= 0x1d467) return { char: String.fromCharCode(codePoint - 0x1d44e + 97), bold: false, italic: true, mono: false };
+      if (codePoint === 0x210e) return { char: "h", bold: false, italic: true, mono: false };
+
+      // Monospace
+      if (codePoint >= 0x1d670 && codePoint <= 0x1d689) return { char: String.fromCharCode(codePoint - 0x1d670 + 65), bold: false, italic: false, mono: true };
+      if (codePoint >= 0x1d68a && codePoint <= 0x1d6a3) return { char: String.fromCharCode(codePoint - 0x1d68a + 97), bold: false, italic: false, mono: true };
+      if (codePoint >= 0x1d7f6 && codePoint <= 0x1d7ff) return { char: String.fromCharCode(codePoint - 0x1d7f6 + 48), bold: false, italic: false, mono: true };
+
+      // Normal
+      return { char: String.fromCodePoint(codePoint), bold: false, italic: false, mono: false };
+    };
+
+    const encodeChar = (char: string, bold: boolean, italic: boolean, mono: boolean): string => {
+      const code = char.charCodeAt(0);
+      
+      if (mono) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d670);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d68a);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7f6);
         return char;
+      }
+
+      if (bold && italic) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d468);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d482);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce);
+        return char;
+      }
+
+      if (bold) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d400);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d41a);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce);
+        return char;
+      }
+
+      if (italic) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d434);
+        if (code === 104) return 'ℎ';
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d44e);
+        return char;
+      }
+
+      return char;
+    };
+
+    const decoded = Array.from(selectedText).map(char => {
+      const cp = char.codePointAt(0) || 0;
+      return decodeChar(cp);
+    });
+
+    const canApplyBold = decoded.some(c => /[A-Za-z0-9]/.test(c.char) && !c.bold);
+    const canApplyItalic = decoded.some(c => /[A-Za-z]/.test(c.char) && !c.italic);
+    const canApplyMono = decoded.some(c => /[A-Za-z0-9]/.test(c.char) && !c.mono);
+
+    let formatted = "";
+
+    if (formatType === "bold") {
+      const turnOn = canApplyBold;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z0-9]/.test(c.char)) {
+          return encodeChar(c.char, turnOn, c.italic, false);
+        }
+        return c.char;
       }).join('');
     } else if (formatType === "italic") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d434); // Italic A-Z
-        if (code === 104) return 'ℎ'; // Special case for h
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d44e); // Italic a-z
-        return char;
+      const turnOn = canApplyItalic;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z]/.test(c.char)) {
+          return encodeChar(c.char, c.bold, turnOn, false);
+        }
+        return c.char;
       }).join('');
     } else if (formatType === "mono") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d670); // Monospace A-Z
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d68a); // Monospace a-z
-        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7f6); // Monospace 0-9
-        return char;
+      const turnOn = canApplyMono;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z0-9]/.test(c.char)) {
+          return encodeChar(c.char, false, false, turnOn);
+        }
+        return c.char;
       }).join('');
     }
 
@@ -1087,8 +1162,13 @@ function PostForm({
                     <div
                       key={u.id}
                       onClick={() => insertMention(u)}
-                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${i === selectedIndex ? "bg-[#1D4ED8]/10 text-[#1D4ED8]" : "hover:bg-base-200"
-                        }`}
+                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                        i === selectedIndex
+                          ? (isReportingIssue
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400 dark:bg-green-500/20"
+                              : "bg-[#1D4ED8]/10 text-[#1D4ED8]")
+                          : "hover:bg-base-200"
+                      }`}
                     >
                       <img
                         src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(u.username)}`}
@@ -1372,30 +1452,105 @@ function PollForm({
 
     if (!selectedText) return;
 
-    let formatted = "";
-    if (formatType === "bold") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d400); // Bold A-Z
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d41a); // Bold a-z
-        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce); // Bold 0-9
+    interface DecodedChar {
+      char: string;
+      bold: boolean;
+      italic: boolean;
+      mono: boolean;
+    }
+
+    const decodeChar = (codePoint: number): DecodedChar => {
+      // Bold Italic
+      if (codePoint >= 0x1d468 && codePoint <= 0x1d481) return { char: String.fromCharCode(codePoint - 0x1d468 + 65), bold: true, italic: true, mono: false };
+      if (codePoint >= 0x1d482 && codePoint <= 0x1d49b) return { char: String.fromCharCode(codePoint - 0x1d482 + 97), bold: true, italic: true, mono: false };
+
+      // Bold
+      if (codePoint >= 0x1d400 && codePoint <= 0x1d419) return { char: String.fromCharCode(codePoint - 0x1d400 + 65), bold: true, italic: false, mono: false };
+      if (codePoint >= 0x1d41a && codePoint <= 0x1d433) return { char: String.fromCharCode(codePoint - 0x1d41a + 97), bold: true, italic: false, mono: false };
+      if (codePoint >= 0x1d7ce && codePoint <= 0x1d7d7) return { char: String.fromCharCode(codePoint - 0x1d7ce + 48), bold: true, italic: false, mono: false };
+
+      // Italic
+      if (codePoint >= 0x1d434 && codePoint <= 0x1d44d) return { char: String.fromCharCode(codePoint - 0x1d434 + 65), bold: false, italic: true, mono: false };
+      if (codePoint >= 0x1d44e && codePoint <= 0x1d467) return { char: String.fromCharCode(codePoint - 0x1d44e + 97), bold: false, italic: true, mono: false };
+      if (codePoint === 0x210e) return { char: "h", bold: false, italic: true, mono: false };
+
+      // Monospace
+      if (codePoint >= 0x1d670 && codePoint <= 0x1d689) return { char: String.fromCharCode(codePoint - 0x1d670 + 65), bold: false, italic: false, mono: true };
+      if (codePoint >= 0x1d68a && codePoint <= 0x1d6a3) return { char: String.fromCharCode(codePoint - 0x1d68a + 97), bold: false, italic: false, mono: true };
+      if (codePoint >= 0x1d7f6 && codePoint <= 0x1d7ff) return { char: String.fromCharCode(codePoint - 0x1d7f6 + 48), bold: false, italic: false, mono: true };
+
+      // Normal
+      return { char: String.fromCodePoint(codePoint), bold: false, italic: false, mono: false };
+    };
+
+    const encodeChar = (char: string, bold: boolean, italic: boolean, mono: boolean): string => {
+      const code = char.charCodeAt(0);
+      
+      if (mono) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d670);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d68a);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7f6);
         return char;
+      }
+
+      if (bold && italic) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d468);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d482);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce);
+        return char;
+      }
+
+      if (bold) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d400);
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d41a);
+        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7ce);
+        return char;
+      }
+
+      if (italic) {
+        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d434);
+        if (code === 104) return 'ℎ';
+        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d44e);
+        return char;
+      }
+
+      return char;
+    };
+
+    const decoded = Array.from(selectedText).map(char => {
+      const cp = char.codePointAt(0) || 0;
+      return decodeChar(cp);
+    });
+
+    const canApplyBold = decoded.some(c => /[A-Za-z0-9]/.test(c.char) && !c.bold);
+    const canApplyItalic = decoded.some(c => /[A-Za-z]/.test(c.char) && !c.italic);
+    const canApplyMono = decoded.some(c => /[A-Za-z0-9]/.test(c.char) && !c.mono);
+
+    let formatted = "";
+
+    if (formatType === "bold") {
+      const turnOn = canApplyBold;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z0-9]/.test(c.char)) {
+          return encodeChar(c.char, turnOn, c.italic, false);
+        }
+        return c.char;
       }).join('');
     } else if (formatType === "italic") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d434); // Italic A-Z
-        if (code === 104) return 'ℎ';
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d44e); // Italic a-z
-        return char;
+      const turnOn = canApplyItalic;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z]/.test(c.char)) {
+          return encodeChar(c.char, c.bold, turnOn, false);
+        }
+        return c.char;
       }).join('');
     } else if (formatType === "mono") {
-      formatted = selectedText.split('').map(char => {
-        const code = char.charCodeAt(0);
-        if (code >= 65 && code <= 90) return String.fromCodePoint(code - 65 + 0x1d670); // Monospace A-Z
-        if (code >= 97 && code <= 122) return String.fromCodePoint(code - 97 + 0x1d68a); // Monospace a-z
-        if (code >= 48 && code <= 57) return String.fromCodePoint(code - 48 + 0x1d7f6); // Monospace 0-9
-        return char;
+      const turnOn = canApplyMono;
+      formatted = decoded.map(c => {
+        if (/[A-Za-z0-9]/.test(c.char)) {
+          return encodeChar(c.char, false, false, turnOn);
+        }
+        return c.char;
       }).join('');
     }
 

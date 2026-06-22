@@ -114,7 +114,10 @@ export default function LandingPage() {
       comments: 88,
       shares: 14,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      commented: false,
+      shared: false,
+      flagged: false
     },
     {
       id: "post-2",
@@ -127,7 +130,10 @@ export default function LandingPage() {
       comments: 34,
       shares: 2,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      commented: false,
+      shared: false,
+      flagged: false
     },
     {
       id: "post-3",
@@ -140,7 +146,10 @@ export default function LandingPage() {
       comments: 134,
       shares: 45,
       liked: false,
-      bookmarked: false
+      bookmarked: false,
+      commented: false,
+      shared: false,
+      flagged: false
     }
   ]);
 
@@ -167,6 +176,52 @@ export default function LandingPage() {
           return {
             ...post,
             bookmarked: !post.bookmarked
+          };
+        }
+        return post;
+      })
+    );
+  };
+
+  const handleCommentPost = (postId: string) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => {
+        if (post.id === postId) {
+          const isCommentedNow = !post.commented;
+          return {
+            ...post,
+            commented: isCommentedNow,
+            comments: isCommentedNow ? post.comments + 1 : post.comments - 1
+          };
+        }
+        return post;
+      })
+    );
+  };
+
+  const handleSharePost = (postId: string) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => {
+        if (post.id === postId) {
+          const isSharedNow = !post.shared;
+          return {
+            ...post,
+            shared: isSharedNow,
+            shares: isSharedNow ? post.shares + 1 : post.shares - 1
+          };
+        }
+        return post;
+      })
+    );
+  };
+
+  const handleFlagPost = (postId: string) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            flagged: !post.flagged
           };
         }
         return post;
@@ -207,7 +262,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 z-[100] bg-base-100/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 h-[72px] transition-colors duration-300">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <a href="#" className="flex items-center">
-            <GovlyxLogo showText size={44} markScale={0.9} textClassName="text-2xl sm:text-3xl" />
+            <GovlyxLogo showText size={44} markScale={0.9} textClassName="hidden sm:block text-2xl sm:text-3xl" />
           </a>
           
           {/* Desktop Navigation */}
@@ -215,34 +270,10 @@ export default function LandingPage() {
             <a href="#features" className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
             <button onClick={() => navigate("/upcoming-updates")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Updates</button>
             <button onClick={() => navigate("/review")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Review</button>
+            <button onClick={() => navigate("/privacy-policy")} className="text-base font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer">Policy</button>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Language Dropdown */}
-            <div className="dropdown dropdown-end notranslate hidden md:block">
-              <div tabIndex={0} role="button" className="flex items-center gap-1.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer">
-                <Globe className="w-6 h-6" />
-                <span className="text-sm uppercase font-black tracking-wider hidden sm:inline">{language}</span>
-                <ChevronDown className="w-4 h-4 opacity-60" />
-              </div>
-              <ul tabIndex={0} className="dropdown-content menu p-1.5 shadow-2xl bg-base-100 border border-base-300 rounded-2xl w-44 z-[120] mt-1 gap-0.5 max-h-60 overflow-y-auto flex-nowrap">
-                {SUPPORTED_LANGUAGES.map((l) => (
-                  <li key={l.code}>
-                    <button
-                      onClick={() => setLanguage(l.code as LangCode)}
-                      className={`flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl ${
-                        language === l.code
-                          ? "bg-[#1D4ED8] text-white"
-                          : "hover:bg-base-200 text-base-content/85"
-                      }`}
-                    >
-                      <span>{l.nativeLabel}</span>
-                      {language === l.code && <Check className="w-3.5 h-3.5" />}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
 
             <button 
               onClick={toggleTheme} 
@@ -336,42 +367,17 @@ export default function LandingPage() {
               >
                 Review
               </button>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/privacy-policy");
+                }}
+                className="w-full text-left block px-3 py-2.5 rounded-lg text-base font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors bg-transparent border-none cursor-pointer"
+              >
+                Policy
+              </button>
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                {/* Language Selector in Mobile Menu */}
-                <div className="dropdown w-full notranslate">
-                  <div tabIndex={0} role="button" className="btn btn-outline border-slate-200 dark:border-slate-800/60 w-full flex items-center justify-between px-4 py-2.5 h-10 rounded-lg text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <span className="flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      <span>Interface Language</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-xs uppercase font-bold opacity-60">
-                        {SUPPORTED_LANGUAGES.find(l => l.code === language)?.nativeLabel || language}
-                      </span>
-                      <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                    </span>
-                  </div>
-                  <ul tabIndex={0} className="dropdown-content menu p-1.5 shadow-2xl bg-base-100 border border-base-300 rounded-2xl w-full z-[120] mt-1 max-h-48 overflow-y-auto gap-0.5 flex-nowrap">
-                    {SUPPORTED_LANGUAGES.map((l) => (
-                      <li key={l.code}>
-                        <button
-                          onClick={() => {
-                            setLanguage(l.code as LangCode);
-                          }}
-                          className={`flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl ${
-                            language === l.code
-                              ? "bg-[#1D4ED8] text-white"
-                              : "hover:bg-base-200 text-base-content/85"
-                          }`}
-                        >
-                          <span>{l.nativeLabel}</span>
-                          {language === l.code && <Check className="w-3.5 h-3.5" />}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
 
                 <div className="flex items-center gap-3">
                   <button
@@ -409,12 +415,12 @@ export default function LandingPage() {
           <div className="max-w-2xl mx-auto lg:mx-0 w-full text-center lg:text-left order-1 lg:order-1 mt-4 lg:mt-0 lg:pl-10">
 
             
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-3 lg:mb-4">
-              Connecting Every Indian to Their <br className="hidden sm:block" />
+            <h1 className="text-[5.8vw] xs:text-[5.5vw] sm:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-slate-900 dark:text-white leading-[1.2] tracking-tight mb-3 lg:mb-4 flex flex-col items-center lg:items-start gap-1">
+              <span className="whitespace-nowrap lg:whitespace-normal xl:whitespace-nowrap">Connecting Every Indian to Their</span>
               <span
                 onMouseEnter={() => setTitleHovered(true)}
                 onMouseLeave={() => setTitleHovered(false)}
-                className="relative inline-flex flex-wrap gap-x-[0.25em] cursor-default select-none text-[#ff5f5f] pb-1"
+                className="relative inline-flex flex-nowrap gap-x-[0.25em] cursor-default select-none text-[#ff5f5f] pb-1"
               >
                 {words.map((wordChars, wordIdx) => (
                   <span key={wordIdx} className="inline-block whitespace-nowrap">
@@ -484,7 +490,7 @@ export default function LandingPage() {
                   className={`w-full bg-base-200 border rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-left text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                     destinationOpen
                       ? "border-[#1D4ED8]"
-                      : "border-black/10 dark:border-base-300 hover:border-[#1D4ED8]/60 dark:hover:border-[#1D4ED8]/60"
+                      : "border-black/10 dark:border-white/20 hover:border-[#1D4ED8]/60 dark:hover:border-[#1D4ED8]/60"
                   }`}
                   >
                     <span className="truncate">{selectedDestination.name}</span>
@@ -526,7 +532,7 @@ export default function LandingPage() {
 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-3 notranslate">
                   <div className="dropdown dropdown-top w-full">
-                    <div tabIndex={0} role="button" className="w-full bg-base-200 border border-black/10 dark:border-base-300 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-between gap-3">
+                    <div tabIndex={0} role="button" className="w-full bg-base-200 border border-black/10 dark:border-white/20 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-between gap-3">
                       <span className="flex items-center gap-2 min-w-0">
                         <Globe className="w-3.5 h-3.5 shrink-0 text-slate-500" />
                         <span className="truncate">
@@ -557,7 +563,7 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="bg-base-200 border border-black/10 dark:border-base-300 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="bg-base-200 border border-black/10 dark:border-white/20 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:border-[#1D4ED8]/60 transition-all cursor-pointer flex items-center justify-center gap-2"
                     aria-label="Toggle Theme"
                   >
                     {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
@@ -639,8 +645,15 @@ export default function LandingPage() {
                           <div className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase">{post.time}</div>
                         </div>
                       </div>
-                      <button className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors p-0.5 rounded cursor-pointer">
-                        <Flag className="w-3 h-3" />
+                      <button 
+                        onClick={() => handleFlagPost(post.id)}
+                        className={`transition-colors p-0.5 rounded cursor-pointer ${
+                          post.flagged 
+                            ? "text-red-500 dark:text-red-400" 
+                            : "text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400"
+                        }`}
+                      >
+                        <Flag className={`w-3 h-3 ${post.flagged ? "fill-red-500 dark:fill-red-400" : ""}`} />
                       </button>
                     </div>
                     
@@ -665,28 +678,42 @@ export default function LandingPage() {
                       </button>
 
                       {/* Comments count */}
-                      <span className="flex items-center gap-1 p-1">
-                        <MessageSquare className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                      <button 
+                        onClick={() => handleCommentPost(post.id)}
+                        className={`flex items-center gap-1 transition-all duration-200 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
+                          post.commented 
+                            ? "text-blue-600 dark:text-blue-400" 
+                            : "hover:text-blue-600 dark:hover:text-blue-400"
+                        }`}
+                      >
+                        <MessageSquare className={`w-3.5 h-3.5 ${post.commented ? "fill-blue-600 dark:fill-blue-400" : ""}`} />
                         <span>{post.comments}</span>
-                      </span>
+                      </button>
 
                       {/* Shares count */}
-                      <span className="flex items-center gap-1 p-1">
-                        <Share2 className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                      <button 
+                        onClick={() => handleSharePost(post.id)}
+                        className={`flex items-center gap-1 transition-all duration-200 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
+                          post.shared 
+                            ? "text-emerald-600 dark:text-emerald-500" 
+                            : "hover:text-emerald-600 dark:hover:text-emerald-400"
+                        }`}
+                      >
+                        <Share2 className={`w-3.5 h-3.5 ${post.shared ? "fill-emerald-600 dark:fill-emerald-500" : ""}`} />
                         <span>{post.shares}</span>
-                      </span>
+                      </button>
 
                       {/* Bookmark button */}
                       <button 
                         onClick={() => handleBookmarkPost(post.id)}
                         className={`ml-auto transition-colors duration-200 cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
                           post.bookmarked 
-                            ? "text-[#1D4ED8] dark:text-blue-400" 
-                            : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                            ? "text-amber-500 dark:text-amber-400" 
+                            : "text-slate-400 dark:text-slate-500 hover:text-amber-500 dark:hover:text-amber-400"
                         }`}
                         aria-label="Bookmark"
                       >
-                        <Bookmark className={`w-3.5 h-3.5 ${post.bookmarked ? "fill-[#1D4ED8] dark:fill-blue-400" : ""}`} />
+                        <Bookmark className={`w-3.5 h-3.5 ${post.bookmarked ? "fill-amber-500 dark:fill-amber-400" : ""}`} />
                       </button>
 
                     </div>
@@ -738,37 +765,37 @@ export default function LandingPage() {
           </div>
 
           {/* Pillars Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
-                  <MapPin className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-8">
+            <div className="bg-base-200 border border-base-300 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-4.5">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Neighbourhood</h3>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-base sm:text-lg leading-tight">Your Neighbourhood</h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm leading-relaxed">
                 See only posts and issues from your pincode area. Not national noise — just your street, ward, and colony.
               </p>
             </div>
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
-                  <Landmark className="w-6 h-6" />
+            <div className="bg-base-200 border border-base-300 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-4.5">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <Landmark className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Government</h3>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-base sm:text-lg leading-tight">Your Government</h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm leading-relaxed">
                 Government departments post updates, schemes, real-time alerts and announcements directly to you.
               </p>
             </div>
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
-                  <Handshake className="w-6 h-6" />
+            <div className="bg-base-200 border border-base-300 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-4.5">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-[#1D4ED8]/10 dark:bg-[#1D4ED8]/20 text-[#1D4ED8] dark:text-[#1D4ED8] flex items-center justify-center shrink-0">
+                  <Handshake className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h3 className="font-extrabold text-slate-950 dark:text-white text-lg leading-tight">Your Community</h3>
+                <h3 className="font-extrabold text-slate-950 dark:text-white text-base sm:text-lg leading-tight">Your Community</h3>
               </div>
-              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm leading-relaxed">
                 Join local groups, discuss issues, vote in polls, and connect with neighbours — all in one place.
               </p>
             </div>
@@ -1241,7 +1268,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-            © 2026 Govlyx
+            © 2026&nbsp;<span className="notranslate" translate="no">Govlyx</span>
           </p>
         </div>
       </footer>

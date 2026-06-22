@@ -3,6 +3,7 @@ import { Flame, Clock, ArrowUp, SlidersHorizontal, Sparkles, ChevronDown } from 
 import { motion, AnimatePresence } from "framer-motion";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PostCard from "../components/post/PostCard";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { AnyPost } from "../components/post/PostCard";
 import EmptyState from "../components/ui/EmptyState";
 import PostSkeleton from "../components/post/PostSkeleton";
@@ -13,7 +14,7 @@ import { parseError } from "../utils/error-handler";
 import { useCurrentUser } from "../hooks/useUser";
 import { toPostCardPost } from "../utils/postUtils";
 
-const FEED_SIZE = 20;
+const FEED_SIZE = 10;
 
 function useFeed(sourceTab: string, sortTab: string) {
   const queryClient = useQueryClient();
@@ -66,6 +67,7 @@ function useFeed(sourceTab: string, sortTab: string) {
     },
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
     initialPageParam: null,
+    placeholderData: (prev) => prev,
   });
 
   const map = new Map<string, AnyPost>();
@@ -217,6 +219,12 @@ const Home = () => {
     role: user.role
   } : undefined;
 
+  const rowVirtualizer = useWindowVirtualizer({
+    count: posts.length,
+    estimateSize: () => 400,
+    overscan: 5,
+  });
+
   const handleLike = useCallback((postId: number, liked: boolean) => {
     updatePost(postId, (post) => {
       const hasDislikeSupport = post.variant === "issue";
@@ -260,6 +268,15 @@ const Home = () => {
 
   const handleDelete = useCallback((postId: number) => {
     deletePost(postId);
+  }, [deletePost]);
+
+  const handleNotInterested = useCallback(async (postId: number) => {
+    deletePost(postId);
+    try {
+      await axiosInstance.post("/api/v1/feed/signal/not-interested", { postId });
+    } catch (err) {
+      console.error("Failed to submit not interested signal:", err);
+    }
   }, [deletePost]);
 
   useEffect(() => {
@@ -404,30 +421,55 @@ const Home = () => {
             <EmptyState title="Nothing here yet" description="Be the first to post, or try a different tab." />
           </div>
         ) : (
-          posts.map((post) => (
-            <div key={`${post.id}-${post.variant}`} className="w-full">
-              <PostCard
-                post={post}
-                currentUser={currentUser}
-                onLike={handleLike}
-                onDislike={handleDislike}
-                onSave={handleSave}
-                onShare={handleShare}
-                onComment={handleComment}
-                onDelete={handleDelete}
-                onResolve={(id, resolved, message) => {
-                  updatePost(id, {
-                    status: resolved ? "RESOLVED" : "ACTIVE",
-                    isResolved: resolved,
-                    resolutionMessage: resolved ? message : undefined,
-                    reopened: !resolved,
-                    isReopened: !resolved,
-                    reopenedReason: !resolved ? message : undefined,
-                  } as Partial<AnyPost>);
-                }}
-              />
-            </div>
-          ))
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const post = posts[virtualItem.index];
+              if (!post) return null;
+              return (
+                <div
+                  key={`${post.id}-${post.variant}`}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualItem.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="pb-6"
+                >
+                  <PostCard
+                    post={post}
+                    currentUser={currentUser}
+                    onLike={handleLike}
+                    onDislike={handleDislike}
+                    onSave={handleSave}
+                    onShare={handleShare}
+                    onComment={handleComment}
+                    onDelete={handleDelete}
+                    onNotInterested={handleNotInterested}
+                    onResolve={(id, resolved, message) => {
+                      updatePost(id, {
+                        status: resolved ? "RESOLVED" : "ACTIVE",
+                        isResolved: resolved,
+                        resolutionMessage: resolved ? message : undefined,
+                        reopened: !resolved,
+                        isReopened: !resolved,
+                        reopenedReason: !resolved ? message : undefined,
+                      } as Partial<AnyPost>);
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {!initialLoading && loading && (

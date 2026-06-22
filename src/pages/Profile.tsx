@@ -119,6 +119,20 @@ const Profile = () => {
   const [hasLoadedSocial, setHasLoadedSocial] = useState(false);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
 
+  // Cursors & HasMore for Issues
+  const [allPostsCursor, setAllPostsCursor] = useState<number | null>(null);
+  const [allPostsHasMore, setAllPostsHasMore] = useState(false);
+  const [activePostsCursor, setActivePostsCursor] = useState<number | null>(null);
+  const [activePostsHasMore, setActivePostsHasMore] = useState(false);
+  const [resolvedPostsCursor, setResolvedPostsCursor] = useState<number | null>(null);
+  const [resolvedPostsHasMore, setResolvedPostsHasMore] = useState(false);
+
+  // Cursors & HasMore for Social Posts
+  const [socialPostsCursor, setSocialPostsCursor] = useState<number | null>(null);
+  const [socialPostsHasMore, setSocialPostsHasMore] = useState(false);
+
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const openEditModal = () => {
     setEditEmail(user?.email || "");
     setEditPincode(user?.pincode || "");
@@ -361,7 +375,8 @@ const Profile = () => {
     const isDeptUser = getUserRole() === "ROLE_DEPARTMENT";
 
     setLoadingPosts(true);
-    apiFetch("/api/posts/my-posts?limit=500")
+    // Fetch initial user posts list (limit reduced to 10 for faster page load)
+    apiFetch("/api/posts/my-posts?limit=10")
       .then((b) => {
         const posts: AnyPost[] = (b?.data?.data ?? []).map((p: any) =>
           isDeptUser
@@ -369,14 +384,29 @@ const Profile = () => {
             : mapIssuePost(p)
         );
         setAllPosts(posts);
-        setIssueCount(posts.length);
+        setAllPostsHasMore(b?.data?.hasMore ?? false);
+        setAllPostsCursor(b?.data?.nextCursor ?? null);
       })
       .catch((err) => {
-        console.error("Failed to fetch user posts:", err);
-        setIssueCount(0);
+        console.error("Failed to fetch user posts list:", err);
+        setAllPosts([]);
       })
       .finally(() => {
         setLoadingPosts(false);
+      });
+
+    // Fetch user posts (Issues) count separately using the dedicated count endpoint
+    apiFetch("/api/posts/count/my-posts")
+      .then((b) => {
+        if (b?.success && b.data !== undefined) {
+          setIssueCount(Number(b.data));
+        } else {
+          setIssueCount(0);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch user posts count:", err);
+        setIssueCount(0);
       });
 
     if (isDeptUser) {
@@ -385,40 +415,31 @@ const Profile = () => {
       return;
     }
 
-    apiFetch("/api/social-posts/my-posts?limit=500")
+    // Fetch user social posts (S-Posts) count separately using the dedicated count endpoint
+    apiFetch("/api/social-posts/count/my-posts")
       .then((b) => {
-        const rawPosts: any[] = b?.data?.data ?? [];
-        const mapped = rawPosts.map(mapSocialPost);
-        setSocialPosts(mapped);
-        setSocialCount(mapped.length);
-        setHasLoadedSocial(true);
+        if (b?.success && b.data !== undefined) {
+          setSocialCount(Number(b.data));
+        } else {
+          setSocialCount(0);
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to fetch user social posts count:", err);
         setSocialCount(0);
       });
 
-    Promise.allSettled([
-      apiFetch("/api/communities/me?limit=100"),
-      apiFetch("/api/communities/owned"),
-    ])
-      .then(([meRes, ownedRes]) => {
-        let joined: any[] = [];
-        if (meRes.status === "fulfilled" && meRes.value?.success) {
-          joined = meRes.value?.data?.data ?? [];
+    // Fetch Groups count separately using the new dedicated count endpoint
+    apiFetch("/api/communities/count/me")
+      .then((b) => {
+        if (b?.success && b.data !== undefined) {
+          setCommunityCount(Number(b.data));
+        } else {
+          setCommunityCount(0);
         }
-        let owned: any[] = [];
-        if (ownedRes.status === "fulfilled" && ownedRes.value?.success) {
-          owned = ownedRes.value?.data ?? [];
-        }
-        const seen = new Set<number>();
-        for (const c of [...owned, ...joined]) {
-          if (c?.id) {
-            seen.add(c.id);
-          }
-        }
-        setCommunityCount(seen.size);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to fetch user communities count:", err);
         setCommunityCount(0);
       });
   }, [user?.id]);
@@ -429,9 +450,11 @@ const Profile = () => {
 
     if (postFilter === "active" && !hasLoadedActive) {
       setLoadingFilteredPosts(true);
-      apiFetch("/api/posts/my-posts/active?limit=100")
+      apiFetch("/api/posts/my-posts/active?limit=10")
         .then((b) => {
           setActivePosts((b?.data?.data ?? []).map(mapIssuePost));
+          setActivePostsHasMore(b?.data?.hasMore ?? false);
+          setActivePostsCursor(b?.data?.nextCursor ?? null);
           setHasLoadedActive(true);
         })
         .catch((err) => console.error("Failed to fetch active posts:", err))
@@ -440,9 +463,11 @@ const Profile = () => {
 
     if (postFilter === "resolved" && !hasLoadedResolved) {
       setLoadingFilteredPosts(true);
-      apiFetch("/api/posts/my-posts/resolved?limit=100")
+      apiFetch("/api/posts/my-posts/resolved?limit=10")
         .then((b) => {
           setResolvedPosts((b?.data?.data ?? []).map(mapIssuePost));
+          setResolvedPostsHasMore(b?.data?.hasMore ?? false);
+          setResolvedPostsCursor(b?.data?.nextCursor ?? null);
           setHasLoadedResolved(true);
         })
         .catch((err) => console.error("Failed to fetch resolved posts:", err))
@@ -456,9 +481,11 @@ const Profile = () => {
     if (hasLoadedSocial) return;
     if (socialPosts.length > 0) return;
     setLoadingSocial(true);
-    apiFetch("/api/social-posts/my-posts?limit=50")
+    apiFetch("/api/social-posts/my-posts?limit=10")
       .then((b) => {
         setSocialPosts((b?.data?.data ?? []).map(mapSocialPost));
+        setSocialPostsHasMore(b?.data?.hasMore ?? false);
+        setSocialPostsCursor(b?.data?.nextCursor ?? null);
         setHasLoadedSocial(true);
       })
       .catch(() => {})
@@ -477,24 +504,15 @@ const Profile = () => {
       apiFetch("/api/interactions/liked?page=0&size=30"),
       apiFetch("/api/interactions/commented?page=0&size=30"),
     ])
-      .then(async ([savedSocialRes, savedPostsRes, likedRes, commentedRes]) => {
+      .then(([savedSocialRes, savedPostsRes, likedRes, commentedRes]) => {
         const items: { post: AnyPost; time: number; type: string }[] = [];
 
         // 1. Process Saved Social
-        let savedSocialPromises: Promise<any>[] = [];
         if (savedSocialRes.status === "fulfilled") {
           const rows = savedSocialRes.value?.data?.content ?? [];
-          savedSocialPromises = rows.map(async (row: any) => {
-            let raw = row.socialPost || row;
-            if (!raw.createdAt && row.socialPostId) {
-              try {
-                const fullPostRes = await apiFetch(`/api/social-posts/${row.socialPostId}`);
-                raw = fullPostRes?.data ?? fullPostRes ?? raw;
-              } catch (e) {
-                console.error("Failed to fetch full social post details", e);
-              }
-            }
-            if (!raw?.id) return null;
+          rows.forEach((row: any) => {
+            const raw = row.socialPost;
+            if (!raw?.id) return;
             const { id: _, socialPost, post, ...interactionData } = row;
             const mapped = toPostCardPost({
               ...raw,
@@ -504,29 +522,20 @@ const Profile = () => {
               isSavedByCurrentUser: true,
             });
             if (!mapped.username) mapped.username = username;
-            return {
+            items.push({
               post: mapped,
               time: new Date(row.savedAt || raw.createdAt || 0).getTime(),
               type: "saved"
-            };
+            });
           });
         }
 
         // 2. Process Saved Regular
-        let savedPostsPromises: Promise<any>[] = [];
         if (savedPostsRes.status === "fulfilled") {
           const rows = savedPostsRes.value?.data?.content ?? [];
-          savedPostsPromises = rows.map(async (row: any) => {
-            let raw = row.post || row;
-            if (!raw.createdAt && row.postId) {
-              try {
-                const fullPostRes = await apiFetch(`/api/posts/${row.postId}`);
-                raw = fullPostRes?.data ?? fullPostRes ?? raw;
-              } catch (e) {
-                console.error("Failed to fetch full broadcast post details", e);
-              }
-            }
-            if (!raw?.id) return null;
+          rows.forEach((row: any) => {
+            const raw = row.post;
+            if (!raw?.id) return;
             const { id: _, socialPost, post, ...interactionData } = row;
             const mapped = toPostCardPost({
               ...raw,
@@ -536,23 +545,13 @@ const Profile = () => {
               isSavedByCurrentUser: true,
             });
             if (!mapped.username) mapped.username = username;
-            return {
+            items.push({
               post: mapped,
               time: new Date(row.savedAt || raw.createdAt || 0).getTime(),
               type: "saved"
-            };
+            });
           });
         }
-
-        const resolvedSavedSocial = await Promise.all(savedSocialPromises);
-        const resolvedSavedPosts = await Promise.all(savedPostsPromises);
-
-        resolvedSavedSocial.forEach((item) => {
-          if (item) items.push(item);
-        });
-        resolvedSavedPosts.forEach((item) => {
-          if (item) items.push(item);
-        });
 
         // 3. Process Liked
         if (likedRes.status === "fulfilled") {
@@ -664,6 +663,71 @@ const Profile = () => {
     if (postFilter === "resolved") return resolvedPosts;
     return allPosts;
   }, [allPosts, activePosts, resolvedPosts, postFilter]);
+
+  const loadMore = useCallback(() => {
+    if (!user?.id || loadingMore) return;
+
+    const isDeptUser = getUserRole() === "ROLE_DEPARTMENT";
+
+    if (tab === "posts") {
+      setLoadingMore(true);
+      if (postFilter === "all") {
+        apiFetch(`/api/posts/my-posts?limit=10&beforeId=${allPostsCursor}`)
+          .then((b) => {
+            const mapped = (b?.data?.data ?? []).map((p: any) =>
+              isDeptUser
+                ? toPostCardPost({ ...p, variant: "government", isGovernmentBroadcast: true })
+                : mapIssuePost(p)
+            );
+            setAllPosts((prev) => [...prev, ...mapped]);
+            setAllPostsHasMore(b?.data?.hasMore ?? false);
+            setAllPostsCursor(b?.data?.nextCursor ?? null);
+          })
+          .catch((err) => console.error("Failed to load more posts:", err))
+          .finally(() => setLoadingMore(false));
+      } else if (postFilter === "active") {
+        apiFetch(`/api/posts/my-posts/active?limit=10&beforeId=${activePostsCursor}`)
+          .then((b) => {
+            const mapped = (b?.data?.data ?? []).map(mapIssuePost);
+            setActivePosts((prev) => [...prev, ...mapped]);
+            setActivePostsHasMore(b?.data?.hasMore ?? false);
+            setActivePostsCursor(b?.data?.nextCursor ?? null);
+          })
+          .catch((err) => console.error("Failed to load more active posts:", err))
+          .finally(() => setLoadingMore(false));
+      } else if (postFilter === "resolved") {
+        apiFetch(`/api/posts/my-posts/resolved?limit=10&beforeId=${resolvedPostsCursor}`)
+          .then((b) => {
+            const mapped = (b?.data?.data ?? []).map(mapIssuePost);
+            setResolvedPosts((prev) => [...prev, ...mapped]);
+            setResolvedPostsHasMore(b?.data?.hasMore ?? false);
+            setResolvedPostsCursor(b?.data?.nextCursor ?? null);
+          })
+          .catch((err) => console.error("Failed to load more resolved posts:", err))
+          .finally(() => setLoadingMore(false));
+      }
+    } else if (tab === "social") {
+      setLoadingMore(true);
+      apiFetch(`/api/social-posts/my-posts?limit=10&beforeId=${socialPostsCursor}`)
+        .then((b) => {
+          const mapped = (b?.data?.data ?? []).map(mapSocialPost);
+          setSocialPosts((prev) => [...prev, ...mapped]);
+          setSocialPostsHasMore(b?.data?.hasMore ?? false);
+          setSocialPostsCursor(b?.data?.nextCursor ?? null);
+        })
+        .catch((err) => console.error("Failed to load more social posts:", err))
+        .finally(() => setLoadingMore(false));
+    }
+  }, [
+    user?.id,
+    tab,
+    postFilter,
+    allPostsCursor,
+    activePostsCursor,
+    resolvedPostsCursor,
+    socialPostsCursor,
+    loadingMore,
+  ]);
 
   return (
     <div className="space-y-4 pt-2 sm:pt-0">
@@ -811,18 +875,35 @@ const Profile = () => {
                   description="Issue posts you create will appear here."
                 />
               ) : (
-                displayedPosts.map((p) => (
-                  <PostCard 
-                    key={p.id} 
-                    post={p} 
-                    currentUser={currentUser} 
-                    onDelete={(id) => handleDelete('posts', id)} 
-                    onResolve={handleResolve}
-                    onLike={(id, liked) => handleLike(id, p.variant, liked)}
-                    onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
-                    onSave={(id, saved) => handleSave(id, p.variant, saved)}
-                  />
-                ))
+                <>
+                  {displayedPosts.map((p) => (
+                    <PostCard 
+                      key={p.id} 
+                      post={p} 
+                      currentUser={currentUser} 
+                      onDelete={(id) => handleDelete('posts', id)} 
+                      onResolve={handleResolve}
+                      onLike={(id, liked) => handleLike(id, p.variant, liked)}
+                      onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
+                      onSave={(id, saved) => handleSave(id, p.variant, saved)}
+                    />
+                  ))}
+
+                  {(postFilter === "all" ? allPostsHasMore : postFilter === "active" ? activePostsHasMore : resolvedPostsHasMore) && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="flex items-center justify-center gap-2 rounded-xl border border-base-300 hover:border-blue-400 px-5 py-2 text-xs sm:text-sm font-semibold transition bg-base-100 hover:bg-base-200 text-base-content shadow-sm hover:shadow active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                      >
+                        {loadingMore && (
+                          <span className="loading loading-spinner loading-xs" />
+                        )}
+                        {loadingMore ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -842,17 +923,34 @@ const Profile = () => {
                   description="Social posts you publish will appear here."
                 />
               ) : (
-                socialPosts.map((p) => (
-                  <PostCard 
-                    key={p.id} 
-                    post={p} 
-                    currentUser={currentUser} 
-                    onDelete={(id) => handleDelete('social-posts', id)} 
-                    onLike={(id, liked) => handleLike(id, p.variant, liked)}
-                    onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
-                    onSave={(id, saved) => handleSave(id, p.variant, saved)}
-                  />
-                ))
+                <>
+                  {socialPosts.map((p) => (
+                    <PostCard 
+                      key={p.id} 
+                      post={p} 
+                      currentUser={currentUser} 
+                      onDelete={(id) => handleDelete('social-posts', id)} 
+                      onLike={(id, liked) => handleLike(id, p.variant, liked)}
+                      onDislike={(id, disliked) => handleDislike(id, p.variant, disliked)}
+                      onSave={(id, saved) => handleSave(id, p.variant, saved)}
+                    />
+                  ))}
+
+                  {socialPostsHasMore && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="flex items-center justify-center gap-2 rounded-xl border border-base-300 hover:border-blue-400 px-5 py-2 text-xs sm:text-sm font-semibold transition bg-base-100 hover:bg-base-200 text-base-content shadow-sm hover:shadow active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                      >
+                        {loadingMore && (
+                          <span className="loading loading-spinner loading-xs" />
+                        )}
+                        {loadingMore ? "Loading..." : "Load More"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

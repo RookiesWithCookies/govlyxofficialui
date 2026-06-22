@@ -12,7 +12,6 @@ import {
   Megaphone,
   BarChart2,
 } from "lucide-react";
-import { FaRocketchat } from "react-icons/fa";
 import { useTheme } from "../../hooks/useTheme";
 import { useCurrentUser } from "../../hooks/useUser";
 import { useUnreadNotificationsCount } from "../../hooks/useNotification";
@@ -22,11 +21,14 @@ import { getUserRole } from "../../utils/auth";
 import axiosInstance from "../../api/axiosConfig";
 import { getActiveTaggedPosts } from "../../api/departmentService";
 
+const QUICK_CHAT_LIGHT_ICON = "/icons/quick_chat_light_theme.gif";
+const QUICK_CHAT_DARK_ICON = "/icons/quick_chat_dark_theme.gif";
+
 const BASE_NAV_ITEMS = [
   { label: "Home", icon: Home, to: "/dashboard" },
   { label: "Communities", icon: Users, to: "/communities" },
   { label: "Notifications", icon: Bell, to: "/notifications" },
-  { label: "Quick Chat", icon: FaRocketchat, to: "/quick-chat" },
+  { label: "Quick Chat", icon: null, to: "/quick-chat" },
   { label: "Profile", icon: User, to: "/profile" },
   { label: "Settings", icon: Settings, to: "/settings" },
 ];
@@ -326,6 +328,7 @@ const SidebarLeft = () => {
           {navItems.map(({ label, icon: Icon, to }) => {
             const isNotifications = label === "Notifications";
             const isIssuesInbox = label === "Issues Inbox";
+            const isQuickChat = label === "Quick Chat";
 
             const isDeptTabLink = to.startsWith("/department/dashboard");
             const isLinkActive = isDeptTabLink
@@ -343,7 +346,18 @@ const SidebarLeft = () => {
                     : "hover:bg-base-300 text-base-content/70"
                   }`}
               >
-                <Icon size={18} />
+                {isQuickChat ? (
+                  <img
+                    src={theme === "dark" ? QUICK_CHAT_DARK_ICON : QUICK_CHAT_LIGHT_ICON}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    onContextMenu={(event) => event.preventDefault()}
+                    className="h-[18px] w-[18px] flex-shrink-0 rounded-[2px] object-contain"
+                  />
+                ) : Icon ? (
+                  <Icon size={18} />
+                ) : null}
                 <span className="flex-1">{label}</span>
                 {isNotifications && unreadCount !== undefined && unreadCount > 0 && (
                   <span className="bg-error text-error-content text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">

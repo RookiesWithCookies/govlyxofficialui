@@ -25,7 +25,7 @@ import PostCard from "../components/post/PostCard";
 import PostSkeleton from "../components/post/PostSkeleton";
 import ImageEditorModal from "../components/modals/ImageEditorModal";
 import type { CurrentUser as CardUser } from "../components/post/PostCard";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import ConfirmModal from "../components/post/ConfirmModal";
 import { toPostCardPost } from "../utils/postUtils";
 import { jwtDecode } from "jwt-decode";
@@ -33,6 +33,7 @@ import { cacheSuggestion } from "../utils/searchCache";
 import { apiUrl } from "../utils/apiUrl";
 import { communityService } from "../api/communityService";
 import { showToast } from "../utils/toast";
+import { postService } from "../api/postService";
 
 /* ────────────────────────────────────────────────────────────────────────────
    useBackNavigation – intercept the browser/hardware back button so it
@@ -1010,6 +1011,7 @@ function AdminPanel({
   const { closeViaUI } = useBackNavigation(onClose);
   const [tab, setTab] = useState<AdminTab>("requests");
   const [c, setC] = useState(community);
+  const [panelAnimDone, setPanelAnimDone] = useState(false);
 
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [reqLoading, setReqLoading] = useState(false);
@@ -1348,12 +1350,13 @@ function AdminPanel({
   return (
     <div className="fixed inset-0 z-[110] flex" onClick={closeViaUI}>
       <div className="absolute inset-0 bg-black/60" />
+      <style>{`@keyframes slideRPanel{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
       <div
         className="relative ml-auto w-full max-w-lg h-full bg-base-100 flex flex-col shadow-2xl"
-        style={{ animation: "slideR .22s ease-out" }}
+        style={panelAnimDone ? {} : { animation: "slideRPanel .22s ease-out forwards" }}
+        onAnimationEnd={() => setPanelAnimDone(true)}
         onClick={e => e.stopPropagation()}
       >
-        <style>{`@keyframes slideR{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
 
         <div className="shrink-0 px-4 py-3 border-b border-base-300 bg-base-100">
           <div className="flex items-center justify-between mb-3">
@@ -2131,6 +2134,7 @@ function DetailPanel({
     raw.isOwner ? { ...raw, isMember: true } : raw;
 
   const [c, setC] = useState(() => normalise(community));
+  const [panelAnimDone, setPanelAnimDone] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [tab, setTab] = useState<"posts" | "chat" | "about">("posts");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -2141,6 +2145,35 @@ function DetailPanel({
   const [openCreatePost, setOpenCreatePost] = useState(false);
   const [postSort, setPostSort] = useState<"NEW" | "TOP">("NEW");
   const [cursorScore, setCursorScore] = useState<number | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const postId = searchParams.get("postId");
+
+  const {
+    data: singlePost,
+    isLoading: loadingSinglePost,
+    error: singlePostError,
+  } = useQuery({
+    queryKey: ["social-post", postId],
+    queryFn: async () => {
+      if (!postId) return null;
+      const raw: any = await postService.getPostById(Number(postId), "social-posts");
+      const postData = raw?.data || raw;
+      return toPostCardPost({
+        ...postData,
+        variant: "social",
+        username: postData.authorUsername || postData.username,
+        userProfileImage: postData.authorProfileImage || postData.userProfileImage,
+        isLikedByCurrentUser: postData.isLikedByMe || postData.isLikedByCurrentUser,
+        communityId: c.id,
+        communityName: c.name,
+        communityAvatar: c.avatarUrl || undefined,
+        communityMemberCount: String(c.memberCount || 0),
+        isMember: c.isMember,
+      });
+    },
+    enabled: !!postId && !!c.id && (c.isMember || c.isOwner || c.privacy === "PUBLIC"),
+  });
 
   // ── JWT Decode for CurrentUser ──
   const currentUser: CardUser | null = (() => {
@@ -2315,8 +2348,11 @@ function DetailPanel({
   return (
     <div className="fixed inset-0 z-[110] flex" onClick={closeViaUI}>
       <div className="absolute inset-0 bg-black/60" />
-      <div className="relative ml-auto w-full max-w-2xl sm:max-w-3xl h-full bg-base-100 flex flex-col shadow-2xl overflow-hidden"
-        style={{ animation: "slideR .22s ease-out" }} onClick={e => e.stopPropagation()}>
+      <style>{`@keyframes slideRPanel{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+      <div className="relative ml-auto w-full max-w-2xl sm:max-w-3xl h-full bg-base-100 flex flex-col shadow-2xl"
+        style={panelAnimDone ? {} : { animation: "slideRPanel .22s ease-out forwards" }}
+        onAnimationEnd={() => setPanelAnimDone(true)}
+        onClick={e => e.stopPropagation()}>
 
         <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-base-300">
           <button className="btn btn-ghost btn-sm gap-1" onClick={closeViaUI}><ChevronLeft size={18} /> Back</button>
@@ -2366,6 +2402,39 @@ function DetailPanel({
                   <div className="text-center py-12 opacity-50 space-y-2">
                     <div className="flex justify-center mb-2"><Lock size={40} /></div>
                     <p className="text-sm">Join this community to view posts.</p>
+                  </div>
+                ) : postId ? (
+                  <div className="space-y-4 pt-2">
+                    <button
+                      className="btn btn-ghost btn-sm gap-1 hover:bg-base-200/50"
+                      onClick={() => {
+                        setSearchParams(prev => {
+                          const next = new URLSearchParams(prev);
+                          next.delete("postId");
+                          return next;
+                        });
+                        setTab("posts");
+                      }}
+                    >
+                      ← Back to Community
+                    </button>
+
+                    {loadingSinglePost && <PostSkeleton />}
+
+                    {singlePostError && (
+                      <div className="text-center py-12 opacity-50 space-y-2">
+                        <p className="text-sm text-error font-medium">Post not found or unavailable.</p>
+                      </div>
+                    )}
+
+                    {!loadingSinglePost && !singlePostError && singlePost && (
+                      <PostCard
+                        post={singlePost}
+                        currentUser={currentUser || undefined}
+                        hideCommunityStrip={true}
+                        onShareToCommunity={(c.isMember || c.isOwner) ? (postId, content) => sharePostToChat(postId, content) : undefined}
+                      />
+                    )}
                   </div>
                 ) : (
                   <>

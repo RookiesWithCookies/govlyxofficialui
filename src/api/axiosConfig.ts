@@ -10,7 +10,7 @@ export const API_BASE_URL = ((rawUrl.includes("jan-sahayak-ai-3fl3.onrender.com"
   : rawUrl.replace(/\/$/, "");
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000,
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },

@@ -89,6 +89,24 @@ export const getOfflineSuggestions = (query: string): CacheItem[] => {
     .slice(0, 10);
 };
 
+export const removeRecentSearch = (query: string) => {
+  try {
+    const recent = getRecentSearches();
+    const filtered = recent.filter((q) => q.toLowerCase() !== query.toLowerCase().trim());
+    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error("Error removing recent search", e);
+  }
+};
+
+export const clearRecentSearches = () => {
+  try {
+    localStorage.removeItem(RECENT_KEY);
+  } catch (e) {
+    console.error("Error clearing recent searches", e);
+  }
+};
+
 export const clearSearchCache = () => {
   localStorage.removeItem(RECENT_KEY);
   localStorage.removeItem(SUGGESTIONS_KEY);

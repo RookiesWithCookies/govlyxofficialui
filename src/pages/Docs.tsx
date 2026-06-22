@@ -289,7 +289,7 @@ export default function Docs() {
                 <button onClick={() => navigate("/docs")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold text-[#1D4ED8]">Docs</button>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-                © 2026 Govlyx · Hyperlocal Civic Infrastructure
+                © 2026&nbsp;<span className="notranslate" translate="no">Govlyx</span> · Hyperlocal Civic Infrastructure
               </p>
             </div>
           </footer>

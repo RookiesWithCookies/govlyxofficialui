@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
-  Sparkles, 
   Languages, 
   Bot, 
   MessageSquarePlus, 
@@ -21,7 +20,7 @@ export default function UpcomingUpdates() {
 
   const updates = [
     {
-      icon: <Languages className="w-6 h-6" />,
+      icon: <Languages className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Regional Language Support",
       description: "Support for Marathi, Hindi, Kannada, Tamil, and other regional languages using translation APIs so every Indian citizen can participate in their mother tongue.",
       status: "Done",
@@ -29,7 +28,7 @@ export default function UpcomingUpdates() {
       bgLight: "bg-emerald-500/10"
     },
     {
-      icon: <Bot className="w-6 h-6" />,
+      icon: <Bot className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Hyperlocal AI Assistant",
       description: "An AI agent that automatically translates civic complaints into formal drafts, categorizes issues, and matches them with corresponding government departments.",
       status: "Planning",
@@ -37,7 +36,7 @@ export default function UpcomingUpdates() {
       bgLight: "bg-blue-500/10"
     },
     {
-      icon: <MessageSquarePlus className="w-6 h-6" />,
+      icon: <MessageSquarePlus className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Ephemeral Group Chats",
       description: "Real-time, self-cleaning chat rooms dedicated to active local updates (e.g., live traffic congestion, municipal repairs, water outages) with automatic message expiry.",
       status: "In Development",
@@ -45,7 +44,7 @@ export default function UpcomingUpdates() {
       bgLight: "bg-amber-500/10"
     },
     {
-      icon: <Image className="w-6 h-6" />,
+      icon: <Image className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Media Uploads in Community Chats",
       description: "Share images, videos, and documents directly within community chats to provide visual context and report issues with proof in real-time.",
       status: "In Progress",
@@ -53,7 +52,7 @@ export default function UpcomingUpdates() {
       bgLight: "bg-purple-500/10"
     },
     {
-      icon: <Landmark className="w-6 h-6" />,
+      icon: <Landmark className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Official PG-Portal Sync",
       description: "Direct API pipelines to standard grievance management systems (CPGRAMS) to route highly-voted citizen issues directly to designated state officers.",
       status: "Planning",
@@ -61,7 +60,7 @@ export default function UpcomingUpdates() {
       bgLight: "bg-blue-500/10"
     },
     {
-      icon: <Zap className="w-6 h-6" />,
+      icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: "Verified RWA Dashboards",
       description: "Custom admin dashboards for Resident Welfare Associations (RWAs) and ward committee members to address and resolve local queries directly.",
       status: "In Progress",
@@ -75,9 +74,13 @@ export default function UpcomingUpdates() {
       return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
     }
     if (status === "In Development" || status === "In Progress") {
-      return "bg-[#1D4ED8]/10 text-[#1D4ED8] dark:text-blue-405 border border-[#1D4ED8]/25";
+      return "bg-[#1D4ED8]/10 text-[#1D4ED8] dark:text-blue-400 border border-[#1D4ED8]/25";
     }
     return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+  };
+
+  const getIconClass = (status: string) => {
+    return getStatusBadgeClass(status);
   };
 
   return (
@@ -92,9 +95,7 @@ export default function UpcomingUpdates() {
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Go Back
           </button>
           
-          <div className="flex items-center gap-3">
-            <GovlyxLogo showText size={44} textClassName="text-xl sm:text-2xl font-extrabold" />
-            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
+          <div className="flex items-center gap-1.5">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-805 dark:hover:text-white transition-all cursor-pointer"
@@ -102,6 +103,8 @@ export default function UpcomingUpdates() {
             >
               {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
+            <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
+            <GovlyxLogo showText size={44} textClassName="hidden sm:block text-xl sm:text-2xl font-extrabold" />
           </div>
         </div>
       </nav>
@@ -111,10 +114,7 @@ export default function UpcomingUpdates() {
         {/* Main Content */}
         <main className="w-full mx-auto max-w-[1000px] px-6 py-16 relative">
           <div className="text-left mb-20 pb-4 max-w-3xl">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/5 border border-blue-500/15 shrink-0">
-                <Sparkles className="w-8 h-8" />
-              </div>
+            <div className="mb-6">
               <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                 Upcoming Updates
               </h1>
@@ -219,9 +219,9 @@ export default function UpcomingUpdates() {
             {/* Mobile Vertical Timeline (Responsive fallback) */}
             <div className="block lg:hidden relative w-full">
               {/* Centered vertical line */}
-              <div className="absolute left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-blue-600/50 via-purple-600/30 to-slate-200 dark:to-slate-800 -translate-x-1/2 z-0" />
+              <div className="absolute left-5 sm:left-8 top-4 bottom-4 w-0.5 bg-gradient-to-b from-blue-600/50 via-purple-600/30 to-slate-200 dark:to-slate-800 -translate-x-1/2 z-0" />
 
-              <div className="space-y-12 relative z-10">
+              <div className="space-y-8 sm:space-y-12 relative z-10">
                 {updates.map((item, index) => {
                   return (
                     <motion.div
@@ -229,30 +229,30 @@ export default function UpcomingUpdates() {
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      className="flex items-start gap-4 relative pl-16"
+                      className="flex items-start gap-3 sm:gap-4 relative pl-10 sm:pl-16"
                     >
                       {/* Connection node indicator */}
-                      <div className="absolute left-8 transform -translate-x-1/2 flex items-center justify-center top-3 z-20">
-                        <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md flex items-center justify-center font-black text-xs text-blue-650 dark:text-blue-400">
+                      <div className="absolute left-5 sm:left-8 transform -translate-x-1/2 flex items-center justify-center top-2.5 sm:top-3 z-20">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-md flex items-center justify-center font-black text-[10px] sm:text-xs text-blue-650 dark:text-blue-400">
                           {index + 1}
                         </div>
                       </div>
 
-                      <div className="w-full bg-base-100/60 dark:bg-base-100/30 border border-slate-200 dark:border-slate-850 p-5 rounded-2xl shadow-sm relative group">
-                        <div className="flex gap-3.5 items-start">
-                          <div className={`p-2.5 rounded-xl shrink-0 ${item.bgLight} text-blue-600 dark:text-blue-400`}>
+                      <div className="w-full bg-base-100/70 dark:bg-[#121829]/65 border border-transparent p-3.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-[0_6px_0_0_rgba(0,0,0,0.08)] dark:shadow-[0_6px_0_0_rgba(255,255,255,0.03)] relative group transition-all duration-300">
+                        <div className="flex gap-2.5 sm:gap-3.5 items-start">
+                          <div className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl shrink-0 ${getIconClass(item.status)}`}>
                             {item.icon}
                           </div>
-                          <div className="space-y-2 flex-1">
+                          <div className="space-y-1.5 sm:space-y-2 flex-1">
                             <div className="flex justify-between items-center gap-2 flex-wrap">
-                              <h3 className="font-extrabold text-slate-850 dark:text-white text-sm sm:text-base">
+                              <h3 className="font-extrabold text-slate-850 dark:text-white text-xs sm:text-sm md:text-base">
                                 {item.title}
                               </h3>
                               <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${getStatusBadgeClass(item.status)}`}>
                                 {item.status}
                               </span>
                             </div>
-                            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+                            <p className="text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs md:text-sm leading-relaxed">
                               {item.description}
                             </p>
                           </div>
@@ -278,7 +278,7 @@ export default function UpcomingUpdates() {
               <button onClick={() => navigate("/review")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Review</button>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
-              © 2026 Govlyx
+              © 2026&nbsp;<span className="notranslate" translate="no">Govlyx</span>
             </p>
           </div>
         </footer>

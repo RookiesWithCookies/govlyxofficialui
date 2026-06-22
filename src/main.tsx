@@ -17,17 +17,35 @@ registerSW({
   }
 });
 
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { queryClient } from "./api/queryClient";
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: "govlyx-query-cache",
+});
 
 ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 ).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: 1000 * 60 * 60, // Cache valid for 1 hour
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            const key = query.queryKey[0];
+            return key === "feed" || key === "currentUser";
+          },
+        },
+      }}
+    >
       <BrowserRouter>
         <App />
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </React.StrictMode>
 );

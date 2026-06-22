@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, X, Hash, Users, FileText, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw,
+  Search, X, Hash, FileText, Loader2, AlertCircle, ChevronDown, ChevronUp, RefreshCw,
 } from "lucide-react";
 import PostCard from "../post/PostCard";
 import { toPostCardPost } from "../../utils/postUtils";
@@ -21,6 +21,8 @@ import {
   getRecentSearches, 
   cacheSuggestion, 
   getOfflineSuggestions,
+  removeRecentSearch,
+  clearRecentSearches,
 } from "../../utils/searchCache";
 import type { CacheItem } from "../../utils/searchCache";
 import { apiUrl } from "../../utils/apiUrl";
@@ -176,11 +178,15 @@ function DebugPanel({ raw }: { raw: RawResult }) {
 
 const DEBUG = false; // disabled to hide raw JSON in search results
 
-function CommunityCard({ r }: { r: NormResult }) {
+function CommunityCard({ r, onClose, query }: { r: NormResult; onClose?: () => void; query?: string }) {
   const navigate = useNavigate();
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (query && query.trim()) {
+      saveRecentSearch(query);
+    }
+    onClose?.();
     // Navigate directly to the community via URL slug/id — Communities page reads useParams
     const slug = r.communitySlug || String(r.id || "");
     navigate(`/communities/${slug}`, {
@@ -212,17 +218,14 @@ function CommunityCard({ r }: { r: NormResult }) {
         onClick={handleClick}
         className="w-full flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 p-3 hover:bg-base-200 transition-colors text-left"
       >
-        {r.communityAvatarUrl ? (
-          <img
-            src={r.communityAvatarUrl}
-            alt={r.communityName}
-            className="h-10 w-10 rounded-full object-cover shrink-0"
-          />
-        ) : (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-700/10">
-            <Users size={18} className="text-blue-700" />
-          </div>
-        )}
+        <img
+          src={r.communityAvatarUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(r.communityName || "avatar")}`}
+          alt={r.communityName}
+          className="h-10 w-10 rounded-full object-cover shrink-0 border border-base-300 bg-base-200"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(r.communityName || "avatar")}`;
+          }}
+        />
         <div className="min-w-0">
           <p className="font-semibold truncate">
             {r.communityName ?? <span className="opacity-40 italic">Unnamed community</span>}
@@ -245,12 +248,18 @@ function CommunityCard({ r }: { r: NormResult }) {
   );
 }
 
-function HashtagCard({ r }: { r: NormResult }) {
+function HashtagCard({ r, onClose, query }: { r: NormResult; onClose?: () => void; query?: string }) {
   const navigate = useNavigate();
   return (
     <div>
       <button
-        onClick={() => navigate("/communities", { state: { searchQuery: r.hashtag ?? "" } })}
+        onClick={() => {
+          if (query && query.trim()) {
+            saveRecentSearch(query);
+          }
+          onClose?.();
+          navigate("/communities", { state: { searchQuery: r.hashtag ?? "" } });
+        }}
         className="flex w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 p-3 hover:bg-base-200 transition-colors text-left"
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10">
@@ -281,11 +290,13 @@ function UnknownCard({ r }: { r: NormResult }) {
 // ─── Typeahead dropdown ───────────────────────────────────────────────────────
 
 function TypeaheadDropdown({
-  results, loading, onSelect,
+  results, loading, onSelect, onClose, query,
 }: {
   results: NormResult[];
   loading: boolean;
   onSelect: (q: string) => void;
+  onClose?: () => void;
+  query?: string;
 }) {
   const navigate = useNavigate();
   if (!loading && results.length === 0) return null;
@@ -309,13 +320,24 @@ function TypeaheadDropdown({
             if (r.kind === "COMMUNITY")
               return (
                 <button key={i} onClick={() => {
+                    if (query && query.trim()) {
+                      saveRecentSearch(query);
+                    }
+                    onClose?.();
                     const slug = r.communitySlug || String(r.id ?? "");
                     navigate(`/communities/${slug}`, {
                       state: { selectedCommunity: { id: r.id, name: r.communityName, slug, avatarUrl: r.communityAvatarUrl } }
                     });
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-base-200 transition-colors">
-                  <Users size={14} className="opacity-50" />
+                  <img
+                    src={r.communityAvatarUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(r.communityName || "avatar")}`}
+                    alt={r.communityName}
+                    className="w-4.5 h-4.5 rounded-full object-cover shrink-0 border border-base-300 bg-base-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(r.communityName || "avatar")}`;
+                    }}
+                  />
                   <span className="font-medium">{r.communityName}</span>
                   <span className="ml-auto text-xs opacity-40">community</span>
                 </button>
@@ -327,8 +349,15 @@ function TypeaheadDropdown({
               return (
                 <button key={i}
                   onClick={() => {
-                    if (postId) navigate(`/post/${postId}`);
-                    else onSelect((content ?? "").slice(0, 60));
+                    if (postId) {
+                      if (query && query.trim()) {
+                        saveRecentSearch(query);
+                      }
+                      onClose?.();
+                      navigate(`/post/${postId}`);
+                    } else {
+                      onSelect((content ?? "").slice(0, 60));
+                    }
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-base-200 transition-colors">
                   <FileText size={14} className="opacity-50" />
@@ -372,65 +401,37 @@ function useFullSearch(committedQuery: string) {
     replace ? setInitialLoading(true) : setLoading(true);
     setError(null);
 
-      // 1. Initial local lookup for instant feedback
-      const offlineItems = getOfflineSuggestions(q);
-      const convertedOffline = offlineItems.map(item => ({
-        kind: item.kind,
-        id: typeof item.id === 'number' ? item.id : undefined,
-        communityName: item.kind === 'COMMUNITY' ? item.displayText : undefined,
-        communitySlug: item.slug,
-        communityAvatarUrl: item.avatarUrl || undefined,
-        hashtag: item.kind === 'HASHTAG' ? item.displayText.replace('#', '') : undefined,
-        postDto: item.kind === 'POST' || item.kind === 'SOCIAL_POST' ? { content: item.displayText } : undefined,
-        _raw: {}
-      }));
+    // Network Fetch
+    try {
+      const params = new URLSearchParams({ q, limit: "20" });
+      if (cursor !== null) params.set("cursor", String(cursor));
 
-      if (replace) setResults(convertedOffline as NormResult[]);
+      const res = await fetch(apiUrl(`/api/search?${params}`), { headers: authHeaders() });
 
-      // 2. Network Fetch
-      try {
-        const params = new URLSearchParams({ q, limit: "20" });
-        if (cursor !== null) params.set("cursor", String(cursor));
+      if (res.status === 401 || res.status === 403) throw new Error("Please log in to see more.");
 
-        const res = await fetch(apiUrl(`/api/search?${params}`), { headers: authHeaders() });
+      const ct = res.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) throw new Error("Offline Mode");
 
-        if (res.status === 401 || res.status === 403) throw new Error("Please log in to see more.");
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
 
-        const ct = res.headers.get("content-type") ?? "";
-        if (!ct.includes("application/json")) throw new Error("Offline Mode");
+      const raw: RawApiResponse = await res.json();
+      const networkItems = extractItems(raw).map(normalise);
 
-        if (!res.ok) throw new Error(`Server error ${res.status}`);
-
-        const raw: RawApiResponse = await res.json();
-        const networkItems = extractItems(raw).map(normalise);
-
-        setResults((prev) => {
-          if (replace) {
-            // Merge network with offline, prioritized network
-            const merged = [...networkItems];
-            convertedOffline.forEach(off => {
-              const exists = merged.find(net => 
-                net.kind === off.kind && (net.id === off.id || net.communitySlug === off.communitySlug || net.hashtag === off.hashtag)
-              );
-              if (!exists) merged.push(off as NormResult);
-            });
-            return merged;
-          }
-          return [...prev, ...networkItems];
-        });
-        
-        setHasMore(raw.hasMore ?? false);
-        setNextCursor(raw.nextCursor ?? null);
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Search failed";
-        // If we have some results already (from local cache), don't show a loud error
-        if (convertedOffline.length > 0) {
-          setError("Search offline — showing local results");
-        } else {
-          setError(msg === "Offline Mode" ? "Server unreachable — check your connection" : msg);
+      setResults((prev) => {
+        if (replace) {
+          return networkItems;
         }
-        setHasMore(false);
-      } finally {
+        return [...prev, ...networkItems];
+      });
+      
+      setHasMore(raw.hasMore ?? false);
+      setNextCursor(raw.nextCursor ?? null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Search failed";
+      setError(msg === "Offline Mode" ? "Server unreachable — check your connection" : msg);
+      setHasMore(false);
+    } finally {
       setLoading(false);
       setInitialLoading(false);
     }
@@ -473,6 +474,12 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
 
   const debouncedInput = useDebounce(inputValue, 300);
   const { results, loading, initialLoading, hasMore, error, loadMore } = useFullSearch(committedQuery);
+
+  // Sync committedQuery with debouncedInput to auto-run search on typing pause
+  useEffect(() => {
+    setCommittedQuery(debouncedInput);
+  }, [debouncedInput]);
+
   const { data: user } = useCurrentUser();
 
   const currentUser = user ? {
@@ -580,10 +587,10 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="mx-auto mt-14 flex h-[calc(100vh-3.5rem)] max-w-2xl flex-col bg-base-100 shadow-2xl lg:mt-16 lg:h-[calc(100vh-4rem)] lg:rounded-b-2xl overflow-hidden">
+      <div className="mx-4 lg:mx-auto mt-14 mb-4 flex h-[calc(100dvh-4.5rem)] max-w-2xl flex-col bg-base-100 shadow-2xl rounded-2xl lg:mt-16 lg:mb-8 lg:h-[calc(100dvh-6rem)] lg:rounded-2xl overflow-hidden">
 
         {/* Search bar */}
         <div className="relative flex items-center gap-2 border-b border-base-300 px-4 py-3 shrink-0 z-40">
@@ -606,20 +613,51 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
           )}
           <button onClick={onClose} className="btn btn-ghost btn-sm ml-1">Cancel</button>
 
-          {showDropdown && !committedQuery && (
+          {showDropdown && (!inputValue || inputValue !== committedQuery) && (
             <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-base-300 bg-base-100 shadow-xl overflow-hidden flex flex-col">
               {/* RECENT SEARCHES */}
               {!inputValue && recentSearches.length > 0 && (
-                <div className="border-b border-base-300 bg-base-200/50 px-3 py-2">
+                <div className="border-b border-base-300 bg-base-200/50 px-3 py-2 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider opacity-50">Recent Searches</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearRecentSearches();
+                      setRecentSearches([]);
+                    }}
+                    className="text-[10px] text-red-500 font-bold hover:underline"
+                  >
+                    Clear All
+                  </button>
                 </div>
               )}
               {!inputValue && recentSearches.map((q, i) => (
-                <button key={`recent-${i}`} onClick={() => commitSearch(q)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-sm hover:bg-base-200 transition-colors group">
-                  <RefreshCw size={14} className="opacity-30 group-hover:opacity-60 transition-opacity" />
-                  <span className="font-medium opacity-70">{q}</span>
-                </button>
+                <div
+                  key={`recent-${i}`}
+                  className="flex items-center hover:bg-base-200 transition-colors group"
+                >
+                  <button
+                    type="button"
+                    onClick={() => commitSearch(q)}
+                    className="flex-1 flex items-center gap-3 px-3 py-2.5 text-sm text-left"
+                  >
+                    <RefreshCw size={14} className="opacity-30 group-hover:opacity-60 transition-opacity shrink-0" />
+                    <span className="font-medium opacity-70 truncate">{q}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeRecentSearch(q);
+                      setRecentSearches((prev) => prev.filter((item) => item !== q));
+                    }}
+                    className="px-3 py-2.5 text-xs text-base-content/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                    aria-label="Remove search"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               ))}
 
               {/* AUTO-SUGGESTIONS */}
@@ -644,6 +682,8 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
                     }
                     commitSearch(q);
                   }} 
+                  onClose={onClose}
+                  query={inputValue}
                 />
               )}
             </div>
@@ -698,7 +738,7 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
             <section>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-50">Hashtags</h3>
               <div className="space-y-2">
-                {hashtagResults.map((r, i) => <HashtagCard key={i} r={r} />)}
+                {hashtagResults.map((r, i) => <HashtagCard key={i} r={r} onClose={onClose} query={inputValue} />)}
               </div>
             </section>
           )}
@@ -708,7 +748,7 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
             <section>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-50">Communities</h3>
               <div className="space-y-2">
-                {communityResults.map((r, i) => <CommunityCard key={i} r={r} />)}
+                {communityResults.map((r, i) => <CommunityCard key={i} r={r} onClose={onClose} query={inputValue} />)}
               </div>
             </section>
           )}
@@ -726,7 +766,13 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
                     <div
                       key={`${r.kind}-${r.id ?? i}`}
                       className="cursor-pointer"
-                      onClick={() => { if (postId) { onClose(); navigate(`/post/${postId}`); } }}
+                      onClick={() => {
+                        if (postId) {
+                          if (inputValue.trim()) saveRecentSearch(inputValue);
+                          onClose();
+                          navigate(`/post/${postId}`);
+                        }
+                      }}
                     >
                       <PostCard
                         post={post}
@@ -734,7 +780,11 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
                         onLike={(id: number, liked: boolean) => console.log("like", id, liked)}
                         onSave={(id: number, saved: boolean) => console.log("save", id, saved)}
                         onShare={(id: number) => navigator.clipboard?.writeText(`${window.location.origin}/post/${id}`).catch(() => { })}
-                        onComment={(id: number) => { onClose(); navigate(`/post/${id}`); }}
+                        onComment={(id: number) => {
+                          if (inputValue.trim()) saveRecentSearch(inputValue);
+                          onClose();
+                          navigate(`/post/${id}`);
+                        }}
                       />
                     </div>
                   );
