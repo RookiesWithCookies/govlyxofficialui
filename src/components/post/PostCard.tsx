@@ -22,11 +22,7 @@ import {
   Instagram,
   Flag,
   Maximize2,
-  Flame,
-  MessagesSquare,
   MessageSquare,
-  Send,
-  BookMarked,
   ThumbsDown,
   EyeOff,
 } from "lucide-react";
@@ -43,6 +39,53 @@ import ReportModal from "../modals/ReportModal";
 import { checkProfanity } from "../../utils/profanity";
 import { showToast } from "../../utils/toast";
 import { parseError } from "../../utils/error-handler";
+import { useTheme } from "../../hooks/useTheme";
+
+const POST_ACTION_ACTIVE_CLASS = "text-[#1d4ed8] bg-[#1d4ed8]/10 border-[#1d4ed8]/30";
+const POST_ACTION_HOVER_GLOW = "rgba(29,78,216,0.65)";
+
+const POST_ACTION_ICONS = {
+  like: {
+    light: "/icons/post-actions/like_light.gif",
+    dark: "/icons/post-actions/like_dark.gif",
+  },
+  comment: {
+    light: "/icons/post-actions/comment_light.gif",
+    dark: "/icons/post-actions/comment_dark.gif",
+  },
+  share: {
+    light: "/icons/post-actions/share_light.gif",
+    dark: "/icons/post-actions/share_dark.gif",
+  },
+  bookmark: {
+    light: "/icons/post-actions/bookmark_light.gif",
+    dark: "/icons/post-actions/bookmark_dark.gif",
+  },
+} as const;
+
+function PostActionGif({
+  name,
+  active = false,
+  vertical = false,
+}: {
+  name: keyof typeof POST_ACTION_ICONS;
+  active?: boolean;
+  vertical?: boolean;
+}) {
+  const { theme } = useTheme();
+  const src = POST_ACTION_ICONS[name][theme === "dark" ? "dark" : "light"];
+
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      onContextMenu={(event) => event.preventDefault()}
+      className={`${vertical ? "h-5 w-5 sm:h-6 sm:w-6" : "h-7 w-7 sm:h-8 sm:w-8"} ${active ? "scale-110" : ""} pointer-events-none shrink-0 object-contain transition-transform duration-200`}
+    />
+  );
+}
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 async function apiFetch(url: string, method: string, body?: unknown): Promise<unknown> {
@@ -2610,27 +2653,27 @@ export default function PostCard({
 
               {/* Horizontal Action Bar */}
               <div className={`flex items-center gap-1 sm:gap-2 border-t border-base-300 pt-3 ${hasMedia ? "lg:hidden" : "flex"}`}>
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} activeClass="text-pink-500 bg-pink-500/10 border-pink-500/30" hoverGlow="rgba(236,72,153,0.65)">
-                  <Flame size={16} className={liked ? "fill-pink-500 text-pink-500" : ""} />
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="like" active={liked} />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} activeClass="text-sky-400 bg-sky-500/10 border-sky-500/30" hoverGlow="rgba(56,189,248,0.65)">
-                  <MessagesSquare size={16} className={commentsOpen ? "fill-sky-400/30 text-sky-400" : ""} />
+                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="comment" active={commentsOpen} />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} activeClass="text-emerald-400 bg-emerald-500/10 border-emerald-500/30" hoverGlow="rgba(52,211,153,0.65)">
-                  <Send size={16} />
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="share" active={copied} />
                   <span>{copied ? "Copied!" : (shareCount || "0")}</span>
                 </ActionPill>
                 <div className="flex-1" />
                 {isIssue ? (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} activeClass="text-violet-500 bg-violet-500/10 border-violet-500/30" hoverGlow="rgba(139,92,246,0.65)">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
                     <ThumbsDown size={16} className={disliked ? "fill-violet-500 text-violet-500" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
                 ) : (
-                  <ActionPill onClick={handleSave} active={saved} activeClass="text-amber-400 bg-amber-500/10 border-amber-500/30" hoverGlow="rgba(251,191,36,0.65)">
-                    <BookMarked size={16} className={saved ? "fill-amber-400/30 text-amber-400" : ""} />
+                  <ActionPill onClick={handleSave} active={saved} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                    <PostActionGif name="bookmark" active={saved} />
                   </ActionPill>
                 )}
               </div>
@@ -2643,26 +2686,26 @@ export default function PostCard({
                 animate={{ opacity: 1, x: 0 }}
                 className="hidden lg:flex flex-col gap-2 p-1 rounded-2xl bg-base-200/50 border border-base-300 lg:order-2 shrink-0 sticky top-0"
               >
-                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} vertical activeClass="text-pink-500 bg-pink-500/10 border-pink-500/30" hoverGlow="rgba(236,72,153,0.65)">
-                  <Flame size={18} className={liked ? "fill-pink-500 text-pink-500" : ""} />
+                <ActionPill onClick={handleLike} active={liked} disabled={isResolved} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="like" active={liked} vertical />
                   <span>{likeCount || "0"}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} vertical activeClass="text-sky-400 bg-sky-500/10 border-sky-500/30" hoverGlow="rgba(56,189,248,0.65)">
-                  <MessagesSquare size={18} className={commentsOpen ? "fill-sky-400/30 text-sky-400" : ""} />
+                <ActionPill onClick={() => setCommentsOpen(!commentsOpen)} active={commentsOpen} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="comment" active={commentsOpen} vertical />
                   <span>{commentCount ?? 0}</span>
                 </ActionPill>
-                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} vertical activeClass="text-emerald-400 bg-emerald-500/10 border-emerald-500/30" hoverGlow="rgba(52,211,153,0.65)">
-                  <Send size={18} />
+                <ActionPill onClick={() => setShareMenuOpen(true)} active={copied} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                  <PostActionGif name="share" active={copied} vertical />
                   <span className="text-[9px] leading-tight mt-0.5">{copied ? "Copied" : (shareCount || "0")}</span>
                 </ActionPill>
                 {isIssue ? (
-                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} vertical activeClass="text-violet-500 bg-violet-500/10 border-violet-500/30" hoverGlow="rgba(139,92,246,0.65)">
+                  <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
                     <ThumbsDown size={18} className={disliked ? "fill-violet-500 text-violet-500" : ""} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
                 ) : (
-                  <ActionPill onClick={handleSave} active={saved} vertical activeClass="text-amber-400 bg-amber-500/10 border-amber-500/30" hoverGlow="rgba(251,191,36,0.65)">
-                    <BookMarked size={18} className={saved ? "fill-amber-400/30 text-amber-400" : ""} />
+                  <ActionPill onClick={handleSave} active={saved} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
+                    <PostActionGif name="bookmark" active={saved} vertical />
                   </ActionPill>
                 )}
               </motion.div>

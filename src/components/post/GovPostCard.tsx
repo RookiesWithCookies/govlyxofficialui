@@ -1,5 +1,37 @@
-import { Bookmark, MessageSquare, Share2, BadgeCheck } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTheme } from "../../hooks/useTheme";
+
+const ACTION_ICONS = {
+  bookmark: {
+    light: "/icons/post-actions/bookmark_light.gif",
+    dark: "/icons/post-actions/bookmark_dark.gif",
+  },
+  share: {
+    light: "/icons/post-actions/share_light.gif",
+    dark: "/icons/post-actions/share_dark.gif",
+  },
+  comment: {
+    light: "/icons/post-actions/comment_light.gif",
+    dark: "/icons/post-actions/comment_dark.gif",
+  },
+} as const;
+
+function ActionGif({ name }: { name: keyof typeof ACTION_ICONS }) {
+  const { theme } = useTheme();
+  const src = ACTION_ICONS[name][theme === "dark" ? "dark" : "light"];
+
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      onContextMenu={(event) => event.preventDefault()}
+      className="h-8 w-8 pointer-events-none shrink-0 object-contain"
+    />
+  );
+}
 
 type GovPostCardProps = {
   department: string;
@@ -40,17 +72,17 @@ const GovPostCard = ({
       {/* Actions */}
       <div className="flex items-center gap-4 text-sm opacity-80">
         <button className="flex items-center gap-1 hover:opacity-100">
-          <Bookmark size={18} />
+          <ActionGif name="bookmark" />
           Save
         </button>
 
         <button className="flex items-center gap-1 hover:opacity-100">
-          <MessageSquare size={18} />
+          <ActionGif name="comment" />
           256
         </button>
 
         <button className="ml-auto flex items-center gap-1 hover:opacity-100">
-          <Share2 size={18} />
+          <ActionGif name="share" />
           Share
         </button>
       </div>

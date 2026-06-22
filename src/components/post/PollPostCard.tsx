@@ -1,5 +1,33 @@
-import { Clock, MessageSquare, Share2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTheme } from "../../hooks/useTheme";
+
+const ACTION_ICONS = {
+  comment: {
+    light: "/icons/post-actions/comment_light.gif",
+    dark: "/icons/post-actions/comment_dark.gif",
+  },
+  share: {
+    light: "/icons/post-actions/share_light.gif",
+    dark: "/icons/post-actions/share_dark.gif",
+  },
+} as const;
+
+function ActionGif({ name }: { name: keyof typeof ACTION_ICONS }) {
+  const { theme } = useTheme();
+  const src = ACTION_ICONS[name][theme === "dark" ? "dark" : "light"];
+
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      onContextMenu={(event) => event.preventDefault()}
+      className="h-8 w-8 pointer-events-none shrink-0 object-contain"
+    />
+  );
+}
 
 type PollOption = {
   label: string;
@@ -82,12 +110,12 @@ const PollPostCard = ({
       {/* Actions */}
       <div className="mt-3 flex items-center gap-4 text-sm opacity-80">
         <button className="flex items-center gap-1 hover:opacity-100">
-          <MessageSquare size={18} />
+          <ActionGif name="comment" />
           45
         </button>
 
         <button className="ml-auto flex items-center gap-1 hover:opacity-100">
-          <Share2 size={18} />
+          <ActionGif name="share" />
           Share
         </button>
       </div>
