@@ -21,6 +21,7 @@ import {
   Link,
   Instagram,
   Flag,
+  MoreVertical,
   Maximize2,
   MessageSquare,
   EyeOff,
@@ -41,7 +42,7 @@ import { showToast } from "../../utils/toast";
 import { parseError } from "../../utils/error-handler";
 import { useTheme } from "../../hooks/useTheme";
 
-const POST_ACTION_ACTIVE_CLASS = "text-[#1d4ed8] bg-[#1d4ed8]/10 border-[#1d4ed8]/30 dark:border-white";
+const POST_ACTION_ACTIVE_CLASS = "text-[#1d4ed8] dark:text-white bg-[#1d4ed8]/10 border-[#1d4ed8]/30 dark:border-white";
 const POST_ACTION_HOVER_GLOW = "rgba(29,78,216,0.65)";
 
 const POST_ACTION_ICONS = {
@@ -1445,7 +1446,7 @@ function ActionPill({
   disabled = false,
   children,
   vertical = false,
-  activeClass = "bg-primary/10 border-primary/20 text-primary",
+  activeClass = "bg-primary/10 border-primary/20 text-primary dark:text-white",
   hoverGlow = "rgba(99,102,241,0.5)",
 }: {
   onClick: () => void;
@@ -1481,7 +1482,7 @@ function ActionPill({
       } text-[9px] sm:text-[10px] font-black uppercase tracking-tighter group/pill ${
         active
           ? `${activeClass} shadow-sm`
-          : "text-base-content/70 bg-base-200 border-base-content/5"
+          : "text-base-content/70 dark:text-white bg-base-200 border-base-content/5"
       }`}
       onMouseEnter={(e) => {
         if (!disabled) {
@@ -1789,6 +1790,7 @@ export default function PostCard({
   const [resolveOpen, setResolveOpen] = useState(false);
   const [reopenOpen, setReopenOpen] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -2649,30 +2651,95 @@ export default function PostCard({
   const displayText = hasTranslation && !showOriginal
     ? (dynamicTranslation || (post as BasePost).translatedContent!)
     : post.content;
+  const canShowDelete = !hideDelete && ((post as any).canDelete !== undefined ? !!(post as any).canDelete : !!(currentUser && post.username === currentUser.username));
+  const translateLabel = hasTranslation ? (showOriginal ? "See Translation" : "Show Original") : "Translate";
 
-  const desktopTranslateButton = (
-    <div className="hidden sm:flex items-center shrink-0">
-      {hasTranslation ? (
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
-          className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all cursor-pointer backdrop-blur-sm"
-        >
-          <Globe size={10} />
-          {showOriginal ? "See Translation" : "Show Original"}
-        </button>
-      ) : (
-        <button
-          disabled={isTranslating}
-          onClick={(e) => { e.stopPropagation(); handleTranslateDynamic(); }}
-          className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all disabled:opacity-40 cursor-pointer backdrop-blur-sm"
-        >
-          {isTranslating ? (
-            <><span className="loading loading-spinner w-3 h-3 shrink-0" /> Translating...</>
-          ) : (
-            <><Globe size={10} /> Translate</>
-          )}
-        </button>
-      )}
+  const handleMenuTranslate = () => {
+    if (isTranslating) return;
+    setMoreMenuOpen(false);
+    if (hasTranslation) {
+      setShowOriginal((v) => !v);
+      return;
+    }
+    handleTranslateDynamic();
+  };
+
+  const headerMoreMenu = (
+    <div className="relative shrink-0">
+      <motion.button
+        onClick={(e) => {
+          e.stopPropagation();
+          setMoreMenuOpen((open) => !open);
+        }}
+        whileHover={{ scale: 1.08, y: -1 }}
+        whileTap={{ scale: 0.94 }}
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/50 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
+        title="More options"
+        aria-haspopup="menu"
+        aria-expanded={moreMenuOpen}
+      >
+        <MoreVertical size={17} />
+      </motion.button>
+
+      <AnimatePresence>
+        {moreMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.16 }}
+            className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="menu"
+          >
+            {canShowDelete && (
+              <button
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  setConfirmDeleteOpen(true);
+                }}
+                disabled={isDeleting}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-40"
+                role="menuitem"
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+            )}
+            <button
+              onClick={handleMenuTranslate}
+              disabled={isTranslating}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-base-content/75 hover:bg-base-200 disabled:opacity-40"
+              role="menuitem"
+            >
+              {isTranslating ? <span className="loading loading-spinner w-3 h-3" /> : <Globe size={14} />}
+              {isTranslating ? "Translating..." : translateLabel}
+            </button>
+            <button
+              onClick={() => {
+                setMoreMenuOpen(false);
+                showToast.success("Marked as interested.");
+              }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-base-content/75 hover:bg-base-200"
+              role="menuitem"
+            >
+              <CheckCircle2 size={14} />
+              Interested
+            </button>
+            <button
+              onClick={() => {
+                setMoreMenuOpen(false);
+                setConfirmNotInterestedOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-base-content/75 hover:bg-base-200"
+              role="menuitem"
+            >
+              <EyeOff size={14} />
+              Not Interested
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
@@ -2751,29 +2818,17 @@ export default function PostCard({
                   </div>
                 </motion.div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {desktopTranslateButton}
-                  <motion.button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmNotInterestedOpen(true);
-                    }}
-                    whileHover={{ scale: 1.12, y: -1 }}
-                    whileTap={{ scale: 0.94 }}
-                    className="group/not-interested relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
-                    title="Not Interested"
-                  >
-                    <EyeOff size={16} className="relative z-10 transition-transform duration-300" />
-                  </motion.button>
+                  {headerMoreMenu}
                 </div>
               </>
             ) : (
               <AuthorRow
                 post={post}
                 badge={isCommunity ? (post as CommunityPost).authorRole : undefined}
-                onDelete={() => setConfirmDeleteOpen(true)}
+                onDelete={undefined}
                 isDeleting={isDeleting}
-                showDelete={(post as any).canDelete !== undefined ? !!(post as any).canDelete : (currentUser && post.username === currentUser.username)}
-                hideDelete={hideDelete}
+                showDelete={false}
+                hideDelete={true}
                 onProfileClick={(uname) => {
                   setProfileModalUsername(uname);
                   setProfileModalDisplayName(post.userDisplayName || uname);
@@ -2782,19 +2837,7 @@ export default function PostCard({
                 }}
                 rightAction={
                   <div className="flex items-center gap-1.5">
-                    {desktopTranslateButton}
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setConfirmNotInterestedOpen(true);
-                      }}
-                      whileHover={{ scale: 1.12, y: -1 }}
-                      whileTap={{ scale: 0.94 }}
-                      className="group/not-interested relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
-                      title="Not Interested"
-                    >
-                      <EyeOff size={16} className="relative z-10 transition-transform duration-300" />
-                    </motion.button>
+                    {headerMoreMenu}
                     {currentUser && post.username !== currentUser.username && (
                       <motion.button
                         onClick={(e) => {
@@ -2940,31 +2983,6 @@ export default function PostCard({
                   <AlertCircle size={14} className="text-red-500" /> Issue Reopened: {((post as IssuePost).reopenedReason || (post as IssuePost).reopenReason) ?? "Reason not specified"}
                 </div>
               )}
-
-              {/* Mobile-only Translation toggle — single button at bottom */}
-              <div className="sm:hidden flex items-center border-t border-base-300 pt-3">
-                {hasTranslation ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
-                    className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-3 py-1 transition-all cursor-pointer backdrop-blur-sm"
-                  >
-                    <Globe size={10} />
-                    {showOriginal ? "See Translation" : "Show Original"}
-                  </button>
-                ) : (
-                  <button
-                    disabled={isTranslating}
-                    onClick={(e) => { e.stopPropagation(); handleTranslateDynamic(); }}
-                    className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-3 py-1 transition-all disabled:opacity-40 cursor-pointer backdrop-blur-sm"
-                  >
-                    {isTranslating ? (
-                      <><span className="loading loading-spinner w-3 h-3 shrink-0" /> Translating...</>
-                    ) : (
-                      <><Globe size={10} /> Translate</>
-                    )}
-                  </button>
-                )}
-              </div>
 
               {/* Horizontal Action Bar */}
               <div className={`flex items-center gap-1 sm:gap-2 border-t border-base-300 pt-3 ${hasMedia ? "lg:hidden" : "flex"}`}>
