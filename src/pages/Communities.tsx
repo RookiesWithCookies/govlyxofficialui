@@ -27,6 +27,9 @@ import ImageEditorModal from "../components/modals/ImageEditorModal";
 import type { CurrentUser as CardUser } from "../components/post/PostCard";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import ConfirmModal from "../components/post/ConfirmModal";
+import LimitReachedModal from "../components/modals/LimitReachedModal";
+import { useMyBilling } from "../hooks/useBilling";
+import PricingModal from "../components/billing/PricingModal";
 import { toPostCardPost } from "../utils/postUtils";
 import { jwtDecode } from "jwt-decode";
 import { cacheSuggestion } from "../utils/searchCache";
@@ -1747,7 +1750,16 @@ function AdminPanel({
 /* ════════════════════════════════════════════════════════════════════════════
    CREATE COMMUNITY MODAL
 ════════════════════════════════════════════════════════════════════════════ */
-function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: CommunityData) => void }) {
+function CreateModal({ 
+  onClose, 
+  onDone,
+  onUpgrade
+}: { 
+  onClose: () => void; 
+  onDone: (c: CommunityData) => void;
+  onUpgrade: () => void;
+}) {
+  const { data: billing } = useMyBilling();
   const { closeViaUI } = useBackNavigation(onClose);
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<CreateForm>({
@@ -1757,6 +1769,8 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalMessage, setLimitModalMessage] = useState("");
   
   // Image Upload & Editor States (Avatar)
   const [editorOpen, setEditorOpen] = useState(false);
@@ -1880,7 +1894,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={closeViaUI}>
-      <div className="w-full max-w-sm bg-base-100/95 rounded-2xl border border-white/10 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4)] max-h-[85vh] flex flex-col overflow-hidden backdrop-blur-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm sm:max-w-xl md:max-w-3xl bg-base-100/95 rounded-2xl border border-white/10 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4)] max-h-[85vh] flex flex-col overflow-hidden backdrop-blur-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-base-content/5 shrink-0">
           <div>
             <h2 className="font-black text-base uppercase tracking-tight flex items-center gap-2 text-base-content">
@@ -1901,170 +1915,208 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
           )}
           
           {step === 1 && (
-            <>
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Name <span className="text-error">*</span></label>
-                <input autoFocus className="input input-bordered input-sm w-full rounded-xl font-medium text-base-content" placeholder="e.g. Pune Cyclists Club" maxLength={60}
-                  value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                <p className="text-[9px] font-bold opacity-65 mt-1 uppercase tracking-tighter text-base-content">{form.name.length}/60 · min 3</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Name <span className="text-error">*</span></label>
+                  <input autoFocus className="input input-bordered input-sm w-full rounded-xl font-medium text-base-content" placeholder="e.g. Pune Cyclists Club" maxLength={60}
+                    value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  <p className="text-[9px] font-bold opacity-65 mt-1 uppercase tracking-tighter text-base-content">{form.name.length}/60 · min 3</p>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Description <span className="text-error">*</span></label>
+                  <textarea className="textarea textarea-bordered transition-all focus:textarea-primary w-full resize-none text-sm rounded-xl min-h-[80px] text-base-content" rows={3} maxLength={500}
+                    placeholder="What's this community about?"
+                    value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                  <p className="text-[9px] font-bold opacity-65 mt-1 uppercase tracking-tighter text-base-content">{form.description.length}/500</p>
+                </div>
+                
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-2">Category</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {CATS.map(cat => (
+                      <button key={cat} type="button" onClick={() => setForm(f => ({ ...f, category: cat }))}
+                        className={`rounded-xl border py-2 px-1 text-center transition-all duration-300 cursor-pointer ${form.category === cat ? "border-red-500 bg-red-500/15 text-red-500 scale-[1.02] shadow-[0_0_15px_rgba(239,68,68,0.4)]" : "border-base-300 hover:border-base-400 opacity-90 text-base-content"}`}>
+                        <div className="text-base mb-0.5">{CAT_ICON[cat]}</div>
+                        <div className="text-[9px] font-black uppercase tracking-tighter leading-none">{cat.replace(/_/g, " ")}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1.5">Community Avatar</label>
-                <div className="flex items-center gap-4 p-3 bg-base-200/50 rounded-2xl border border-base-300">
-                  <div className="avatar shrink-0">
-                    <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-md bg-base-300 relative flex items-center justify-center font-bold text-2xl text-blue-700 uppercase">
-                      {previewUrl ? (
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1.5">Community Avatar</label>
+                  <div className="flex items-center gap-4 p-3 bg-base-200/50 rounded-2xl border border-base-300">
+                    <div className="avatar shrink-0">
+                      <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-primary/20 shadow-md bg-base-300 relative flex items-center justify-center font-bold text-2xl text-blue-700 uppercase">
+                        {previewUrl ? (
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          (form.name?.[0] || "?").toUpperCase()
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="btn btn-xs bg-blue-700 text-white border-none hover:bg-blue-800 rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
+                        >
+                          Upload Pic
+                        </button>
+                        {previewUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedBlob(null);
+                              setPreviewUrl(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="btn btn-xs btn-ghost text-error rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[9px] opacity-65 mt-1.5 text-base-content">JPG, PNG, or WebP. Max 5MB.</p>
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1.5">Community Cover Image</label>
+                  <div className="flex flex-col gap-3 p-3 bg-base-200/50 rounded-2xl border border-base-300">
+                    <div className="w-full h-24 rounded-xl overflow-hidden border border-base-300 shadow-sm relative bg-base-100 flex items-center justify-center">
+                      {coverPreviewUrl ? (
+                        <img src={coverPreviewUrl} alt="Cover Preview" className="w-full h-full object-cover" />
                       ) : (
-                        (form.name?.[0] || "?").toUpperCase()
+                        <div className="w-full h-full bg-gradient-to-r from-blue-700/10 to-blue-500/5" />
                       )}
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="btn btn-xs bg-blue-700 text-white border-none hover:bg-blue-800 rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
-                      >
-                        Upload Pic
-                      </button>
-                      {previewUrl && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedBlob(null);
-                            setPreviewUrl(null);
-                            if (fileInputRef.current) fileInputRef.current.value = "";
-                          }}
-                          className="btn btn-xs btn-ghost text-error rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
+                          onClick={() => coverFileInputRef.current?.click()}
+                          className="btn btn-xs bg-blue-700 text-white border-none hover:bg-blue-800 rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
                         >
-                          Remove
+                          Upload Cover
                         </button>
-                      )}
+                        {coverPreviewUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCoverBlob(null);
+                              setCoverPreviewUrl(null);
+                              if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+                            }}
+                            className="btn btn-xs btn-ghost text-error rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[9px] opacity-65 text-base-content">JPG, PNG, or WebP. Max 5MB.</p>
                     </div>
-                    <p className="text-[9px] opacity-65 mt-1.5 text-base-content">JPG, PNG, or WebP. Max 5MB.</p>
                   </div>
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1.5">Community Cover Image</label>
-                <div className="flex flex-col gap-3 p-3 bg-base-200/50 rounded-2xl border border-base-300">
-                  <div className="w-full h-24 rounded-xl overflow-hidden border border-base-300 shadow-sm relative bg-base-100 flex items-center justify-center">
-                    {coverPreviewUrl ? (
-                      <img src={coverPreviewUrl} alt="Cover Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-700/10 to-blue-500/5" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => coverFileInputRef.current?.click()}
-                        className="btn btn-xs bg-blue-700 text-white border-none hover:bg-blue-800 rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
-                      >
-                        Upload Cover
-                      </button>
-                      {coverPreviewUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCoverBlob(null);
-                            setCoverPreviewUrl(null);
-                            if (coverFileInputRef.current) coverFileInputRef.current.value = "";
-                          }}
-                          className="btn btn-xs btn-ghost text-error rounded-lg font-bold uppercase tracking-wider text-[9px] px-3 py-1.5 h-auto cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[9px] opacity-65 text-base-content">JPG, PNG, or WebP. Max 5MB.</p>
-                  </div>
-                </div>
-                <input
-                  type="file"
-                  ref={coverFileInputRef}
-                  onChange={handleCoverUpload}
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Description <span className="text-error">*</span></label>
-                <textarea className="textarea textarea-bordered transition-all focus:textarea-primary w-full resize-none text-sm rounded-xl min-h-[80px] text-base-content" rows={3} maxLength={500}
-                  placeholder="What's this community about?"
-                  value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-                <p className="text-[9px] font-bold opacity-65 mt-1 uppercase tracking-tighter text-base-content">{form.description.length}/500</p>
-              </div>
-              
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-2">Category</label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {CATS.map(cat => (
-                    <button key={cat} type="button" onClick={() => setForm(f => ({ ...f, category: cat }))}
-                      className={`rounded-xl border py-2 px-1 text-center transition-all duration-300 cursor-pointer ${form.category === cat ? "border-red-500 bg-red-500/15 text-red-500 scale-[1.02] shadow-[0_0_15px_rgba(239,68,68,0.4)]" : "border-base-300 hover:border-base-400 opacity-90 text-base-content"}`}>
-                      <div className="text-base mb-0.5">{CAT_ICON[cat]}</div>
-                      <div className="text-[9px] font-black uppercase tracking-tighter leading-none">{cat.replace(/_/g, " ")}</div>
-                    </button>
-                  ))}
+                  <input
+                    type="file"
+                    ref={coverFileInputRef}
+                    onChange={handleCoverUpload}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                  />
                 </div>
               </div>
-            </>
+            </div>
           )}
           {step === 2 && (
-            <>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-base-content">Privacy</label>
-                <div className="space-y-2">
-                  {(["PUBLIC", "PRIVATE", "SECRET"] as const).map(p => (
-                    <button key={p} type="button" onClick={() => setForm(f => ({ ...f, privacy: p }))}
-                      className={`w-full flex items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer ${form.privacy === p ? "border-red-500 bg-red-500/10 shadow-sm scale-[1.01]" : "border-base-content/5 hover:border-base-content/10"}`}>
-                      <span className={`text-xl opacity-80 ${form.privacy === p ? "text-red-500" : ""}`}>{PRIV_ICON[p]}</span>
-                      <div className="flex-1">
-                        <p className={`text-[11px] font-black uppercase tracking-tight ${form.privacy === p ? "text-red-500" : "text-base-content/95"}`}>{p}</p>
-                        <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">{PRIV_DESC[p]}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-base-content">Privacy</label>
+                  <div className="space-y-2">
+                    {(["PUBLIC", "PRIVATE", "SECRET"] as const).map(p => {
+                      const isExclusive = p === "PRIVATE" || p === "SECRET";
+                      const isLocked = isExclusive && (!billing?.privateCommunityQuota || billing.privateCommunityQuota <= 0);
+                      
+                      return (
+                        <button 
+                          key={p} 
+                          type="button" 
+                          onClick={() => {
+                            if (isLocked) {
+                              setLimitModalMessage(`Creating a ${p.toLowerCase()} community requires an active Pro or VIP Pass with available quota.`);
+                              setShowLimitModal(true);
+                              return;
+                            }
+                            setForm(f => ({ ...f, privacy: p }));
+                          }}
+                          className={`w-full flex items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer ${form.privacy === p ? "border-red-500 bg-red-500/10 shadow-sm scale-[1.01]" : "border-base-content/5 hover:border-base-content/10"}`}
+                        >
+                          <span className={`text-xl opacity-80 ${form.privacy === p ? "text-red-500" : ""}`}>
+                            {PRIV_ICON[p]}
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={`text-[11px] font-black uppercase tracking-tight ${form.privacy === p ? "text-red-500" : "text-base-content/95"}`}>
+                                {p}
+                              </p>
+                              {isLocked && (
+                                <span className="badge badge-warning text-[8px] font-black py-1 px-1.5 uppercase tracking-wide">
+                                  Locked
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">
+                              {PRIV_DESC[p]}
+                            </p>
+                          </div>
+                          {form.privacy === p && <span className="text-red-500 text-xs shadow-sm"><Check size={14} /></span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Tags <span className="opacity-65 font-normal">(optional)</span></label>
+                  <input className="input input-bordered input-sm w-full rounded-xl text-base-content" placeholder="civic, roads, water"
+                    value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Settings</label>
+                  {[
+                    { key: "allowMemberPosts", label: "Members can post", desc: "Allow anyone to create posts" },
+                    { key: "requirePostApproval", label: "Approve posts", desc: "Moderator must review" },
+                    { key: "locationRestricted", label: "Local Only", desc: "Limit to your pincode" },
+                  ].map(({ key, label, desc }) => (
+                    <label key={key} className="flex items-center justify-between gap-3 rounded-xl border border-base-content/5 p-2 px-3 cursor-pointer hover:bg-base-200/50 transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-tight text-base-content/90 truncate">{label}</p>
+                        <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">{desc}</p>
                       </div>
-                      {form.privacy === p && <span className="text-red-500 text-xs shadow-sm"><Check size={14} /></span>}
-                    </button>
+                      <input type="checkbox" className="toggle toggle-error toggle-sm scale-90"
+                        checked={form[key as keyof CreateForm] as boolean}
+                        onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} />
+                    </label>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Tags <span className="opacity-65 font-normal">(optional)</span></label>
-                <input className="input input-bordered input-sm w-full rounded-xl text-base-content" placeholder="civic, roads, water"
-                  value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[10px] uppercase font-black tracking-widest text-base-content/80 mb-1">Settings</label>
-                {[
-                  { key: "allowMemberPosts", label: "Members can post", desc: "Allow anyone to create posts" },
-                  { key: "requirePostApproval", label: "Approve posts", desc: "Moderator must review" },
-                  { key: "locationRestricted", label: "Local Only", desc: "Limit to your pincode" },
-                ].map(({ key, label, desc }) => (
-                  <label key={key} className="flex items-center justify-between gap-3 rounded-xl border border-base-content/5 p-2 px-3 cursor-pointer hover:bg-base-200/50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-black uppercase tracking-tight text-base-content/90 truncate">{label}</p>
-                      <p className="text-[9px] font-medium opacity-65 uppercase tracking-tighter leading-none text-base-content">{desc}</p>
-                    </div>
-                    <input type="checkbox" className="toggle toggle-error toggle-sm scale-90"
-                      checked={form[key as keyof CreateForm] as boolean}
-                      onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} />
-                  </label>
-                ))}
-              </div>
-            </>
+            </div>
           )}
         </div>
         <div className="shrink-0 px-4 py-3 border-t border-base-content/5 bg-white/5 flex gap-3">
@@ -2112,6 +2164,19 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: (c: Com
           />
         </div>
       )}
+      {showLimitModal && (
+        <div onClick={e => e.stopPropagation()}>
+          <LimitReachedModal
+            isOpen={showLimitModal}
+            onClose={() => setShowLimitModal(false)}
+            onUpgrade={() => {
+              onClose();
+              onUpgrade();
+            }}
+            message={limitModalMessage}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -2130,6 +2195,7 @@ function DetailPanel({
 }) {
   const navigate = useNavigate();
   const { closeViaUI } = useBackNavigation(onClose);
+  const queryClient = useQueryClient();
   const normalise = (raw: CommunityData): CommunityData =>
     raw.isOwner ? { ...raw, isMember: true } : raw;
 
@@ -2288,6 +2354,59 @@ function DetailPanel({
     }
   }, [loadPosts, c.isMember, c.isOwner, c.privacy, postSort]);
 
+  const updatePostState = useCallback((postId: number, updater: (post: any) => any) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return updater(p);
+      }
+      return p;
+    }));
+  }, []);
+
+  const handleLike = useCallback((postId: number, liked: boolean) => {
+    updatePostState(postId, (p: any) => {
+      if (!!p.isLikedByMe === liked) return p;
+      return {
+        ...p,
+        isLikedByMe: liked,
+        likeCount: (p.likeCount ?? 0) + (liked ? 1 : -1)
+      };
+    });
+
+    queryClient.setQueryData(["social-post", String(postId)], (prev: any) => {
+      if (!prev) return prev;
+      if (!!prev.isLikedByCurrentUser === liked) return prev;
+      return {
+        ...prev,
+        isLikedByCurrentUser: liked,
+        likeCount: (prev.likeCount ?? 0) + (liked ? 1 : -1)
+      };
+    });
+  }, [queryClient, updatePostState]);
+
+  const handleSave = useCallback((postId: number, saved: boolean) => {
+    updatePostState(postId, (p: any) => {
+      const isSaved = !!(p.isSavedByMe ?? p.isSaved ?? false);
+      if (isSaved === saved) return p;
+      return {
+        ...p,
+        isSavedByMe: saved,
+        isSaved: saved
+      };
+    });
+
+    queryClient.setQueryData(["social-post", String(postId)], (prev: any) => {
+      if (!prev) return prev;
+      const isSaved = !!(prev.isSavedByCurrentUser ?? prev.isSaved ?? false);
+      if (isSaved === saved) return prev;
+      return {
+        ...prev,
+        isSavedByCurrentUser: saved,
+        isSaved: saved
+      };
+    });
+  }, [queryClient, updatePostState]);
+
   async function handleLeaveConfirm() {
     setActing(true);
     setShowLeaveConfirm(false);
@@ -2442,6 +2561,8 @@ function DetailPanel({
                         post={singlePost}
                         currentUser={currentUser || undefined}
                         hideCommunityStrip={true}
+                        onLike={handleLike}
+                        onSave={handleSave}
                         onShareToCommunity={(c.isMember || c.isOwner) ? (postId, content) => sharePostToChat(postId, content) : undefined}
                       />
                     )}
@@ -2521,6 +2642,8 @@ function DetailPanel({
                             post={cardPost}
                             currentUser={currentUser || undefined}
                             hideCommunityStrip={true}
+                            onLike={handleLike}
+                            onSave={handleSave}
                             onShareToCommunity={(c.isMember || c.isOwner) ? (postId, content) => sharePostToChat(postId, content) : undefined}
                           />
                         </div>
@@ -2750,27 +2873,63 @@ function RecommendedCarousel({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [visibleCards, setVisibleCards] = useState(3);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartX = useRef<number | null>(null);
 
+  // Dynamically update the number of visible cards based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setVisibleCards(1); // Single showcase in mobile devices
+      } else if (window.innerWidth < 1024) {
+        setVisibleCards(2); // 2 cards on tablet
+      } else {
+        setVisibleCards(3); // Max 3 cards on large devices
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const maxIndex = Math.max(0, recommended.length - visibleCards);
+
   const nextSlide = useCallback(() => {
     if (recommended.length === 0) return;
-    setActiveIndex((prev) => (prev + 1) % recommended.length);
-  }, [recommended.length]);
+    setActiveIndex((prev) => {
+      if (prev >= maxIndex) {
+        return 0; // Wrap around to start
+      }
+      return prev + 1;
+    });
+  }, [recommended.length, maxIndex]);
 
   const prevSlide = useCallback(() => {
     if (recommended.length === 0) return;
-    setActiveIndex((prev) => (prev - 1 + recommended.length) % recommended.length);
-  }, [recommended.length]);
+    setActiveIndex((prev) => {
+      if (prev <= 0) {
+        return maxIndex; // Wrap around to end
+      }
+      return prev - 1;
+    });
+  }, [recommended.length, maxIndex]);
+
+  // Adjust activeIndex if window resized and activeIndex exceeds maxIndex
+  useEffect(() => {
+    if (activeIndex > maxIndex) {
+      setActiveIndex(maxIndex);
+    }
+  }, [maxIndex, activeIndex]);
 
   // Autoplay loop
   useEffect(() => {
-    if (isPaused || recommended.length < 3) return;
-    timerRef.current = setInterval(nextSlide, 4000);
+    if (isPaused || recommended.length <= visibleCards) return;
+    timerRef.current = setInterval(nextSlide, 5000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPaused, nextSlide, recommended.length]);
+  }, [isPaused, nextSlide, recommended.length, visibleCards]);
 
   if (loading) {
     return (
@@ -2780,7 +2939,7 @@ function RecommendedCarousel({
     );
   }
 
-  if (recommended.length < 3) return null;
+  if (recommended.length === 0) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsPaused(true);
@@ -2799,191 +2958,176 @@ function RecommendedCarousel({
     setTimeout(() => setIsPaused(false), 2000);
   };
 
+  const getCardImage = (c: CommunityData) => {
+    let url = c.coverImageUrl || c.avatarUrl || "";
+    if (!url) {
+      // Return a nice default Unsplash pattern if no image exists
+      return `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=500&q=80`;
+    }
+    if (url.includes("unsplash.com")) {
+      // Replace w=150 with w=500 for crisp quality on large displays
+      url = url.replace(/w=\d+/, "w=500").replace(/q=\d+/, "q=90");
+    }
+    return url;
+  };
+
+  const dotCount = recommended.length - visibleCards + 1;
+
   return (
     <div 
-      className="relative flex flex-col items-center justify-center py-6 select-none overflow-hidden"
+      className="relative flex flex-col w-full py-6 select-none overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="w-full text-left mb-4 px-1">
+      <div className="w-full text-left mb-6 px-1">
         <p className="text-xs font-bold uppercase tracking-widest text-base-content/95">
           Recommended Communities
         </p>
       </div>
 
-      {/* 3D Carousel container */}
-      <div 
-        className="relative w-full h-[220px] flex items-center justify-center"
-        style={{
-          perspective: "1200px",
-          transformStyle: "preserve-3d"
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      {/* Carousel Container */}
+      <div className="relative w-full px-8 sm:px-12">
         {/* Left Arrow Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            prevSlide();
-          }}
-          className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-base-100/70 hover:bg-base-100 border border-base-300/80 backdrop-blur-md text-base-content hover:text-blue-500 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
-          aria-label="Previous slide"
-        >
-          <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-        </button>
+        {recommended.length > visibleCards && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              prevSlide();
+            }}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-base-100 border border-base-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)] text-base-content hover:text-[#1D4ED8] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft size={14} className="sm:w-4 sm:h-4" />
+          </button>
+        )}
 
         {/* Right Arrow Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            nextSlide();
-          }}
-          className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-base-100/70 hover:bg-base-100 border border-base-300/80 backdrop-blur-md text-base-content hover:text-blue-500 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
-          aria-label="Next slide"
+        {recommended.length > visibleCards && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              nextSlide();
+            }}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-base-100 border border-base-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)] text-base-content hover:text-[#1D4ED8] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            aria-label="Next slide"
+          >
+            <ChevronRight size={14} className="sm:w-4 sm:h-4" />
+          </button>
+        )}
+
+        {/* Viewport/Track */}
+        <div 
+          className="overflow-hidden w-full"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
-          <ChevronRight size={18} className="sm:w-5 sm:h-5" />
-        </button>
+          <div 
+            className="flex transition-transform duration-500 ease-out -mx-2.5"
+            style={{
+              transform: `translateX(-${activeIndex * (100 / visibleCards)}%)`
+            }}
+          >
+            {recommended.map((c) => {
+              return (
+                <div
+                  key={c.id}
+                  style={{
+                    width: `${100 / visibleCards}%`,
+                    flexShrink: 0,
+                    padding: "0 10px"
+                  }}
+                  onClick={() => onSelect(c)}
+                >
+                  {/* Card Container */}
+                  <div className="w-full bg-base-100 rounded-3xl border border-base-200/80 p-4.5 flex flex-col justify-between shadow-[0_4px_18px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)] transition-all duration-300 h-[310px] cursor-pointer hover:border-base-300">
+                    <div className="flex flex-col h-full justify-between">
+                      <div>
+                        {/* Cover Image at Top */}
+                        <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden mb-3 bg-base-200">
+                          <img
+                            src={getCardImage(c)}
+                            alt={c.name}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=500&q=80`;
+                            }}
+                          />
+                        </div>
 
-        {recommended.map((c, i) => {
-          const n = recommended.length;
-          let diff = i - activeIndex;
-          
-          // Wrap around for circular loop
-          if (diff < -n / 2) diff += n;
-          if (diff > n / 2) diff -= n;
+                        {/* Title */}
+                        <h3 className="font-extrabold text-sm sm:text-base text-base-content leading-tight mb-1 truncate notranslate">
+                          {c.name}
+                        </h3>
 
-          const isActive = diff === 0;
-          const isLeft = diff === -1;
-          const isRight = diff === 1;
+                        {/* Description */}
+                        <p className="text-[11px] sm:text-xs text-base-content/60 line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                          {c.description}
+                        </p>
+                      </div>
 
-          // Compute style
-          let transform = "";
-          let opacity = 0;
-          let zIndex = 0;
-          let pointerEvents: "auto" | "none" = "none";
+                      {/* Footer Details */}
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-base-content/5">
+                        <span className="text-[11px] font-bold text-base-content/50">
+                          {c.memberCount.toLocaleString()} members
+                        </span>
 
-          if (isActive) {
-            transform = "translateX(0) scale(1) translateZ(0) rotateY(0deg)";
-            opacity = 1;
-            zIndex = 20;
-            pointerEvents = "auto";
-          } else if (isLeft) {
-            transform = "translateX(-28%) scale(0.82) translateZ(-120px) rotateY(20deg)";
-            opacity = 0.55;
-            zIndex = 10;
-            pointerEvents = "auto";
-          } else if (isRight) {
-            transform = "translateX(28%) scale(0.82) translateZ(-120px) rotateY(-20deg)";
-            opacity = 0.55;
-            zIndex = 10;
-            pointerEvents = "auto";
-          } else {
-            transform = `translateX(${diff > 0 ? "40%" : "-40%"}) scale(0.65) translateZ(-240px)`;
-            opacity = 0;
-            zIndex = 0;
-            pointerEvents = "none";
-          }
-
-          const imgSrc = c.avatarUrl || `https://robohash.org/${encodeURIComponent(c.name)}`;
-
-          return (
-            <div
-              key={c.id}
-              onClick={() => {
-                if (isActive) onSelect(c);
-                else if (isLeft) prevSlide();
-                else if (isRight) nextSlide();
-              }}
-              className={`absolute w-[290px] sm:w-[320px] h-[190px] rounded-[2rem] border-2 border-base-300 bg-base-100/90 backdrop-blur-md p-5 flex flex-col justify-between shadow-[0_15px_35px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out transform-gpu cursor-pointer ${
-                isActive ? "hover:shadow-[0_20px_45px_rgba(29,78,216,0.15)]" : ""
-              }`}
-              style={{
-                transform,
-                opacity,
-                zIndex,
-                pointerEvents,
-                transformStyle: "preserve-3d",
-                backfaceVisibility: "hidden"
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="shrink-0 w-11 h-11 rounded-full overflow-hidden ring-2 ring-base-300 shadow-sm">
-                  <img
-                    src={imgSrc}
-                    alt={c.name}
-                    className="w-full h-full object-cover"
-                    onError={e => { (e.target as HTMLImageElement).src = `https://robohash.org/${encodeURIComponent(c.name)}`; }}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="font-extrabold text-[13px] text-base-content leading-tight truncate w-full notranslate">{c.name}</p>
-                    {c.category && (
-                      <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/10 text-white/80 border border-white/15">
-                        {c.category.replace(/_/g, " ")}
-                      </span>
-                    )}
+                        <button
+                          type="button"
+                          onClick={(e) => onJoin(e, c)}
+                          disabled={joiningId === c.id || c.isMember || c.hasPendingRequest}
+                          className={`btn btn-xs rounded-full px-4 h-7 text-[9px] font-black uppercase tracking-wider border-none cursor-pointer ${
+                            c.isMember 
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                              : c.hasPendingRequest 
+                                ? "bg-warning text-white" 
+                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          {joiningId === c.id ? (
+                            <span className="loading loading-spinner loading-xs" />
+                          ) : c.isMember ? (
+                            "Joined"
+                          ) : c.hasPendingRequest ? (
+                            "Pending"
+                          ) : (
+                            "Join"
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-base-content/65 line-clamp-2 mt-1 leading-snug">{c.description}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-base-content/5">
-                <span className="text-[10px] font-bold text-base-content/50 flex items-center gap-1">
-                  <Users size={11} className="text-[#1D4ED8]" /> {c.memberCount.toLocaleString()} members
-                </span>
-                
-                {isActive && (
-                  <button
-                    onClick={(e) => onJoin(e, c)}
-                    disabled={joiningId === c.id || c.isMember || c.hasPendingRequest}
-                    className={`btn btn-xs rounded-full px-4 h-7 text-[9px] font-black uppercase tracking-wider border-none ${
-                      c.isMember 
-                        ? "bg-emerald-600 text-white" 
-                        : c.hasPendingRequest 
-                          ? "bg-warning text-white" 
-                          : "bg-blue-700 hover:bg-blue-800 text-white"
-                    }`}
-                  >
-                    {joiningId === c.id ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : c.isMember ? (
-                      "Joined"
-                    ) : c.hasPendingRequest ? (
-                      "Pending"
-                    ) : (
-                      "Join"
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Control Dots */}
-      <div className="flex gap-1.5 mt-2">
-        {recommended.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveIndex(i)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              activeIndex === i ? "bg-[#1D4ED8] w-4" : "bg-base-content/20 w-1.5"
-            }`}
-            aria-label={`Go to slide ${i + 1}`}
-          />
-        ))}
-      </div>
+      {recommended.length > visibleCards && dotCount > 1 && (
+        <div className="flex justify-center gap-1.5 mt-5">
+          {Array.from({ length: dotCount }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                activeIndex === i ? "bg-[#1D4ED8] w-5" : "bg-base-content/20 w-2"
+              }`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 const Community = () => {
   const queryClient = useQueryClient();
+  useMyBilling();
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [committed, setCommitted] = useState("");
   const [searchResults, setSearchResults] = useState<CommunityData[]>([]);
@@ -3628,8 +3772,14 @@ const Community = () => {
       )}
 
       {showCreate && (
-        <CreateModal onClose={() => setShowCreate(false)} onDone={handleCreated} />
+        <CreateModal 
+          onClose={() => setShowCreate(false)} 
+          onDone={handleCreated} 
+          onUpgrade={() => setIsPricingModalOpen(true)} 
+        />
       )}
+
+      <PricingModal isOpen={isPricingModalOpen} onClose={() => setIsPricingModalOpen(false)} />
     </div>
   );
 };

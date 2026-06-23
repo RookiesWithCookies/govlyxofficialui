@@ -20,8 +20,11 @@ import {
   ExternalLink,
   MessageSquare,
   Smile,
+  Crown,
 } from "lucide-react";
 import { OPENMOJI_STICKERS } from "../../utils/stickers";
+import { useMyBilling } from "../../hooks/useBilling";
+import PricingModal from "../billing/PricingModal";
 
 interface CommunityChatProps {
   communityId: number;
@@ -88,6 +91,8 @@ const ExpiryTimer = React.memo(({ expiresAt }: { expiresAt: string }) => {
 });
 
 export default function CommunityChat({ communityId, isAdmin }: CommunityChatProps) {
+  const { data: billing } = useMyBilling();
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const navigate = useNavigate();
   const [showStickerMenu, setShowStickerMenu] = useState(false);
   const { data: userProfile } = useCurrentUser();
@@ -334,6 +339,14 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
         )}
       </div>
 
+      {/* ── Frozen Community Banner ── */}
+      {error?.toLowerCase().includes("frozen") && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center gap-2 text-xs text-amber-500 font-semibold animate-pulse shrink-0">
+          <AlertTriangle size={14} className="shrink-0" />
+          <span>This Secret community is frozen because the owner's pass expired. Group chat is read-only.</span>
+        </div>
+      )}
+
       {/* ── Pinned Message Banner ── */}
       {pinnedMessage && (
         <div
@@ -363,7 +376,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
             <span className="loading loading-spinner loading-md text-primary"></span>
             <span className="text-xs opacity-50">Loading chat history...</span>
           </div>
-        ) : error ? (
+        ) : error && !error.toLowerCase().includes("frozen") ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-2 p-6">
             <AlertTriangle className="text-error" size={32} />
             <p className="text-sm font-semibold">{error}</p>
@@ -548,11 +561,24 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
                             >
                               {isAdmin && (
                                 <button
-                                  onClick={() => handlePinToggle(msg)}
-                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-base-200 flex items-center gap-1.5"
+                                  onClick={() => {
+                                    if (billing?.currentTier !== "GOVLYX_VIP") {
+                                      showToast.error("Message pinning requires a Govlyx VIP Pass");
+                                      setIsPricingModalOpen(true);
+                                      setActiveDropdown(null);
+                                      return;
+                                    }
+                                    handlePinToggle(msg);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-base-200 flex items-center justify-between"
                                 >
-                                  <Pin size={12} />
-                                  <span>{msg.isPinned ? "Unpin" : "Pin"}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <Pin size={12} />
+                                    <span>{msg.isPinned ? "Unpin" : "Pin"}</span>
+                                  </div>
+                                  {billing?.currentTier !== "GOVLYX_VIP" && (
+                                    <Crown size={10} className="text-amber-500 shrink-0" />
+                                  )}
                                 </button>
                               )}
                               {!isMe && (
@@ -678,7 +704,7 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
                   setInputText(e.target.value);
                   sendTyping();
                 }}
-                placeholder="Write a message..."
+                placeholder={error?.toLowerCase().includes("frozen") ? "This Secret community is frozen (owner pass expired)..." : "Write a message..."}
                 className="input input-sm flex-1 bg-base-200 border-none rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary h-10 px-4"
                 disabled={isLoading || !!error}
               />
@@ -747,12 +773,24 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold opacity-75">Message Retention Period</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold opacity-75">Message Retention Period</label>
+                  {billing?.currentTier !== "GOVLYX_VIP" && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5 font-sans">
+                      <Crown size={8} /> VIP
+                    </span>
+                  )}
+                </div>
                 <select
                   value={tempSettings.chatRetentionDays}
-                  onChange={(e) =>
-                    setTempSettings((prev) => ({ ...prev, chatRetentionDays: Number(e.target.value) }))
-                  }
+                  onChange={(e) => {
+                    if (billing?.currentTier !== "GOVLYX_VIP") {
+                      showToast.error("Disappearing messages require a Govlyx VIP Pass");
+                      setIsPricingModalOpen(true);
+                      return;
+                    }
+                    setTempSettings((prev) => ({ ...prev, chatRetentionDays: Number(e.target.value) }));
+                  }}
                   className="select select-bordered select-sm w-full rounded-xl"
                 >
                   <option value={7}>7 Days (1 Week)</option>
@@ -839,6 +877,9 @@ export default function CommunityChat({ communityId, isAdmin }: CommunityChatPro
           </div>
         </div>
       )}
+
+      {/* ── Pricing Modal ── */}
+      <PricingModal isOpen={isPricingModalOpen} onClose={() => setIsPricingModalOpen(false)} />
     </div>
   );
 }

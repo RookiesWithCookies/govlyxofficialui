@@ -254,7 +254,7 @@ const SidebarLeft = () => {
       <div className="rounded-xl bg-base-200 p-4">
         <div className="flex items-center gap-3">
           <div className="avatar placeholder">
-            <div className="w-10 rounded-full overflow-hidden bg-base-200 border-2 border-red-500 dark:border-red-400">
+            <div className="w-10 rounded-full overflow-hidden bg-base-200 border-2 border-[#1D4ED8] dark:border-white">
               <img src={resolveMediaUrl(user?.profileImage, "social-posts") || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(displayName)}`} alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </div>

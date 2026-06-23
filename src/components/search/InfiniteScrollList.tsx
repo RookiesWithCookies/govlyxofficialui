@@ -13,6 +13,10 @@ interface InfiniteScrollListProps {
   fetchNextPage: () => void;
   currentUser: any;
   error?: string | null;
+  onLike?: (postId: number, liked: boolean) => void;
+  onDislike?: (postId: number, disliked: boolean) => void;
+  onSave?: (postId: number, saved: boolean) => void;
+  onShare?: (postId: number) => void;
 }
 
 // ─── Result type normalizer ──────────────────────────────────────────────────
@@ -165,6 +169,10 @@ export default function InfiniteScrollList({
   fetchNextPage,
   currentUser,
   error = null,
+  onLike,
+  onDislike,
+  onSave,
+  onShare,
 }: InfiniteScrollListProps) {
   const navigate = useNavigate();
 
@@ -228,11 +236,10 @@ export default function InfiniteScrollList({
               <PostCard
                 post={post}
                 currentUser={currentUser}
-                onLike={(id: number, liked: boolean) => console.log("like", id, liked)}
-                onSave={(id: number, saved: boolean) => console.log("save", id, saved)}
-                onShare={(id: number) =>
-                  navigator.clipboard?.writeText(`${window.location.origin}/post/${id}`).catch(() => {})
-                }
+                onLike={onLike}
+                onDislike={onDislike}
+                onSave={onSave}
+                onShare={onShare}
                 onComment={(id: number) => navigate(`/post/${id}`)}
               />
             </div>

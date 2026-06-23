@@ -23,7 +23,6 @@ import {
   Flag,
   Maximize2,
   MessageSquare,
-  ThumbsDown,
   EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../hooks/useUser";
 import ReportModal from "../modals/ReportModal";
+import UserProfileModal from "../modals/UserProfileModal";
 import { checkProfanity } from "../../utils/profanity";
 import { showToast } from "../../utils/toast";
 import { parseError } from "../../utils/error-handler";
@@ -46,6 +46,10 @@ const POST_ACTION_HOVER_GLOW = "rgba(29,78,216,0.65)";
 
 const POST_ACTION_ICONS = {
   like: {
+    light: "/icons/post-actions/like_light.gif",
+    dark: "/icons/post-actions/like_dark.gif",
+  },
+  dislike: {
     light: "/icons/post-actions/like_light.gif",
     dark: "/icons/post-actions/like_dark.gif",
   },
@@ -74,6 +78,7 @@ function PostActionGif({
 }) {
   const { theme } = useTheme();
   const src = POST_ACTION_ICONS[name][theme === "dark" ? "dark" : "light"];
+  const isDislike = name === "dislike";
 
   return (
     <img
@@ -82,7 +87,8 @@ function PostActionGif({
       aria-hidden="true"
       draggable={false}
       onContextMenu={(event) => event.preventDefault()}
-      className={`${vertical ? "h-5 w-5 sm:h-6 sm:w-6" : "h-7 w-7 sm:h-8 sm:w-8"} ${active ? "scale-110" : ""} pointer-events-none shrink-0 object-contain transition-transform duration-200`}
+      style={isDislike ? { transform: `scaleY(-1) ${active ? "scale(1.1)" : "scale(1)"}` } : undefined}
+      className={`${vertical ? "h-5 w-5 sm:h-6 sm:w-6" : "h-7 w-7 sm:h-8 sm:w-8"} ${active && !isDislike ? "scale-110" : ""} pointer-events-none shrink-0 object-contain transition-transform duration-200`}
     />
   );
 }
@@ -294,6 +300,28 @@ type PostCardProps = {
 };
 
 const postTranslationCache = new Map<string, string>();
+
+interface GlobalInteractionState {
+  liked?: boolean;
+  likeCount?: number;
+  disliked?: boolean;
+  dislikeCount?: number;
+  saved?: boolean;
+}
+const globalInteractionCache = new Map<string, GlobalInteractionState>();
+
+function getGlobalCacheKey(post: AnyPost): string {
+  const isIssue = post.variant === "issue";
+  const isGovt = post.variant === "government";
+  const type = (isIssue || isGovt) ? "posts" : "social-posts";
+  return `${type}-${post.id}`;
+}
+
+function updateGlobalCache(post: AnyPost, updates: GlobalInteractionState) {
+  const key = getGlobalCacheKey(post);
+  const current = globalInteractionCache.get(key) || {};
+  globalInteractionCache.set(key, { ...current, ...updates });
+}
 
 function canUpdateResolution(post: IssuePost, currentUser?: CurrentUser): boolean {
   if (!currentUser) return false;
@@ -941,6 +969,7 @@ function AuthorRow({
   showDelete,
   hideDelete,
   rightAction,
+  onProfileClick,
 }: {
   post: AnyPost;
   badge?: string;
@@ -949,15 +978,25 @@ function AuthorRow({
   showDelete?: boolean;
   hideDelete?: boolean;
   rightAction?: React.ReactNode;
+  onProfileClick?: (username: string) => void;
 }) {
+  const navigate = useNavigate();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex items-center gap-3"
+      className="flex items-center gap-3 w-full min-w-0"
     >
       <motion.div
-        className="relative shrink-0"
+        className="relative shrink-0 cursor-pointer"
+        onClick={() => {
+          if (post.username && onProfileClick) {
+            onProfileClick(post.username);
+          } else if (post.username) {
+            navigate(`/profile?username=${encodeURIComponent(post.username)}`);
+          }
+        }}
       >
         {post.userProfileImage ? (
           <img
@@ -979,15 +1018,24 @@ function AuthorRow({
         />
       </motion.div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-black text-base-content uppercase tracking-tight notranslate">
+        <div className="flex items-center gap-2 min-w-0">
+          <span 
+            className="text-xs font-black text-base-content uppercase tracking-tight notranslate truncate cursor-pointer hover:underline"
+            onClick={() => {
+              if (post.username && onProfileClick) {
+                onProfileClick(post.username);
+              } else if (post.username) {
+                navigate(`/profile?username=${encodeURIComponent(post.username)}`);
+              }
+            }}
+          >
             {post.userDisplayName || post.username}
           </span>
           {badge && (
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200"
+              className="text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0"
             >
               {badge}
             </motion.span>
@@ -997,7 +1045,7 @@ function AuthorRow({
           {post.timeAgo ?? "just now"}
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {rightAction}
         {showDelete && !hideDelete && onDelete && (
           <motion.button
@@ -1672,6 +1720,24 @@ function PollBody({
 // Module-level set to prevent concurrent duplicate view requests in the same browser session
 const sessionTrackedViews = new Set<string>();
 
+const renderFormattedContent = (text: string) => {
+  if (!text) return "";
+  const parts = text.split(/(\#[a-zA-Z0-9_\u00C0-\u00FF\u0100-\u017F\u0400-\u04FF]+)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("#")) {
+      return (
+        <span
+          key={index}
+          className="font-semibold text-blue-600 hover:text-blue-700 transition-colors notranslate"
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+};
+
 export default function PostCard({
   post,
   currentUser,
@@ -1689,13 +1755,34 @@ export default function PostCard({
 }: PostCardProps) {
   const queryClient = useQueryClient();
   const { data: currentUserProfile } = useCurrentUser();
-  const [liked, setLiked] = useState(!!(post as AnyPost)?.isLikedByCurrentUser);
-  const [disliked, setDisliked] = useState(!!(post as any)?.isDislikedByCurrentUser);
-  const [saved, setSaved] = useState(
-    !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false)
+  
+  const cachedState = post ? globalInteractionCache.get(getGlobalCacheKey(post)) : undefined;
+
+  const [liked, setLiked] = useState(
+    cachedState?.liked !== undefined
+      ? cachedState.liked
+      : !!(post as AnyPost)?.isLikedByCurrentUser
   );
-  const [likeCount, setLikeCount] = useState<number>(post?.likeCount ?? 0);
-  const [dislikeCount, setDislikeCount] = useState<number>((post as any)?.dislikeCount ?? 0);
+  const [disliked, setDisliked] = useState(
+    cachedState?.disliked !== undefined
+      ? cachedState.disliked
+      : !!(post as any)?.isDislikedByCurrentUser
+  );
+  const [saved, setSaved] = useState(
+    cachedState?.saved !== undefined
+      ? cachedState.saved
+      : !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false)
+  );
+  const [likeCount, setLikeCount] = useState<number>(
+    cachedState?.likeCount !== undefined
+      ? cachedState.likeCount
+      : (post?.likeCount ?? 0)
+  );
+  const [dislikeCount, setDislikeCount] = useState<number>(
+    cachedState?.dislikeCount !== undefined
+      ? cachedState.dislikeCount
+      : ((post as any)?.dislikeCount ?? 0)
+  );
   const [shareCount, setShareCount] = useState(post?.shareCount ?? 0);
   const [commentCount, setCommentCount] = useState(post?.commentCount ?? 0);
   const [hasSharedLocally, setHasSharedLocally] = useState(false);
@@ -1720,6 +1807,10 @@ export default function PostCard({
   const [showOriginal, setShowOriginal] = useState(false);
   const [dynamicTranslation, setDynamicTranslation] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileModalUsername, setProfileModalUsername] = useState("");
+  const [profileModalDisplayName, setProfileModalDisplayName] = useState("");
+  const [profileModalAvatar, setProfileModalAvatar] = useState<string | null>(null);
   const { copied, flash } = useCopied();
   const instanceId = useRef(Math.random().toString()).current;
 
@@ -1769,11 +1860,37 @@ export default function PostCard({
   };
 
   // Synced backend states to resolve optimistic updates on network errors / debouncing
-  const syncedLikedRef = useRef(!!(post as AnyPost)?.isLikedByCurrentUser);
-  const syncedLikeCountRef = useRef(post?.likeCount ?? 0);
-  const syncedDislikedRef = useRef(!!(post as any)?.isDislikedByCurrentUser);
-  const syncedDislikeCountRef = useRef((post as any)?.dislikeCount ?? 0);
-  const syncedSavedRef = useRef(!!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false));
+  const syncedLikedRef = useRef(
+    cachedState?.liked !== undefined
+      ? cachedState.liked
+      : !!(post as AnyPost)?.isLikedByCurrentUser
+  );
+  const syncedLikeCountRef = useRef(
+    cachedState?.likeCount !== undefined
+      ? cachedState.likeCount
+      : (post?.likeCount ?? 0)
+  );
+  const syncedDislikedRef = useRef(
+    cachedState?.disliked !== undefined
+      ? cachedState.disliked
+      : !!(post as any)?.isDislikedByCurrentUser
+  );
+  const syncedDislikeCountRef = useRef(
+    cachedState?.dislikeCount !== undefined
+      ? cachedState.dislikeCount
+      : ((post as any)?.dislikeCount ?? 0)
+  );
+  const syncedSavedRef = useRef(
+    cachedState?.saved !== undefined
+      ? cachedState.saved
+      : !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false)
+  );
+
+  // Store callbacks in ref to avoid event listener churn when callbacks are unstable
+  const callbacksRef = useRef({ onLike, onDislike, onSave, onShare });
+  useEffect(() => {
+    callbacksRef.current = { onLike, onDislike, onSave, onShare };
+  }, [onLike, onDislike, onSave, onShare]);
 
   // Debounce timers
   const pendingLikeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1783,10 +1900,18 @@ export default function PostCard({
   // Ref to prevent duplicate simultaneous share clicks
   const isSharingRef = useRef(false);
 
+  // Active sync flags to handle consecutive clicks when request is in flight
+  const isLikeDislikeSyncingRef = useRef(false);
+  const hasPendingLikeDislikeSyncRef = useRef(false);
+  const isSaveSyncingRef = useRef(false);
+  const hasPendingSaveSyncRef = useRef(false);
+
   // Ref tracking visual state for debounce closure safety
   const currentLikedValueRef = useRef(liked);
   const currentDislikedValueRef = useRef(disliked);
   const currentSavedValueRef = useRef(saved);
+  const currentLikeCountValueRef = useRef(likeCount);
+  const currentDislikeCountValueRef = useRef(dislikeCount);
 
   useEffect(() => {
     currentLikedValueRef.current = liked;
@@ -1810,29 +1935,38 @@ export default function PostCard({
 
   useEffect(() => {
     if (post) {
-      const isLiked = !!(post as AnyPost)?.isLikedByCurrentUser;
-      const isSaved = !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false);
+      const cached = globalInteractionCache.get(getGlobalCacheKey(post));
+      const isLiked = cached?.liked !== undefined ? cached.liked : !!(post as AnyPost)?.isLikedByCurrentUser;
+      const isSaved = cached?.saved !== undefined ? cached.saved : !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false);
+      const isDisliked = cached?.disliked !== undefined ? cached.disliked : (post.variant === "issue" ? !!(post as any).isDislikedByCurrentUser : false);
+      const pLikeCount = cached?.likeCount !== undefined ? cached.likeCount : (post.likeCount ?? 0);
+      const pDislikeCount = cached?.dislikeCount !== undefined ? cached.dislikeCount : (post.variant === "issue" ? ((post as any).dislikeCount ?? 0) : 0);
 
-      // Only sync if there is no pending optimistic interaction
-      if (!pendingLikeTimerRef.current) {
+      // Only sync if there is no pending optimistic interaction and no active API call syncing
+      if (!pendingLikeTimerRef.current && !isLikeDislikeSyncingRef.current) {
         setLiked(isLiked);
         syncedLikedRef.current = isLiked;
-        setLikeCount(post.likeCount ?? 0);
-        syncedLikeCountRef.current = post.likeCount ?? 0;
+        currentLikedValueRef.current = isLiked;
+        setLikeCount(pLikeCount);
+        syncedLikeCountRef.current = pLikeCount;
+        currentLikeCountValueRef.current = pLikeCount;
       }
-      if (!pendingDislikeTimerRef.current) {
+      if (!pendingDislikeTimerRef.current && !isLikeDislikeSyncingRef.current) {
         if (post.variant === "issue") {
-          setDislikeCount((post as any).dislikeCount ?? 0);
-          syncedDislikeCountRef.current = (post as any).dislikeCount ?? 0;
+          setDislikeCount(pDislikeCount);
+          syncedDislikeCountRef.current = pDislikeCount;
+          currentDislikeCountValueRef.current = pDislikeCount;
         }
         if (post.variant === "issue") {
-          setDisliked(!!(post as any).isDislikedByCurrentUser);
-          syncedDislikedRef.current = !!(post as any).isDislikedByCurrentUser;
+          setDisliked(isDisliked);
+          syncedDislikedRef.current = isDisliked;
+          currentDislikedValueRef.current = isDisliked;
         }
       }
-      if (!pendingSaveTimerRef.current) {
+      if (!pendingSaveTimerRef.current && !isSaveSyncingRef.current) {
         setSaved(isSaved);
         syncedSavedRef.current = isSaved;
+        currentSavedValueRef.current = isSaved;
       }
 
       setShareCount(post.shareCount ?? 0);
@@ -1841,6 +1975,7 @@ export default function PostCard({
       setIsContentRevealed(false);
       setDynamicTranslation(null);
       setShowOriginal(false);
+      setHasSharedLocally(false);
     }
   }, [post]);
 
@@ -1869,38 +2004,83 @@ export default function PostCard({
       if (e.detail.source === 'like') {
         setLiked(e.detail.liked);
         syncedLikedRef.current = e.detail.liked;
+        currentLikedValueRef.current = e.detail.liked;
         if (e.detail.likeCount !== undefined) {
           setLikeCount(e.detail.likeCount);
           syncedLikeCountRef.current = e.detail.likeCount;
+          currentLikeCountValueRef.current = e.detail.likeCount;
         }
         if (e.detail.liked) {
           setDisliked(false);
           syncedDislikedRef.current = false;
+          currentDislikedValueRef.current = false;
           if (e.detail.dislikeCount !== undefined) {
             setDislikeCount(e.detail.dislikeCount);
             syncedDislikeCountRef.current = e.detail.dislikeCount;
+            currentDislikeCountValueRef.current = e.detail.dislikeCount;
           }
+        }
+        
+        // Update global cache
+        updateGlobalCache(post, {
+          liked: e.detail.liked,
+          likeCount: e.detail.likeCount,
+          ...(e.detail.liked ? { disliked: false, dislikeCount: e.detail.dislikeCount } : {})
+        });
+
+        // Notify parent to sync cache and avoid state reversion on re-renders
+        callbacksRef.current.onLike?.(post.id, e.detail.liked);
+        if (e.detail.liked && callbacksRef.current.onDislike) {
+          callbacksRef.current.onDislike(post.id, false);
         }
       } else if (e.detail.source === 'dislike') {
         setDisliked(e.detail.disliked);
         syncedDislikedRef.current = e.detail.disliked;
+        currentDislikedValueRef.current = e.detail.disliked;
         if (e.detail.dislikeCount !== undefined) {
           setDislikeCount(e.detail.dislikeCount);
           syncedDislikeCountRef.current = e.detail.dislikeCount;
+          currentDislikeCountValueRef.current = e.detail.dislikeCount;
         }
         if (e.detail.disliked) {
           setLiked(false);
           syncedLikedRef.current = false;
+          currentLikedValueRef.current = false;
           if (e.detail.likeCount !== undefined) {
             setLikeCount(e.detail.likeCount);
             syncedLikeCountRef.current = e.detail.likeCount;
+            currentLikeCountValueRef.current = e.detail.likeCount;
           }
+        }
+
+        // Update global cache
+        updateGlobalCache(post, {
+          disliked: e.detail.disliked,
+          dislikeCount: e.detail.dislikeCount,
+          ...(e.detail.disliked ? { liked: false, likeCount: e.detail.likeCount } : {})
+        });
+
+        // Notify parent to sync cache
+        callbacksRef.current.onDislike?.(post.id, e.detail.disliked);
+        if (e.detail.disliked && callbacksRef.current.onLike) {
+          callbacksRef.current.onLike(post.id, false);
         }
       } else if (e.detail.source === 'save') {
         setSaved(e.detail.saved);
         syncedSavedRef.current = e.detail.saved;
+        currentSavedValueRef.current = e.detail.saved;
+
+        // Update global cache
+        updateGlobalCache(post, { saved: e.detail.saved });
+
+        // Notify parent to sync cache
+        callbacksRef.current.onSave?.(post.id, e.detail.saved);
       } else if (e.detail.source === 'share') {
-        if (e.detail.shareCount !== undefined) setShareCount(e.detail.shareCount);
+        if (e.detail.shareCount !== undefined) {
+          setShareCount(e.detail.shareCount);
+          // Notify parent to sync cache
+          callbacksRef.current.onShare?.(post.id);
+        }
       } else if (e.detail.source === 'comment') {
         if (e.detail.commentCount !== undefined) setCommentCount(e.detail.commentCount);
       }
@@ -1953,27 +2133,198 @@ export default function PostCard({
   const hasMedia = allMediaUrls.length > 0;
 
   // Handlers
+  async function syncLikeDislike() {
+    if (isLikeDislikeSyncingRef.current) {
+      hasPendingLikeDislikeSyncRef.current = true;
+      return;
+    }
+
+    const targetLiked = currentLikedValueRef.current;
+    const targetDisliked = currentDislikedValueRef.current;
+    const syncedLiked = syncedLikedRef.current;
+    const syncedDisliked = syncedDislikedRef.current;
+
+    // Check if we actually need to sync anything
+    if (targetLiked === syncedLiked && targetDisliked === syncedDisliked) {
+      return;
+    }
+
+    isLikeDislikeSyncingRef.current = true;
+
+    let endpoint: string | null = null;
+    let actionType: 'like' | 'dislike' | null = null;
+
+    if (targetLiked && !syncedLiked) {
+      endpoint = `/api/interactions/${interactionType}/${post.id}/like`;
+      actionType = 'like';
+    } else if (targetDisliked && !syncedDisliked) {
+      endpoint = `/api/interactions/${interactionType}/${post.id}/dislike`;
+      actionType = 'dislike';
+    } else if (!targetLiked && !targetDisliked) {
+      if (syncedLiked) {
+        endpoint = `/api/interactions/${interactionType}/${post.id}/like`;
+        actionType = 'like';
+      } else if (syncedDisliked) {
+        endpoint = `/api/interactions/${interactionType}/${post.id}/dislike`;
+        actionType = 'dislike';
+      }
+    }
+
+    if (!endpoint || !actionType) {
+      isLikeDislikeSyncingRef.current = false;
+      return;
+    }
+
+    try {
+      const res = await apiPost(endpoint, {});
+      const data = (res as any)?.data ?? res;
+
+      let serverLiked = targetLiked;
+      let serverLikeCount = currentLikeCountValueRef.current;
+      let serverDisliked = targetDisliked;
+      let serverDislikeCount = currentDislikeCountValueRef.current;
+
+      if (data) {
+        if (typeof data.liked === "boolean") {
+          serverLiked = data.liked;
+        } else if (actionType === 'like') {
+          serverLiked = targetLiked;
+        }
+        // Do NOT overwrite serverLikeCount and serverDislikeCount with data from the API response.
+        // The backend processes database increments/decrements asynchronously via @Async,
+        // which means the counts retrieved immediately here are stale/pre-transaction values.
+        // We preserve our correct optimistic counts instead.
+
+        if (typeof data.disliked === "boolean") {
+          serverDisliked = data.disliked;
+        } else if (actionType === 'dislike') {
+          serverDisliked = targetDisliked;
+        }
+      }
+
+      if (actionType === 'like' && serverLiked) {
+        serverDisliked = false;
+      }
+      if (actionType === 'dislike' && serverDisliked) {
+        serverLiked = false;
+      }
+
+      syncedLikedRef.current = serverLiked;
+      syncedLikeCountRef.current = serverLikeCount;
+      currentLikeCountValueRef.current = serverLikeCount;
+
+      syncedDislikedRef.current = serverDisliked;
+      syncedDislikeCountRef.current = serverDislikeCount;
+      currentDislikeCountValueRef.current = serverDislikeCount;
+
+      // Update global cache
+      updateGlobalCache(post, {
+        liked: serverLiked,
+        likeCount: serverLikeCount,
+        disliked: serverDisliked,
+        dislikeCount: serverDislikeCount
+      });
+
+      if (currentLikedValueRef.current === targetLiked && currentDislikedValueRef.current === targetDisliked) {
+        setLiked(serverLiked);
+        setLikeCount(serverLikeCount);
+        setDisliked(serverDisliked);
+        setDislikeCount(serverDislikeCount);
+
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: {
+            postId: post.id,
+            source: actionType,
+            liked: serverLiked,
+            likeCount: serverLikeCount,
+            disliked: serverDisliked,
+            dislikeCount: serverDislikeCount,
+            emitterId: instanceId
+          }
+        }));
+      }
+    } catch (err) {
+      console.error(`Failed to sync ${actionType} interaction`, err);
+      if (currentLikedValueRef.current === targetLiked && currentDislikedValueRef.current === targetDisliked) {
+        setLiked(syncedLiked);
+        setLikeCount(syncedLikeCountRef.current);
+        currentLikeCountValueRef.current = syncedLikeCountRef.current;
+
+        setDisliked(syncedDisliked);
+        setDislikeCount(syncedDislikeCountRef.current);
+        currentDislikeCountValueRef.current = syncedDislikeCountRef.current;
+
+        // Revert global cache
+        updateGlobalCache(post, {
+          liked: syncedLiked,
+          likeCount: syncedLikeCountRef.current,
+          disliked: syncedDisliked,
+          dislikeCount: syncedDislikeCountRef.current
+        });
+
+        if (actionType === 'like') {
+          onLike?.(post.id, syncedLiked);
+        } else {
+          onDislike?.(post.id, syncedDisliked);
+        }
+
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: {
+            postId: post.id,
+            source: actionType,
+            liked: syncedLiked,
+            likeCount: syncedLikeCountRef.current,
+            disliked: syncedDisliked,
+            dislikeCount: syncedDislikeCountRef.current,
+            emitterId: instanceId
+          }
+        }));
+      }
+    } finally {
+      isLikeDislikeSyncingRef.current = false;
+      if (hasPendingLikeDislikeSyncRef.current) {
+        hasPendingLikeDislikeSyncRef.current = false;
+        syncLikeDislike();
+      }
+    }
+  }
+
   async function handleLike() {
     if (isResolved) return;
     
     const nextLiked = !currentLikedValueRef.current;
-    const nextLikeCount = nextLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+    const nextLikeCount = nextLiked ? currentLikeCountValueRef.current + 1 : Math.max(0, currentLikeCountValueRef.current - 1);
     
-    let nextDislikeCount = dislikeCount;
+    let nextDislikeCount = currentDislikeCountValueRef.current;
     const hasDislike = isIssue;
-    if (hasDislike && nextLiked && disliked) {
-      nextDislikeCount = Math.max(0, dislikeCount - 1);
+    if (hasDislike && nextLiked && currentDislikedValueRef.current) {
+      nextDislikeCount = Math.max(0, currentDislikeCountValueRef.current - 1);
     }
     
-    // 1. Optimistic updates
+    // 1. Synchronously update Refs for instant response to successive clicks
+    currentLikedValueRef.current = nextLiked;
+    currentLikeCountValueRef.current = nextLikeCount;
+    if (hasDislike && nextLiked) {
+      currentDislikedValueRef.current = false;
+      currentDislikeCountValueRef.current = nextDislikeCount;
+    }
+
+    // 2. Optimistic state updates
     setLiked(nextLiked);
     setLikeCount(nextLikeCount);
-    if (hasDislike && nextLiked && disliked) {
+    if (hasDislike && nextLiked) {
       setDisliked(false);
       setDislikeCount(nextDislikeCount);
     }
+
+    // Update global cache immediately on optimistic update
+    updateGlobalCache(post, {
+      liked: nextLiked,
+      likeCount: nextLikeCount,
+      ...(hasDislike && nextLiked ? { disliked: false, dislikeCount: nextDislikeCount } : {})
+    });
     
-    // 2. Notify parent and sync instances
+    // 3. Notify parent and sync instances
     onLike?.(post.id, nextLiked);
     window.dispatchEvent(new CustomEvent('POST_SYNC', {
       detail: { 
@@ -1981,13 +2332,13 @@ export default function PostCard({
         source: 'like', 
         liked: nextLiked, 
         likeCount: nextLikeCount, 
-        disliked: nextLiked ? false : disliked,
+        disliked: nextLiked ? false : currentDislikedValueRef.current,
         dislikeCount: nextDislikeCount,
         emitterId: instanceId 
       }
     }));
 
-    // 3. Debounce API call
+    // 4. Debounce API call
     if (pendingLikeTimerRef.current) {
       clearTimeout(pendingLikeTimerRef.current);
     }
@@ -1998,65 +2349,7 @@ export default function PostCard({
 
     pendingLikeTimerRef.current = setTimeout(async () => {
       pendingLikeTimerRef.current = null;
-      const targetState = currentLikedValueRef.current;
-      const originalSyncedState = syncedLikedRef.current;
-
-      if (targetState === originalSyncedState) {
-        return;
-      }
-
-      const ep = `/api/interactions/${interactionType}/${post.id}/like`;
-      try {
-        const res = await apiPost(ep, {});
-        const data = (res as any)?.data ?? res;
-        
-        let serverLiked = targetState;
-        let serverLikeCount = nextLikeCount;
-        if (data && typeof data.liked === "boolean") serverLiked = data.liked;
-        if (data && typeof data.likeCount === "number") serverLikeCount = data.likeCount;
-
-        let serverDisliked = nextLiked ? false : disliked;
-        let serverDislikeCount = nextDislikeCount;
-        if (data && typeof data.disliked === "boolean") serverDisliked = data.disliked;
-        if (data && typeof data.dislikeCount === "number") serverDislikeCount = data.dislikeCount;
-
-        syncedLikedRef.current = serverLiked;
-        syncedLikeCountRef.current = serverLikeCount;
-        if (hasDislike) {
-          syncedDislikedRef.current = serverDisliked;
-          syncedDislikeCountRef.current = serverDislikeCount;
-        }
-
-        if (currentLikedValueRef.current === targetState) {
-          setLiked(serverLiked);
-          setLikeCount(serverLikeCount);
-          if (hasDislike) {
-            setDisliked(serverDisliked);
-            setDislikeCount(serverDislikeCount);
-          }
-          window.dispatchEvent(new CustomEvent('POST_SYNC', {
-            detail: { 
-              postId: post.id, 
-              source: 'like', 
-              liked: serverLiked, 
-              likeCount: serverLikeCount, 
-              disliked: serverDisliked,
-              dislikeCount: serverDislikeCount,
-              emitterId: instanceId 
-            }
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to sync like interaction", err);
-        if (currentLikedValueRef.current === targetState) {
-          setLiked(originalSyncedState);
-          setLikeCount(syncedLikeCountRef.current);
-          onLike?.(post.id, originalSyncedState);
-          window.dispatchEvent(new CustomEvent('POST_SYNC', {
-            detail: { postId: post.id, source: 'like', liked: originalSyncedState, likeCount: syncedLikeCountRef.current, emitterId: instanceId }
-          }));
-        }
-      }
+      syncLikeDislike();
     }, 400);
   }
 
@@ -2064,19 +2357,35 @@ export default function PostCard({
     if (!isIssue || isResolved) return;
     
     const nextDisliked = !currentDislikedValueRef.current;
-    const nextDislikeCount = nextDisliked ? dislikeCount + 1 : Math.max(0, dislikeCount - 1);
+    const nextDislikeCount = nextDisliked ? currentDislikeCountValueRef.current + 1 : Math.max(0, currentDislikeCountValueRef.current - 1);
     
-    // 1. Optimistic updates
-    setDisliked(nextDisliked);
-    setDislikeCount(nextDislikeCount);
-    let nextLikeCount = likeCount;
-    if (nextDisliked && liked) {
-      setLiked(false);
-      nextLikeCount = Math.max(0, likeCount - 1);
-      setLikeCount(nextLikeCount);
+    let nextLikeCount = currentLikeCountValueRef.current;
+    if (nextDisliked && currentLikedValueRef.current) {
+      nextLikeCount = Math.max(0, currentLikeCountValueRef.current - 1);
+      currentLikedValueRef.current = false;
+      currentLikeCountValueRef.current = nextLikeCount;
     }
     
-    // 2. Notify parent and sync instances
+    // 1. Synchronously update Refs
+    currentDislikedValueRef.current = nextDisliked;
+    currentDislikeCountValueRef.current = nextDislikeCount;
+
+    // 2. Optimistic state updates
+    setDisliked(nextDisliked);
+    setDislikeCount(nextDislikeCount);
+    if (nextDisliked) {
+      setLiked(false);
+      setLikeCount(nextLikeCount);
+    }
+
+    // Update global cache immediately on optimistic update
+    updateGlobalCache(post, {
+      disliked: nextDisliked,
+      dislikeCount: nextDislikeCount,
+      ...(nextDisliked ? { liked: false, likeCount: nextLikeCount } : {})
+    });
+    
+    // 3. Notify parent and sync instances
     onDislike?.(post.id, nextDisliked);
     window.dispatchEvent(new CustomEvent('POST_SYNC', {
       detail: { 
@@ -2084,13 +2393,13 @@ export default function PostCard({
         source: 'dislike', 
         disliked: nextDisliked, 
         dislikeCount: nextDislikeCount, 
-        liked: nextDisliked ? false : liked,
+        liked: nextDisliked ? false : currentLikedValueRef.current,
         likeCount: nextLikeCount,
         emitterId: instanceId 
       }
     }));
 
-    // 3. Debounce API call
+    // 4. Debounce API call
     if (pendingDislikeTimerRef.current) {
       clearTimeout(pendingDislikeTimerRef.current);
     }
@@ -2101,119 +2410,92 @@ export default function PostCard({
 
     pendingDislikeTimerRef.current = setTimeout(async () => {
       pendingDislikeTimerRef.current = null;
-      const targetState = currentDislikedValueRef.current;
-      const originalSyncedState = syncedDislikedRef.current;
-
-      if (targetState === originalSyncedState) {
-        return;
-      }
-
-      const ep = `/api/interactions/${interactionType}/${post.id}/dislike`;
-      try {
-        const res = await apiPost(ep, {});
-        const data = (res as any)?.data ?? res;
-        
-        let serverDisliked = targetState;
-        let serverDislikeCount = nextDislikeCount;
-        if (data && typeof data.disliked === "boolean") serverDisliked = data.disliked;
-        if (data && typeof data.dislikeCount === "number") serverDislikeCount = data.dislikeCount;
-
-        // Since we are disliking/toggle-disliking, the like status is guaranteed to be false on the server
-        let serverLiked = false;
-        let serverLikeCount = nextLikeCount;
-        if (data && typeof data.likeCount === "number") serverLikeCount = data.likeCount;
-
-        syncedDislikedRef.current = serverDisliked;
-        syncedDislikeCountRef.current = serverDislikeCount;
-        syncedLikedRef.current = serverLiked;
-        syncedLikeCountRef.current = serverLikeCount;
-
-        if (currentDislikedValueRef.current === targetState) {
-          setDisliked(serverDisliked);
-          setDislikeCount(serverDislikeCount);
-          setLiked(serverLiked);
-          setLikeCount(serverLikeCount);
-
-          window.dispatchEvent(new CustomEvent('POST_SYNC', {
-            detail: { 
-              postId: post.id, 
-              source: 'dislike', 
-              disliked: serverDisliked, 
-              dislikeCount: serverDislikeCount, 
-              liked: serverLiked,
-              likeCount: serverLikeCount,
-              emitterId: instanceId 
-            }
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to sync dislike interaction", err);
-        if (currentDislikedValueRef.current === targetState) {
-          setDisliked(originalSyncedState);
-          setDislikeCount(syncedDislikeCountRef.current);
-          onDislike?.(post.id, originalSyncedState);
-          window.dispatchEvent(new CustomEvent('POST_SYNC', {
-            detail: { 
-              postId: post.id, 
-              source: 'dislike', 
-              disliked: originalSyncedState, 
-              dislikeCount: syncedDislikeCountRef.current, 
-              emitterId: instanceId 
-            }
-          }));
-        }
-      }
+      syncLikeDislike();
     }, 400);
+  }
+
+  async function syncSave() {
+    if (isSaveSyncingRef.current) {
+      hasPendingSaveSyncRef.current = true;
+      return;
+    }
+
+    const finalSavedState = currentSavedValueRef.current;
+    const originalSyncedState = syncedSavedRef.current;
+
+    if (finalSavedState === originalSyncedState) {
+      return;
+    }
+
+    isSaveSyncingRef.current = true;
+    try {
+      const res = await apiPost(`/api/interactions/${interactionType}/${post.id}/save`, {});
+      const data = (res as any)?.data ?? res;
+      
+      let serverSaved = finalSavedState;
+      if (data && typeof data.saved === "boolean") serverSaved = data.saved;
+      else if (data && typeof data.isSaved === "boolean") serverSaved = data.isSaved;
+
+      syncedSavedRef.current = serverSaved;
+      currentSavedValueRef.current = serverSaved;
+
+      updateGlobalCache(post, { saved: serverSaved });
+
+      if (currentSavedValueRef.current === finalSavedState) {
+        setSaved(serverSaved);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'save', saved: serverSaved, emitterId: instanceId }
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to sync save interaction", err);
+      if (currentSavedValueRef.current === finalSavedState) {
+        setSaved(originalSyncedState);
+        currentSavedValueRef.current = originalSyncedState;
+
+        // Revert global cache
+        updateGlobalCache(post, { saved: originalSyncedState });
+
+        onSave?.(post.id, originalSyncedState);
+        window.dispatchEvent(new CustomEvent('POST_SYNC', {
+          detail: { postId: post.id, source: 'save', saved: originalSyncedState, emitterId: instanceId }
+        }));
+      }
+    } finally {
+      isSaveSyncingRef.current = false;
+      if (hasPendingSaveSyncRef.current) {
+        hasPendingSaveSyncRef.current = false;
+        syncSave();
+      }
+    }
   }
 
   async function handleSave() {
     const nextSaved = !currentSavedValueRef.current;
     
-    // 1. Optimistic updates
+    // 1. Synchronously update Ref
+    currentSavedValueRef.current = nextSaved;
+
+    // 2. Optimistic state updates
     setSaved(nextSaved);
+
+    // Update global cache immediately on optimistic update
+    updateGlobalCache(post, { saved: nextSaved });
     
-    // 2. Notify parent and sync instances
+    // 3. Notify parent and sync instances
     onSave?.(post.id, nextSaved);
     window.dispatchEvent(new CustomEvent('POST_SYNC', {
       detail: { postId: post.id, source: 'save', saved: nextSaved, emitterId: instanceId }
     }));
 
-    // 3. Debounce API call
+    // 4. Debounce API call
     if (pendingSaveTimerRef.current) {
       clearTimeout(pendingSaveTimerRef.current);
     }
 
     pendingSaveTimerRef.current = setTimeout(async () => {
       pendingSaveTimerRef.current = null;
-      const finalSavedState = currentSavedValueRef.current;
-      const originalSyncedState = syncedSavedRef.current;
-
-      if (finalSavedState === originalSyncedState) {
-        return;
-      }
-
-      try {
-        const res = await apiPost(`/api/interactions/${interactionType}/${post.id}/save`, {});
-        const data = (res as any)?.data ?? res;
-        
-        let serverSaved = finalSavedState;
-        if (data && typeof data.saved === "boolean") serverSaved = data.saved;
-        else if (data && typeof data.isSaved === "boolean") serverSaved = data.isSaved;
-
-        syncedSavedRef.current = serverSaved;
-
-        setSaved(serverSaved);
-        window.dispatchEvent(new CustomEvent('POST_SYNC', {
-          detail: { postId: post.id, source: 'save', saved: serverSaved, emitterId: instanceId }
-        }));
-      } catch (err) {
-        console.error("Failed to sync save interaction", err);
-        setSaved(originalSyncedState);
-        onSave?.(post.id, originalSyncedState);
-        window.dispatchEvent(new CustomEvent('POST_SYNC', {
-          detail: { postId: post.id, source: 'save', saved: originalSyncedState, emitterId: instanceId }
-        }));
-      }
+      syncSave();
     }, 400);
   }
 
@@ -2368,6 +2650,32 @@ export default function PostCard({
     ? (dynamicTranslation || (post as BasePost).translatedContent!)
     : post.content;
 
+  const desktopTranslateButton = (
+    <div className="hidden sm:flex items-center shrink-0">
+      {hasTranslation ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
+          className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all cursor-pointer backdrop-blur-sm"
+        >
+          <Globe size={10} />
+          {showOriginal ? "See Translation" : "Show Original"}
+        </button>
+      ) : (
+        <button
+          disabled={isTranslating}
+          onClick={(e) => { e.stopPropagation(); handleTranslateDynamic(); }}
+          className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all disabled:opacity-40 cursor-pointer backdrop-blur-sm"
+        >
+          {isTranslating ? (
+            <><span className="loading loading-spinner w-3 h-3 shrink-0" /> Translating...</>
+          ) : (
+            <><Globe size={10} /> Translate</>
+          )}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <motion.div
@@ -2378,30 +2686,6 @@ export default function PostCard({
         className={`rounded-[2rem] border-2 ${borderClass} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col backdrop-blur-md relative group/card transition-all duration-500 notranslate`}
       >
         <div className="p-5 sm:p-6 flex flex-col gap-4 flex-1 relative">
-          {/* Translation toggle — Desktop: absolute top-right, single button */}
-          <div className={`hidden sm:flex absolute ${postHasCommunity && !hideCommunityStrip ? "top-[92px]" : "top-[28px]"} right-5 z-20`}>
-            {hasTranslation ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowOriginal(v => !v); }}
-                className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all cursor-pointer backdrop-blur-sm"
-              >
-                <Globe size={10} />
-                {showOriginal ? "See Translation" : "Show Original"}
-              </button>
-            ) : (
-              <button
-                disabled={isTranslating}
-                onClick={(e) => { e.stopPropagation(); handleTranslateDynamic(); }}
-                className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:text-white/80 dark:hover:text-white dark:bg-white/10 dark:hover:bg-white/18 dark:border-white/20 dark:hover:border-white/35 rounded-full px-2.5 py-0.5 transition-all disabled:opacity-40 cursor-pointer backdrop-blur-sm"
-              >
-                {isTranslating ? (
-                  <><span className="loading loading-spinner w-3 h-3 shrink-0" /> Translating...</>
-                ) : (
-                  <><Globe size={10} /> Translate</>
-                )}
-              </button>
-            )}
-          </div>
 
           {/* Community Strip at top */}
           {postHasCommunity && !hideCommunityStrip && (
@@ -2417,7 +2701,18 @@ export default function PostCard({
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3 min-w-0"
                 >
-                  <div className="relative shrink-0">
+                  <div 
+                    className="relative shrink-0 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (post.username) {
+                        setProfileModalUsername(post.username);
+                        setProfileModalDisplayName((post as GovernmentPost).department || post.username);
+                        setProfileModalAvatar(post.userProfileImage || null);
+                        setProfileModalOpen(true);
+                      }
+                    }}
+                  >
                     {post.userProfileImage ? (
                       <img
                         src={post.userProfileImage}
@@ -2436,7 +2731,18 @@ export default function PostCard({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-[#EF4444] dark:text-[#F87171] text-sm truncate tracking-tight notranslate">
+                      <span 
+                        className="font-bold text-[#EF4444] dark:text-[#F87171] text-sm truncate tracking-tight notranslate cursor-pointer hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (post.username) {
+                            setProfileModalUsername(post.username);
+                            setProfileModalDisplayName((post as GovernmentPost).department || post.username);
+                            setProfileModalAvatar(post.userProfileImage || null);
+                            setProfileModalOpen(true);
+                          }
+                        }}
+                      >
                         {(post as GovernmentPost).department || post.username}
                       </span>
                       <BadgeCheck size={16} className="text-red-500 fill-red-500/10 shrink-0" />
@@ -2444,18 +2750,21 @@ export default function PostCard({
                     <p className="text-[10px] text-base-content/50 mt-0.5">{post.timeAgo ?? "just now"}</p>
                   </div>
                 </motion.div>
-                <motion.button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmNotInterestedOpen(true);
-                  }}
-                  whileHover={{ scale: 1.12, y: -1 }}
-                  whileTap={{ scale: 0.94 }}
-                  className="group/not-interested relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
-                  title="Not Interested"
-                >
-                  <EyeOff size={16} className="relative z-10 transition-transform duration-300" />
-                </motion.button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {desktopTranslateButton}
+                  <motion.button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmNotInterestedOpen(true);
+                    }}
+                    whileHover={{ scale: 1.12, y: -1 }}
+                    whileTap={{ scale: 0.94 }}
+                    className="group/not-interested relative flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-base-300/40 text-base-content/40 transition-all duration-300 hover:border-base-content/20 hover:bg-base-300/10 hover:text-base-content backdrop-blur-md"
+                    title="Not Interested"
+                  >
+                    <EyeOff size={16} className="relative z-10 transition-transform duration-300" />
+                  </motion.button>
+                </div>
               </>
             ) : (
               <AuthorRow
@@ -2465,8 +2774,15 @@ export default function PostCard({
                 isDeleting={isDeleting}
                 showDelete={(post as any).canDelete !== undefined ? !!(post as any).canDelete : (currentUser && post.username === currentUser.username)}
                 hideDelete={hideDelete}
+                onProfileClick={(uname) => {
+                  setProfileModalUsername(uname);
+                  setProfileModalDisplayName(post.userDisplayName || uname);
+                  setProfileModalAvatar(post.userProfileImage || null);
+                  setProfileModalOpen(true);
+                }}
                 rightAction={
                   <div className="flex items-center gap-1.5">
+                    {desktopTranslateButton}
                     <motion.button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2552,7 +2868,7 @@ export default function PostCard({
             )}
 
             <motion.p className={`text-[13px] leading-relaxed font-medium text-base-content/90 notranslate ${!expanded ? "line-clamp-3" : ""} ${post.contentHidden && !isContentRevealed ? "blur-sm opacity-50 select-none" : ""}`}>
-              {displayText}
+              {renderFormattedContent(displayText)}
             </motion.p>
             {(!post.contentHidden || isContentRevealed) && (displayText?.length ?? 0) > 160 && (
               <button onClick={() => setExpanded(!expanded)} className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline">
@@ -2561,39 +2877,26 @@ export default function PostCard({
             )}
           </motion.div>
 
-          {/* Hashtags / Tagged depts */}
-          {((isIssue && ((post as IssuePost).taggedUsernames?.length ?? 0) > 0) ||
-            ("hashtags" in post && ((post as SocialPost).hashtags?.length ?? 0) > 0)) && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="flex flex-wrap gap-2"
-              >
-                {isIssue &&
-                  (post as IssuePost).taggedUsernames?.map((name) => (
-                    <motion.span
-                      key={name}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 notranslate"
-                    >
-                      <Building2 size={12} /> @{name}
-                    </motion.span>
-                  ))}
-                {("hashtags" in post) &&
-                  (post as SocialPost).hashtags?.map((tag) => (
-                    <motion.span
-                      key={tag}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors notranslate"
-                    >
-                      {tag}
-                    </motion.span>
-                  ))}
-              </motion.div>
-            )}
+          {/* Tagged depts */}
+          {isIssue && ((post as IssuePost).taggedUsernames?.length ?? 0) > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="flex flex-wrap gap-2"
+            >
+              {(post as IssuePost).taggedUsernames?.map((name) => (
+                <motion.span
+                  key={name}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 notranslate"
+                >
+                  <Building2 size={12} /> @{name}
+                </motion.span>
+              ))}
+            </motion.div>
+          )}
 
           {/* Conditional Body Layout */}
           <div className={hasMedia ? "flex flex-col lg:flex-row gap-4 items-start" : "flex flex-col gap-4"}>
@@ -2680,7 +2983,7 @@ export default function PostCard({
                 <div className="flex-1" />
                 {isIssue ? (
                   <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
-                    <ThumbsDown size={16} className={disliked ? "fill-violet-500 text-violet-500" : ""} />
+                    <PostActionGif name="dislike" active={disliked} />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
                 ) : (
@@ -2712,7 +3015,7 @@ export default function PostCard({
                 </ActionPill>
                 {isIssue ? (
                   <ActionPill onClick={handleDislike} active={disliked} disabled={isResolved} vertical activeClass={POST_ACTION_ACTIVE_CLASS} hoverGlow={POST_ACTION_HOVER_GLOW}>
-                    <ThumbsDown size={18} className={disliked ? "fill-violet-500 text-violet-500" : ""} />
+                    <PostActionGif name="dislike" active={disliked} vertical />
                     <span>{dislikeCount || "0"}</span>
                   </ActionPill>
                 ) : (
@@ -2808,6 +3111,14 @@ export default function PostCard({
           />
         )}
       </AnimatePresence>
+
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        username={profileModalUsername}
+        fallbackDisplayName={profileModalDisplayName}
+        fallbackProfileImage={profileModalAvatar}
+      />
     </>
   );
 }

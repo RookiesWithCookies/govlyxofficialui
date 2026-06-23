@@ -1,6 +1,6 @@
 // src/components/layout/StrangerChat.tsx
 import { useEffect, useRef, useState, useCallback, useMemo, type KeyboardEvent } from "react";
-import { Dices, Zap, Search, AlertTriangle, Plus, Image as ImageIcon, Video, X, Eye, EyeOff, Send, Trash2, LogOut, ChevronLeft, ChevronRight, Copy, Check, MoreVertical, Smile } from "lucide-react";
+import { Dices, Zap, Search, AlertTriangle, Plus, Image as ImageIcon, Video, X, Eye, EyeOff, Send, Trash2, LogOut, ChevronLeft, ChevronRight, Copy, Check, MoreVertical, Smile, Crown } from "lucide-react";
 import { showToast } from "../../utils/toast";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { useChat } from "../../hooks/useChat";
@@ -9,7 +9,10 @@ import { API_BASE_URL } from "../../api/axiosConfig";
 import type { ChatMessageDto, ChatStatus, MessageType } from "../../types/Chat.types";
 import { OPENMOJI_STICKERS } from "../../utils/stickers";
 import { useCurrentUser } from "../../hooks/useUser";
+import { useMyBilling } from "../../hooks/useBilling";
 import { useTheme } from "../../hooks/useTheme";
+import PricingModal from "../billing/PricingModal";
+import LimitReachedModal from "../modals/LimitReachedModal";
 
 
 // ── Icons & Config ──────────────────────────────────────────────────────────
@@ -46,6 +49,25 @@ const STATUS_LABEL: Record<ChatStatus, string> = {
   CONNECTED: "Connected",
   PARTNER_LEFT: "Stranger Left",
   ERROR: "Error",
+};
+
+const LIMIT_ERROR_KEYWORDS = [
+  "limit",
+  "upgrade",
+  "quota",
+  "cap",
+  "daily",
+  "premium",
+  "plan",
+  "tier",
+  "pass",
+  "matchmaking",
+];
+
+const isLimitReachedError = (error?: string | null) => {
+  if (!error) return false;
+  const normalized = error.toLowerCase();
+  return LIMIT_ERROR_KEYWORDS.some((keyword) => normalized.includes(keyword));
 };
 
 interface ReplyTo {
@@ -539,11 +561,15 @@ function WatermarkOverlay({
 
 export default function StrangerChat({ onClose, standalone }: { onClose?: () => void; standalone?: boolean }) {
   const { data: currentUser } = useCurrentUser();
+  const { data: billing } = useMyBilling();
   const { theme } = useTheme();
   const usernameWatermark = currentUser?.actualUsername || currentUser?.username || "Govlyx User";
   const chat = useChat();
 
   const [draft, setDraft] = useState("");
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalMessage, setLimitModalMessage] = useState("");
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showStickerMenu, setShowStickerMenu] = useState(false);
@@ -554,6 +580,15 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
   // Custom states for view once media options and security overlay
   const [selectedTimer, setSelectedTimer] = useState<3 | 10 | 30>(10);
   const [privateMedia, setPrivateMedia] = useState<ChatMessageDto | null>(null);
+
+  const isLimitError = isLimitReachedError(chat.error);
+
+  useEffect(() => {
+    if (chat.status === "ERROR" && isLimitError) {
+      setLimitModalMessage(chat.error ?? "You have reached your daily matchmaking limit. Upgrade to a premium pass for unlimited chats.");
+      setShowLimitModal(true);
+    }
+  }, [chat.status, chat.error, isLimitError]);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -594,6 +629,16 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
       fileInputRef.current.click();
     }
     setShowAttachMenu(false);
+  };
+
+  const handleAttachmentClick = (type: "IMAGE" | "VIDEO") => {
+    if (billing?.currentTier === "GOVLYX_FREE") {
+      setLimitModalMessage("Media sharing in chat is a premium feature. Upgrade to a Pro or VIP plan to start sharing images and videos with your matches.");
+      setShowLimitModal(true);
+      setShowAttachMenu(false);
+      return;
+    }
+    handleFileSelect(type);
   };
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -809,7 +854,11 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
           )}
           {chat.status === "ERROR" && (
             <motion.div key="error" className="flex-1 min-h-0">
-              <ErrorScreen error={chat.error} onRetry={chat.startSearch} />
+              <ErrorScreen 
+                error={chat.error} 
+                onRetry={chat.startSearch} 
+                onUpgrade={() => setIsPricingModalOpen(true)} 
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -903,13 +952,13 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
                     <AnimatePresence>
                        {showAttachMenu && (
                          <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} className="absolute bottom-[48px] right-0 flex flex-col gap-1.5 min-w-[160px] p-2 rounded-2xl bg-base-200/95 backdrop-blur-xl border border-base-content/10 shadow-2xl z-50 origin-bottom-right">
-                           <button onClick={() => { handleFileSelect("IMAGE"); setShowAttachMenu(false); }} className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left bg-transparent border-none">
+                           <button onClick={() => handleAttachmentClick("IMAGE")} className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left bg-transparent border-none">
                              <div className="p-2 rounded-xl bg-emerald-500/15 dark:bg-emerald-400/20 text-emerald-600 dark:text-emerald-400 transition-all duration-200">
                                <ImageIcon size={16} className="stroke-[2.5]" />
                              </div>
                              <span className="text-xs font-bold tracking-wide">Photo</span>
                            </button>
-                           <button onClick={() => { handleFileSelect("VIDEO"); setShowAttachMenu(false); }} className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left bg-transparent border-none">
+                           <button onClick={() => handleAttachmentClick("VIDEO")} className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-base-300 text-base-content transition-all cursor-pointer w-full text-left bg-transparent border-none">
                              <div className="p-2 rounded-xl bg-rose-500/15 dark:bg-rose-400/20 text-rose-600 dark:text-rose-400 transition-all duration-200">
                                <Video size={16} className="stroke-[2.5]" />
                              </div>
@@ -1085,6 +1134,17 @@ export default function StrangerChat({ onClose, standalone }: { onClose?: () => 
           />
         )}
       </AnimatePresence>
+
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+      />
+      <LimitReachedModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        onUpgrade={() => setIsPricingModalOpen(true)}
+        message={limitModalMessage}
+      />
     </div>
   );
 
@@ -1151,7 +1211,39 @@ function SearchingScreen({ queueSize, onCancel }: { queueSize: number | null; on
   );
 }
 
-function ErrorScreen({ error, onRetry }: { error: string | null; onRetry: () => void }) {
+function ErrorScreen({ 
+  error, 
+  onRetry, 
+  onUpgrade 
+}: { 
+  error: string | null; 
+  onRetry: () => void; 
+  onUpgrade: () => void;
+}) {
+  const isLimitError = isLimitReachedError(error);
+
+  if (isLimitError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-8 p-8 text-center bg-transparent">
+        <div className="w-20 h-20 rounded-[28px] bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-inner border border-amber-500/10 font-sans">
+          <Crown size={40} />
+        </div>
+        <div>
+          <h3 className="text-2xl font-black text-base-content mb-3 tracking-tight">Daily Limit Reached</h3>
+          <p className="text-sm text-base-content/60 max-w-[320px] mx-auto leading-relaxed">
+            {error ?? "You have reached your daily matchmaking limit. Upgrade to a premium pass for unlimited chats."}
+          </p>
+        </div>
+        <button 
+          onClick={onUpgrade} 
+          className="btn bg-amber-500 hover:bg-amber-600 text-amber-950 h-14 px-12 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-amber-500/20 border-none transition-all cursor-pointer"
+        >
+          View Premium Passes
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col items-center justify-center gap-8 p-8 text-center bg-transparent">
       <div className="w-20 h-20 rounded-[28px] bg-error/10 flex items-center justify-center text-error shadow-inner border border-error/10"><AlertTriangle size={40} /></div>

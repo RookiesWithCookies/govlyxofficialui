@@ -2,14 +2,16 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LogOut, Camera, Trash2, Check, X, AlertTriangle,
   MapPin, Mail, Loader2, Pencil, User as UserIcon,
-  Lock, Globe, Shield, Eye, EyeOff, UserX
+  Lock, Globe, Shield, Eye, EyeOff, UserX, Crown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../api/axiosConfig";
 import { useCurrentUser } from "../hooks/useUser";
+import { useMyBilling } from "../hooks/useBilling";
 import { clearAuthTokens } from "../utils/auth";
 import ImageEditorModal from "../components/modals/ImageEditorModal";
+import PricingModal from "../components/billing/PricingModal";
 import { useLanguage, type LangCode, SUPPORTED_LANGUAGES } from "../context/LanguageContext";
 import { showToast } from "../utils/toast";
 
@@ -32,7 +34,7 @@ function EditableRow({
   onInputChange: (v: string) => void;
   type?: string;
   maxLength?: number;
-  hint?: string;
+  hint?: React.ReactNode;
   rightContent?: React.ReactNode;
 }) {
   if (editing) {
@@ -116,6 +118,8 @@ const Settings = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
+  const { data: billing } = useMyBilling();
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -481,9 +485,19 @@ const Settings = () => {
             inputValue={pincode}
             onInputChange={setPincode}
             hint={
-              fetchingPincode ? "🔍 Fetching location details..." :
-              pincodeDetails ? `📍 ${pincodeDetails}` :
-              "6-digit Indian pincode — used for local content"
+              fetchingPincode ? (
+                <span className="flex items-center gap-1.5 text-base-content/70">
+                  <Loader2 size={13} className="animate-spin text-blue-600 dark:text-blue-400" />
+                  <span>Fetching location details...</span>
+                </span>
+              ) : pincodeDetails ? (
+                <span className="flex items-center gap-1.5 text-base-content/90 font-semibold">
+                  <MapPin size={13} className="text-red-500 fill-red-500/10 shrink-0" />
+                  <span>{pincodeDetails}</span>
+                </span>
+              ) : (
+                "6-digit Indian pincode — used for local content"
+              )
             }
           />
           {user?.hasInvalidPincode && editField !== "pincode" && (
@@ -506,6 +520,59 @@ const Settings = () => {
             {saving ? "Saving…" : "Save Changes"}
           </button>
         )}
+      </div>
+
+      {/* ═══════════════ SUBSCRIPTION & PASS ═══════════════ */}
+      <div className="rounded-xl border border-base-300 bg-base-200 p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Crown size={18} className="text-amber-500" />
+          <h2 className="font-semibold">Subscription & Pass</h2>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Current Pass:</span>
+              <span className={`badge font-bold uppercase py-2.5 ${
+                billing?.currentTier === "GOVLYX_VIP" 
+                  ? "bg-amber-500 text-amber-950 border-none" 
+                  : billing?.currentTier === "GOVLYX_PRO" 
+                    ? "bg-blue-700 text-white border-none" 
+                    : "badge-ghost"
+              }`}>
+                {billing?.currentTier === "GOVLYX_VIP" ? "VIP Pass" : billing?.currentTier === "GOVLYX_PRO" ? "Pro Pass" : "Free Pass"}
+              </span>
+            </div>
+            {billing?.validUntil && (
+              <p className="text-xs opacity-65 font-medium">
+                Valid until: {new Date(billing.validUntil).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            )}
+            <p className="text-xs opacity-60 leading-relaxed max-w-xl">
+              {billing?.currentTier === "GOVLYX_VIP" 
+                ? "Priority matchmaking, disappearing messages settings, toggle pinning in chat, and 5 private community creation quota." 
+                : billing?.currentTier === "GOVLYX_PRO" 
+                  ? "Unlimited matchmaking, chat media, matchmaking filters, and 3 private community creation quota." 
+                  : "3 matches per day limit. Text-only stranger chat."}
+            </p>
+            {billing?.currentTier !== "GOVLYX_FREE" && typeof billing?.privateCommunityQuota === "number" && (
+              <div className="pt-1 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                Private Community Quota: {billing.privateCommunityQuota} remaining
+              </div>
+            )}
+          </div>
+          
+          <button
+            onClick={() => setIsPricingModalOpen(true)}
+            className="btn btn-sm bg-[#1D4ED8] hover:bg-blue-800 text-white border-none shrink-0"
+          >
+            {billing?.currentTier === "GOVLYX_FREE" ? "Upgrade Plan" : "Change Pass"}
+          </button>
+        </div>
       </div>
 
       {/* ═══════════════ LANGUAGE & LOCALIZATION ═══════════════ */}
@@ -849,6 +916,12 @@ const Settings = () => {
           </div>
         </div>
       )}
+
+      {/* ═══════════════ PRICING Pass MODAL ═══════════════ */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+      />
 
       {/* ═══════════════ IMAGE EDITOR MODAL ═══════════════ */}
       {editorImageSrc && (

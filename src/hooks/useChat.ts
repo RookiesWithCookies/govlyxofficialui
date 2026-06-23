@@ -387,6 +387,7 @@ export function useChat(): UseChatReturn {
       }
     } catch (err: unknown) {
       if (!searchActiveRef.current) return;
+      chatSocket.disconnect();
       const msg = err instanceof Error ? err.message : "";
       if (err instanceof ChatAuthError) {
         setError("Session expired — please log in again.");

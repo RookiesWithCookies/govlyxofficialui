@@ -451,7 +451,73 @@ function useFullSearch(committedQuery: string) {
     if (!loading && hasMore && committedQuery.trim()) fetchPage(nextCursor, false, committedQuery);
   }, [loading, hasMore, committedQuery, nextCursor, fetchPage]);
 
-  return { results, loading, initialLoading, hasMore, error, loadMore };
+  const updatePostState = useCallback((postId: number, updater: (postDto: any) => any) => {
+    setResults(prev => prev.map(r => {
+      if ((r.kind === "POST" || r.kind === "SOCIAL_POST") && (r.id === postId || r.postDto?.id === postId || r.postDto?.socialPostId === postId)) {
+        return {
+          ...r,
+          postDto: updater(r.postDto)
+        };
+      }
+      return r;
+    }));
+  }, []);
+
+  const handleLike = useCallback((postId: number, liked: boolean) => {
+    updatePostState(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isLiked = !!(dto.isLikedByCurrentUser ?? dto.isLikedByMe);
+      if (isLiked === liked) return dto;
+      const isPreviouslyDisliked = !!(dto.isDislikedByCurrentUser ?? dto.isDislikedByMe);
+      return {
+        ...dto,
+        isLikedByMe: liked,
+        isLikedByCurrentUser: liked,
+        likeCount: (dto.likeCount ?? 0) + (liked ? 1 : -1),
+        ...(isPreviouslyDisliked && liked && {
+          isDislikedByCurrentUser: false,
+          isDislikedByMe: false,
+          dislikeCount: Math.max(0, (dto.dislikeCount ?? 0) - 1)
+        })
+      };
+    });
+  }, [updatePostState]);
+
+  const handleDislike = useCallback((postId: number, disliked: boolean) => {
+    updatePostState(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isDisliked = !!(dto.isDislikedByCurrentUser ?? dto.isDislikedByMe);
+      if (isDisliked === disliked) return dto;
+      const isPreviouslyLiked = !!(dto.isLikedByCurrentUser ?? dto.isLikedByMe);
+      return {
+        ...dto,
+        isDislikedByCurrentUser: disliked,
+        isDislikedByMe: disliked,
+        dislikeCount: (dto.dislikeCount ?? 0) + (disliked ? 1 : -1),
+        ...(isPreviouslyLiked && disliked && {
+          isLikedByCurrentUser: false,
+          isLikedByMe: false,
+          likeCount: Math.max(0, (dto.likeCount ?? 0) - 1)
+        })
+      };
+    });
+  }, [updatePostState]);
+
+  const handleSave = useCallback((postId: number, saved: boolean) => {
+    updatePostState(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isSaved = !!(dto.isSavedByCurrentUser ?? dto.isSavedByMe ?? dto.isSaved ?? false);
+      if (isSaved === saved) return dto;
+      return {
+        ...dto,
+        isSavedByMe: saved,
+        isSavedByCurrentUser: saved,
+        isSaved: saved
+      };
+    });
+  }, [updatePostState]);
+
+  return { results, loading, initialLoading, hasMore, error, loadMore, handleLike, handleDislike, handleSave, updatePostState };
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -473,7 +539,7 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
   const navigate = useNavigate();
 
   const debouncedInput = useDebounce(inputValue, 300);
-  const { results, loading, initialLoading, hasMore, error, loadMore } = useFullSearch(committedQuery);
+  const { results, loading, initialLoading, hasMore, error, loadMore, handleLike, handleDislike, handleSave, updatePostState } = useFullSearch(committedQuery);
 
   // Sync committedQuery with debouncedInput to auto-run search on typing pause
   useEffect(() => {
@@ -777,9 +843,15 @@ export default function SearchOverlay({ open, onClose, initialQuery = "" }: Sear
                       <PostCard
                         post={post}
                         currentUser={currentUser}
-                        onLike={(id: number, liked: boolean) => console.log("like", id, liked)}
-                        onSave={(id: number, saved: boolean) => console.log("save", id, saved)}
-                        onShare={(id: number) => navigator.clipboard?.writeText(`${window.location.origin}/post/${id}`).catch(() => { })}
+                        onLike={handleLike}
+                        onDislike={handleDislike}
+                        onSave={handleSave}
+                        onShare={(id: number) => {
+                          updatePostState(id, (dto: any) => ({
+                            ...dto,
+                            shareCount: (dto.shareCount ?? 0) + 1
+                          }));
+                        }}
                         onComment={(id: number) => {
                           if (inputValue.trim()) saveRecentSearch(inputValue);
                           onClose();

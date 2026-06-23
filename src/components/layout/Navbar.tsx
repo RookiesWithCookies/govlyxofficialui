@@ -157,16 +157,18 @@ const Navbar = () => {
             </button>
 
             <NavLink to="/profile" className="avatar placeholder">
-              <div className="w-8 rounded-full overflow-hidden bg-base-200 border-2 border-red-500 dark:border-red-400">
+              <div className="w-8 rounded-full overflow-hidden bg-base-200 border-2 border-[#1D4ED8] dark:border-white">
                 <img src={resolveMediaUrl(user?.profileImage, "social-posts") || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(username)}`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
             </NavLink>
           </div>
 
           {/* CREATE POST MODAL */}
-          <CreatePost open={openCreate} onClose={() => { setOpenCreate(false); closeModal(); }} />
         </div>
       </motion.header>
+
+      {/* CREATE POST MODAL — rendered outside header so it is positioned relative to viewport */}
+      <CreatePost open={openCreate} onClose={() => { setOpenCreate(false); closeModal(); }} />
 
       {/* Search Overlay — rendered outside the header so it can cover full screen */}
       <SearchOverlay

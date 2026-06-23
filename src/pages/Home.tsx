@@ -3,7 +3,6 @@ import { Flame, Clock, ArrowUp, SlidersHorizontal, Sparkles, ChevronDown } from 
 import { motion, AnimatePresence } from "framer-motion";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PostCard from "../components/post/PostCard";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { AnyPost } from "../components/post/PostCard";
 import EmptyState from "../components/ui/EmptyState";
 import LoadingAnimation from "../components/ui/LoadingAnimation";
@@ -219,19 +218,14 @@ const Home = () => {
     role: user.role
   } : undefined;
 
-  const rowVirtualizer = useWindowVirtualizer({
-    count: posts.length,
-    estimateSize: () => 400,
-    overscan: 5,
-  });
-
   const handleLike = useCallback((postId: number, liked: boolean) => {
     updatePost(postId, (post) => {
+      if (!!post.isLikedByCurrentUser === liked) return {};
       const hasDislikeSupport = post.variant === "issue";
       const isPreviouslyDisliked = hasDislikeSupport && !!(post as any).isDislikedByCurrentUser;
       return {
         isLikedByCurrentUser: liked,
-        likeCount: post.likeCount + (liked ? 1 : -1),
+        likeCount: (post.likeCount ?? 0) + (liked ? 1 : -1),
         ...(isPreviouslyDisliked && liked && {
           isDislikedByCurrentUser: false,
           dislikeCount: Math.max(0, ((post as any).dislikeCount ?? 0) - 1)
@@ -242,25 +236,35 @@ const Home = () => {
 
   const handleDislike = useCallback((postId: number, disliked: boolean) => {
     updatePost(postId, (post) => {
+      if (!!(post as any).isDislikedByCurrentUser === disliked) return {};
       const isPreviouslyLiked = !!post.isLikedByCurrentUser;
       return {
         isDislikedByCurrentUser: disliked,
         dislikeCount: ((post as any).dislikeCount ?? 0) + (disliked ? 1 : -1),
         ...(isPreviouslyLiked && disliked && {
           isLikedByCurrentUser: false,
-          likeCount: Math.max(0, post.likeCount - 1)
+          likeCount: Math.max(0, (post.likeCount ?? 0) - 1)
         })
       } as Partial<AnyPost>;
     });
   }, [updatePost]);
 
   const handleSave = useCallback((postId: number, saved: boolean) => {
-    updatePost(postId, { isSaved: saved } as Partial<AnyPost>);
+    updatePost(postId, (post) => {
+      const isSaved = !!((post as any).isSavedByCurrentUser ?? (post as any).isSaved ?? false);
+      if (isSaved === saved) return {};
+      return {
+        isSaved: saved,
+        isSavedByCurrentUser: saved
+      } as Partial<AnyPost>;
+    });
   }, [updatePost]);
 
   const handleShare = useCallback((postId: number) => {
-    navigator.clipboard?.writeText(`${window.location.origin}/post/${postId}`).catch(() => { });
-  }, []);
+    updatePost(postId, (post) => ({
+      shareCount: (post.shareCount ?? 0) + 1
+    }));
+  }, [updatePost]);
 
   const handleComment = useCallback((postId: number) => {
     window.location.href = `/post/${postId}`;
@@ -421,54 +425,31 @@ const Home = () => {
             <EmptyState title="Nothing here yet" description="Be the first to post, or try a different tab." />
           </div>
         ) : (
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-              const post = posts[virtualItem.index];
-              if (!post) return null;
-              return (
-                <div
-                  key={`${post.id}-${post.variant}`}
-                  ref={rowVirtualizer.measureElement}
-                  data-index={virtualItem.index}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  className="pb-6"
-                >
-                  <PostCard
-                    post={post}
-                    currentUser={currentUser}
-                    onLike={handleLike}
-                    onDislike={handleDislike}
-                    onSave={handleSave}
-                    onShare={handleShare}
-                    onComment={handleComment}
-                    onDelete={handleDelete}
-                    onNotInterested={handleNotInterested}
-                    onResolve={(id, resolved, message) => {
-                      updatePost(id, {
-                        status: resolved ? "RESOLVED" : "ACTIVE",
-                        isResolved: resolved,
-                        resolutionMessage: resolved ? message : undefined,
-                        reopened: !resolved,
-                        isReopened: !resolved,
-                        reopenedReason: !resolved ? message : undefined,
-                      } as Partial<AnyPost>);
-                    }}
-                  />
-                </div>
-              );
-            })}
+          <div className="flex flex-col gap-6">
+            {posts.map((post) => (
+              <PostCard
+                key={`${post.id}-${post.variant}`}
+                post={post}
+                currentUser={currentUser}
+                onLike={handleLike}
+                onDislike={handleDislike}
+                onSave={handleSave}
+                onShare={handleShare}
+                onComment={handleComment}
+                onDelete={handleDelete}
+                onNotInterested={handleNotInterested}
+                onResolve={(id, resolved, message) => {
+                  updatePost(id, {
+                    status: resolved ? "RESOLVED" : "ACTIVE",
+                    isResolved: resolved,
+                    resolutionMessage: resolved ? message : undefined,
+                    reopened: !resolved,
+                    isReopened: !resolved,
+                    reopenedReason: !resolved ? message : undefined,
+                  } as Partial<AnyPost>);
+                }}
+              />
+            ))}
           </div>
         )}
 

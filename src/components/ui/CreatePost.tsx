@@ -9,18 +9,21 @@ import {
   Loader2,
   CheckCircle2,
   WifiOff,
-  Bold,
-  Italic,
-  Code,
-  Smile,
-  Hash,
-  AtSign,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, type JSX } from "react";
+import { createPortal } from "react-dom";
 import { useCurrentUser } from "../../hooks/useUser";
 import { MdLocationOn } from "react-icons/md";
-import { RiAttachment2 } from "react-icons/ri";
+import {
+  RiAttachment2,
+  RiBold,
+  RiItalic,
+  RiCodeLine,
+  RiHashtag,
+  RiAtLine,
+  RiEmotionHappyLine,
+} from "react-icons/ri";
 
 import { apiUrl } from "../../utils/apiUrl";
 import { showToast } from "../../utils/toast";
@@ -268,16 +271,16 @@ function MediaUploadZone({
   // Dynamic colors that work perfectly in both light & dark themes
   const accentBorder = accent === "green" 
     ? "border-green-500/20 dark:border-green-500/30" 
-    : "border-[#1D4ED8]/50 dark:border-[#1D4ED8]/60";
+    : "border-neutral-300 dark:border-white/30";
   const accentBg = accent === "green" 
     ? "bg-green-500/[0.02] dark:bg-green-500/[0.04]" 
-    : "bg-[#1D4ED8]/[0.01] dark:bg-[#1D4ED8]/[0.02]";
+    : "bg-white/[0.01] dark:bg-white/[0.02]";
   const accentText = accent === "green" 
     ? "text-green-600 dark:text-green-400" 
     : "text-[#1D4ED8] dark:text-blue-400";
   const accentHover = accent === "green" 
     ? "hover:border-green-500/40 hover:bg-green-500/[0.05] dark:hover:border-green-500/50" 
-    : "hover:border-[#1D4ED8]/70 hover:bg-[#1D4ED8]/[0.05] dark:hover:border-[#1D4ED8]/80";
+    : "hover:border-neutral-400 dark:hover:border-white/50 hover:bg-white/[0.03] dark:hover:bg-white/[0.04]";
 
   const handleFiles = async (incoming: FileList | null) => {
     if (!incoming) return;
@@ -336,7 +339,7 @@ function MediaUploadZone({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 cursor-pointer transition-all duration-200 ${accentBorder} ${accentBg} ${accentHover} ${dragging ? "opacity-80 scale-[0.99] border-solid" : ""}`}
+        className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted p-6 cursor-pointer transition-all duration-200 ${accentBorder} ${accentBg} ${accentHover} ${dragging ? "opacity-80 scale-[0.99] border-solid" : ""}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -377,7 +380,7 @@ function MediaUploadZone({
       </div>
 
       {files.length > 0 && (
-        <div className="grid grid-cols-4 gap-3 mt-1 overflow-hidden">
+        <div className="grid grid-cols-4 md:grid-cols-2 gap-3 mt-1 overflow-hidden">
           <AnimatePresence initial={false}>
             {files.map((f, i) => {
               const isImage = f.type.startsWith("image/");
@@ -902,7 +905,9 @@ function PostForm({
         {error && <StatusBanner status={error.type} message={error.msg} />}
       </AnimatePresence>
 
-      {!communityId && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-3">
+          {!communityId && (
         <div
           className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 shadow-sm ${
             isReportingIssue 
@@ -1009,7 +1014,7 @@ function PostForm({
                 : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400"
             }`}
           >
-            <Bold size={13} className="stroke-[2.5]" />
+            <RiBold size={14} />
           </button>
           <button 
             type="button"
@@ -1021,7 +1026,7 @@ function PostForm({
                 : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400"
             }`}
           >
-            <Italic size={13} className="stroke-[2.5]" />
+            <RiItalic size={14} />
           </button>
           <button 
             type="button"
@@ -1033,7 +1038,7 @@ function PostForm({
                 : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400"
             }`}
           >
-            <Code size={13} className="stroke-[2.5]" />
+            <RiCodeLine size={14} />
           </button>
           
           <div className="w-[1px] h-4 bg-base-content/10 mx-1" />
@@ -1058,7 +1063,7 @@ function PostForm({
                 : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400"
             }`}
           >
-            <Hash size={13} className="stroke-[2.5]" />
+            <RiHashtag size={14} />
           </button>
 
           <button 
@@ -1082,7 +1087,7 @@ function PostForm({
                 : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400"
             }`}
           >
-            <AtSign size={13} className="stroke-[2.5]" />
+            <RiAtLine size={14} />
           </button>
 
           <div className="relative">
@@ -1096,7 +1101,7 @@ function PostForm({
                   : (isReportingIssue ? "hover:text-green-600 hover:bg-green-500/10 dark:hover:text-green-400" : "hover:text-primary hover:bg-primary/5 dark:hover:text-blue-400")
               }`}
             >
-              <Smile size={13} className="stroke-[2.5]" />
+              <RiEmotionHappyLine size={14} />
             </button>
             {/* Quick Emojis Dropdown - Box with grid layout to prevent horizontal/vertical overflow */}
             {showEmojiPicker && (
@@ -1199,12 +1204,16 @@ function PostForm({
           {content.length}/{isReportingIssue ? 2000 : 3000}
         </span>
       </div>
+        </div>
 
-      <div>
-        <p className={`text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 ${isReportingIssue ? "text-green-500" : "text-base-content/70"}`}>
-          <RiAttachment2 size={12} /> Attach Media <span className="text-base-content/40 font-bold tracking-tighter ml-1 uppercase">(optional)</span>
-        </p>
-        <MediaUploadZone accent={isReportingIssue ? "green" : "blue"} files={files} onChange={setFiles} />
+        <div className="flex flex-col justify-start space-y-3">
+          <div>
+            <p className={`text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 ${isReportingIssue ? "text-green-500" : "text-base-content/70"}`}>
+              <RiAttachment2 size={12} /> Attach Media <span className="text-base-content/40 font-bold tracking-tighter ml-1 uppercase">(optional)</span>
+            </p>
+            <MediaUploadZone accent={isReportingIssue ? "green" : "blue"} files={files} onChange={setFiles} />
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-base-content/5">
@@ -1685,7 +1694,10 @@ function PollForm({
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="relative group">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-3">
+          <div className="relative group">
         <textarea
           ref={textareaRef}
           className={`textarea textarea-bordered w-full min-h-[90px] bg-base-100/50 border-base-content/10 focus:border-[#1D4ED8] focus:outline-none focus:bg-base-100 transition-all duration-200 resize-none text-sm font-medium ${errors.pollQuestion ? "border-red-500/50" : ""}`}
@@ -1704,7 +1716,7 @@ function PollForm({
           title="Bold"
           className="btn btn-ghost btn-xs btn-square hover:scale-105 text-base-content/70 cursor-pointer transition-all duration-150 font-black hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
         >
-          <Bold size={13} className="stroke-[2.5]" />
+          <RiBold size={14} />
         </button>
         <button 
           type="button"
@@ -1712,7 +1724,7 @@ function PollForm({
           title="Italic"
           className="btn btn-ghost btn-xs btn-square hover:scale-105 text-base-content/70 cursor-pointer transition-all duration-150 italic font-black hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
         >
-          <Italic size={13} className="stroke-[2.5]" />
+          <RiItalic size={14} />
         </button>
         <button 
           type="button"
@@ -1720,7 +1732,7 @@ function PollForm({
           title="Monospace"
           className="btn btn-ghost btn-xs btn-square hover:scale-105 text-base-content/70 cursor-pointer transition-all duration-150 font-bold hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
         >
-          <Code size={13} className="stroke-[2.5]" />
+          <RiCodeLine size={14} />
         </button>
         
         <div className="w-[1px] h-4 bg-base-content/10 mx-1" />
@@ -1731,7 +1743,7 @@ function PollForm({
           title="Add Hashtag"
           className="btn btn-ghost btn-xs btn-square hover:scale-105 text-base-content/70 cursor-pointer transition-all duration-150 hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
         >
-          <Hash size={13} className="stroke-[2.5]" />
+          <RiHashtag size={14} />
         </button>
 
         <button 
@@ -1740,7 +1752,7 @@ function PollForm({
           title="Mention User"
           className="btn btn-ghost btn-xs btn-square hover:scale-105 text-base-content/70 cursor-pointer transition-all duration-150 hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
         >
-          <AtSign size={13} className="stroke-[2.5]" />
+          <RiAtLine size={14} />
         </button>
 
         <div className="relative">
@@ -1754,7 +1766,7 @@ function PollForm({
                 : "hover:text-[#1D4ED8] hover:bg-[#1D4ED8]/5 dark:hover:text-blue-400"
             }`}
           >
-            <Smile size={13} className="stroke-[2.5]" />
+            <RiEmotionHappyLine size={14} />
           </button>
           {showEmojiPicker && (
             <>
@@ -1824,48 +1836,52 @@ function PollForm({
           + Add Option ({4 - options.length} remaining)
         </button>
       )}
-
-
-      <div className="flex flex-col sm:flex-row items-center gap-3 bg-base-300/50 p-2.5 rounded-xl border border-base-content/5 mt-1">
-        <div className="flex-1 flex items-center justify-between gap-4 px-2 w-full sm:w-auto">
-          <span className="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Duration</span>
-          <select
-            className="select select-xs select-bordered focus:border-[#1D4ED8] font-bold bg-base-100 h-8 min-h-0 rounded-lg text-[11px]"
-            value={expiresIn}
-            onChange={(e) => setExpiresIn(e.target.value)}
-          >
-            <option value="1h">1 Hour</option>
-            <option value="1d">1 Day</option>
-            <option value="3d">3 Days</option>
-            <option value="7d">7 Days</option>
-          </select>
         </div>
 
-        <div className="w-px h-6 bg-base-content/10 hidden sm:block" />
-
-        <div className="flex-1 flex items-center justify-between gap-4 px-2 w-full sm:w-auto">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <span className="text-[10px] font-bold text-base-content/60 uppercase tracking-widest group-hover:text-base-content transition-colors">Multiple Votes</span>
-            <div
-              className={`relative w-8 h-4.5 rounded-full transition-colors duration-200 border border-base-content/10 ${allowMultipleVotes ? "bg-[#1D4ED8] border-[#1D4ED8]" : "bg-base-200"}`}
-              onClick={() => setAllowMultipleVotes(!allowMultipleVotes)}
-            >
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${allowMultipleVotes ? "translate-x-4" : "translate-x-0.5"}`} />
+        <div className="flex flex-col justify-start space-y-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-base-300/50 p-2.5 rounded-xl border border-base-content/5 mt-1">
+            <div className="flex-1 flex items-center justify-between gap-4 px-2 w-full sm:w-auto">
+              <span className="text-[10px] font-bold text-base-content/60 uppercase tracking-widest">Duration</span>
+              <select
+                className="select select-xs select-bordered focus:border-[#1D4ED8] font-bold bg-base-100 h-8 min-h-0 rounded-lg text-[11px]"
+                value={expiresIn}
+                onChange={(e) => setExpiresIn(e.target.value)}
+              >
+                <option value="1h">1 Hour</option>
+                <option value="1d">1 Day</option>
+                <option value="3d">3 Days</option>
+                <option value="7d">7 Days</option>
+              </select>
             </div>
-          </label>
+
+            <div className="w-px h-6 bg-base-content/10 hidden sm:block" />
+
+            <div className="flex-1 flex items-center justify-between gap-4 px-2 w-full sm:w-auto">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <span className="text-[10px] font-bold text-base-content/60 uppercase tracking-widest group-hover:text-base-content transition-colors">Multiple Votes</span>
+                <div
+                  className={`relative w-8 h-4.5 rounded-full transition-colors duration-200 border border-base-content/10 ${allowMultipleVotes ? "bg-[#1D4ED8] border-[#1D4ED8]" : "bg-base-200"}`}
+                  onClick={() => setAllowMultipleVotes(!allowMultipleVotes)}
+                >
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${allowMultipleVotes ? "translate-x-4" : "translate-x-0.5"}`} />
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 text-base-content/70">
+              <RiAttachment2 size={12} /> Attach Media <span className="text-base-content/40 font-bold tracking-tighter ml-1 uppercase">(optional)</span>
+            </p>
+            <MediaUploadZone accent="blue" files={files} onChange={setFiles} />
+          </div>
         </div>
       </div>
 
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 text-base-content/70">
-          <RiAttachment2 size={12} /> Attach Media <span className="text-base-content/40 font-bold tracking-tighter ml-1 uppercase">(optional)</span>
-        </p>
-        <MediaUploadZone accent="blue" files={files} onChange={setFiles} />
-      </div>
-
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end pt-2 border-t border-base-content/5 gap-2">
+        <button onClick={onClose} className="btn btn-sm btn-ghost rounded-xl px-4 animate-all" disabled={loading}>Cancel</button>
         <button
-          className="btn btn-sm bg-[#1D4ED8] text-white min-w-[120px] rounded-xl font-bold shadow-lg shadow-[#1D4ED8]/20 hover:bg-[#1D4ED8]/90 h-10 border-none"
+          className="btn btn-sm bg-[#1D4ED8] text-white min-w-[120px] rounded-xl font-bold shadow-lg shadow-[#1D4ED8]/20 hover:bg-[#1D4ED8]/90 h-10 border-none animate-all"
           onClick={handlePost}
           disabled={loading}
         >
@@ -1885,11 +1901,11 @@ const CreatePost = ({ open, onClose, communityId, communityName, onPostCreated }
     { key: "poll", label: "Poll", icon: <BarChart2 size={16} /> },
   ];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-12 sm:pt-16 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -1897,7 +1913,7 @@ const CreatePost = ({ open, onClose, communityId, communityName, onPostCreated }
         >
           <motion.div
             style={{ maxHeight: 'calc(100vh - 120px)' }}
-            className="w-full max-w-lg rounded-3xl bg-base-100 border border-base-300 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden"
+            className="w-full max-w-sm sm:max-w-xl md:max-w-3xl rounded-3xl bg-base-100 border border-base-300 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden"
             initial={{ scale: 0.97, y: 12 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.97, y: 12 }}
@@ -1949,7 +1965,8 @@ const CreatePost = ({ open, onClose, communityId, communityName, onPostCreated }
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

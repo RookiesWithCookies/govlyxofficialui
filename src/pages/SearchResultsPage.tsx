@@ -1,6 +1,8 @@
+import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../hooks/useUser";
 import { useSearchInfinite } from "../api/searchService";
+import { useQueryClient } from "@tanstack/react-query";
 import InfiniteScrollList from "../components/search/InfiniteScrollList";
 import { Search } from "lucide-react";
 
@@ -15,6 +17,96 @@ export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const activeTab = searchParams.get("tab") || "ALL";
+  const queryClient = useQueryClient();
+
+  const updateSearchQueryCache = useCallback((postId: number, updater: (postDto: any) => any) => {
+    queryClient.setQueryData(["search", "infinite", query, activeTab], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page: any) => {
+          const items = page?.data || [];
+          const updatedItems = items.map((r: any) => {
+            if ((r.kind === "POST" || r.kind === "SOCIAL_POST") && (r.id === postId || r.postDto?.id === postId || r.postDto?.socialPostId === postId)) {
+              return {
+                ...r,
+                postDto: updater(r.postDto)
+              };
+            }
+            return r;
+          });
+          return {
+            ...page,
+            data: updatedItems
+          };
+        })
+      };
+    });
+  }, [queryClient, query, activeTab]);
+
+  const handleLike = useCallback((postId: number, liked: boolean) => {
+    updateSearchQueryCache(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isLiked = !!(dto.isLikedByCurrentUser ?? dto.isLikedByMe);
+      if (isLiked === liked) return dto;
+      const isPreviouslyDisliked = !!(dto.isDislikedByCurrentUser ?? dto.isDislikedByMe);
+      return {
+        ...dto,
+        isLikedByMe: liked,
+        isLikedByCurrentUser: liked,
+        likeCount: (dto.likeCount ?? 0) + (liked ? 1 : -1),
+        ...(isPreviouslyDisliked && liked && {
+          isDislikedByCurrentUser: false,
+          isDislikedByMe: false,
+          dislikeCount: Math.max(0, (dto.dislikeCount ?? 0) - 1)
+        })
+      };
+    });
+  }, [updateSearchQueryCache]);
+
+  const handleDislike = useCallback((postId: number, disliked: boolean) => {
+    updateSearchQueryCache(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isDisliked = !!(dto.isDislikedByCurrentUser ?? dto.isDislikedByMe);
+      if (isDisliked === disliked) return dto;
+      const isPreviouslyLiked = !!(dto.isLikedByCurrentUser ?? dto.isLikedByMe);
+      return {
+        ...dto,
+        isDislikedByCurrentUser: disliked,
+        isDislikedByMe: disliked,
+        dislikeCount: (dto.dislikeCount ?? 0) + (disliked ? 1 : -1),
+        ...(isPreviouslyLiked && disliked && {
+          isLikedByCurrentUser: false,
+          isLikedByMe: false,
+          likeCount: Math.max(0, (dto.likeCount ?? 0) - 1)
+        })
+      };
+    });
+  }, [updateSearchQueryCache]);
+
+  const handleSave = useCallback((postId: number, saved: boolean) => {
+    updateSearchQueryCache(postId, (dto: any) => {
+      if (!dto) return dto;
+      const isSaved = !!(dto.isSavedByCurrentUser ?? dto.isSavedByMe ?? dto.isSaved ?? false);
+      if (isSaved === saved) return dto;
+      return {
+        ...dto,
+        isSavedByMe: saved,
+        isSavedByCurrentUser: saved,
+        isSaved: saved
+      };
+    });
+  }, [updateSearchQueryCache]);
+
+  const handleShare = useCallback((postId: number) => {
+    updateSearchQueryCache(postId, (dto: any) => {
+      if (!dto) return dto;
+      return {
+        ...dto,
+        shareCount: (dto.shareCount ?? 0) + 1
+      };
+    });
+  }, [updateSearchQueryCache]);
 
   const { data: user } = useCurrentUser();
   const currentUser = user
@@ -93,6 +185,10 @@ export default function SearchResultsPage() {
             fetchNextPage={fetchNextPage}
             currentUser={currentUser}
             error={error ? error.message : null}
+            onLike={handleLike}
+            onDislike={handleDislike}
+            onSave={handleSave}
+            onShare={handleShare}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-20 opacity-40">

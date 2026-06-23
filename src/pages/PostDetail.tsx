@@ -142,7 +142,7 @@ const PostDetail: React.FC = () => {
             });
           }}
           onSave={(savedId, saved) => {
-            setPost(prev => prev && prev.id === savedId ? { ...prev, isSaved: saved } as any : prev);
+            setPost(prev => prev && prev.id === savedId ? { ...prev, isSaved: saved, isSavedByCurrentUser: saved } as any : prev);
           }}
           onDelete={() => {
             navigate("/", { replace: true });

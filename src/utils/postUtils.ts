@@ -61,13 +61,21 @@ export function formatTimeLeft(expiresAtVal: any): string | null {
   return "less than a minute left";
 }
 
+function cleanEmail(val: string): string {
+  if (!val) return "";
+  if (val.includes("@")) {
+    return val.split("@")[0];
+  }
+  return val;
+}
+
 export function toPostCardPost(dto: any): AnyPost {
   if (!dto) return {} as AnyPost;
 
   // ── Normalize author fields ──────────────────────────────────────────────
   // AuthorDto fields: { username, actualUsername, profileImage, roleName, isActive }
   // PostCard AuthorRow expects top-level: username, userDisplayName, userProfileImage
-  const authorUsername = 
+  const rawAuthorUsername = 
     dto.authorActualUsername ?? 
     dto.author?.actualUsername ?? 
     dto.user?.actualUsername ?? 
@@ -77,6 +85,8 @@ export function toPostCardPost(dto: any): AnyPost {
     dto.user?.username ?? 
     dto.username ?? 
     "";
+    
+  const authorUsername = cleanEmail(rawAuthorUsername);
     
   const authorImage = resolveMediaUrl(
     dto.userProfileImage ??
@@ -92,7 +102,7 @@ export function toPostCardPost(dto: any): AnyPost {
     ...dto,
     id: dto.id ?? dto.socialPostId ?? (dto.poll ? dto.poll.socialPostId : undefined),
     username: authorUsername,
-    userDisplayName: dto.userDisplayName ?? authorUsername, // AuthorDto has no displayName
+    userDisplayName: cleanEmail(dto.userDisplayName ?? authorUsername), // AuthorDto has no displayName
     userProfileImage: authorImage,
     timeAgo,
     contentHidden: dto.contentHidden || dto.isFlagged || dto.status === "FLAGGED" || false,
