@@ -1265,6 +1265,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">Platform</a>
             <button onClick={() => navigate("/upcoming-updates")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Upcoming Updates</button>
             <button onClick={() => navigate("/privacy-policy")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Privacy Policy</button>
+            <button onClick={() => navigate("/refund-policy")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Refund Policy</button>
           </div>
 
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">

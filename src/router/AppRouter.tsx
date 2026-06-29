@@ -32,6 +32,7 @@ import ReviewPage from "../pages/ReviewPage";
 import SearchResultsPage from "../pages/SearchResultsPage";
 import CopyrightClaimForm from "../pages/CopyrightClaimForm";
 import CopyrightClaimStatus from "../pages/CopyrightClaimStatus";
+import RefundPolicy from "../pages/RefundPolicy";
 
 
 // ── Page transition wrapper ───────────────────────────────────────────────────
@@ -85,7 +86,8 @@ const useTokenExpiryWatcher = () => {
       location.pathname === "/verify-email" ||
       location.pathname.startsWith("/invite/") ||
       location.pathname === "/copyright-claim" ||
-      location.pathname === "/copyright-claim/status"
+      location.pathname === "/copyright-claim/status" ||
+      location.pathname === "/refund-policy"
     ) {
       return;
     }
@@ -175,6 +177,10 @@ const AppRouter = () => {
         <Route
           path="/copyright-claim/status"
           element={<PageWrapper><CopyrightClaimStatus /></PageWrapper>}
+        />
+        <Route
+          path="/refund-policy"
+          element={<PageWrapper><RefundPolicy /></PageWrapper>}
         />
 
         {/* ── Public auth routes ── */}

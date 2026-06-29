@@ -215,6 +215,7 @@ export default function PrivacyPolicy() {
               <button onClick={() => navigate("/")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Home</button>
               <button onClick={() => navigate("/upcoming-updates")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Upcoming Updates</button>
               <button onClick={() => navigate("/privacy-policy")} className="text-red-600 dark:text-red-400 bg-transparent border-none p-0 cursor-pointer font-semibold">Privacy Policy</button>
+              <button onClick={() => navigate("/refund-policy")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Refund Policy</button>
               <button onClick={() => navigate("/review")} className="hover:text-red-600 dark:hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-semibold">Review</button>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
